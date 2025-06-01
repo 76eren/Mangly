@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -16,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 
 @Composable
 fun Search() {
+
     Column ( modifier = Modifier
         .fillMaxSize()
         .background(Color.White),
@@ -29,6 +28,5 @@ fun Search() {
             contentDescription = "Search page",
             tint = Color(0xFF0F9D58)
         )
-
     }
 }

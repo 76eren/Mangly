@@ -10,7 +10,7 @@ import androidx.navigation.compose.composable
 import org.example.project.Composables.Standard.Home
 import org.example.project.Composables.Standard.Search
 import org.example.project.Composables.Standard.Settings
-import org.example.project.Composables.Standard.Sources
+import org.example.project.Composables.Standard.Extensions
 
 @Composable
 fun NavHostContainer(
@@ -42,7 +42,7 @@ fun NavHostContainer(
             }
 
             composable("sources") {
-                Sources()
+                Extensions()
             }
         })
 }
