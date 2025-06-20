@@ -73,5 +73,7 @@ dependencies {
     ksp("androidx.room:room-compiler:2.7.1")
     implementation(libs.androidx.room.common.jvm)
     implementation(libs.androidx.room.runtime.android)
+    implementation("com.google.code.gson:gson:2.11.0")
+
     debugImplementation(compose.uiTooling)
 }

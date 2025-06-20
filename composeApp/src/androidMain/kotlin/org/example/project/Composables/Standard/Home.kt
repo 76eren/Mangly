@@ -10,25 +10,31 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.launch
+import com.example.manglyextension.plugins.ExtensionMetadata
+import org.example.project.Extension.ExtensionManager
 import org.example.project.FileManager.FileManager
 import org.example.project.Rooms.Entities.ExtensionEntity
+import java.io.File
 
 @Composable
 fun Home() {
 
-    // Todo: this is for testing purposes, remove later
     val fileManager = FileManager()
     val context = LocalContext.current
+    val em = ExtensionManager()
+
     LaunchedEffect(Unit) {
         val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context = context)
         for (entry in allEntries) {
-            Log.d("lol", "Entry: ${entry.name}, Path: ${entry.filePath}")
+
+            // Todo: this is example code for testing purposes, remove later
+            val x: ExtensionMetadata = em.extractExtensionMetadata(File(entry.filePath))
+            val y = em.loadPluginSource(x, context)
+            Log.d("lol", y.getExtensionName())
         }
     }
 
