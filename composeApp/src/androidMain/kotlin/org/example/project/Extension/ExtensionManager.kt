@@ -1,16 +1,20 @@
 package org.example.project.Extension
 
 import android.content.Context
+import android.graphics.Canvas
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import com.caverock.androidsvg.SVG
 import com.example.manglyextension.plugins.ExtensionMetadata
 import com.example.manglyextension.plugins.PluginMetadata
 import com.example.manglyextension.plugins.Source
 import com.google.gson.Gson
 import dalvik.system.DexClassLoader
 import java.io.*
-import java.util.jar.JarEntry
-import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
+import androidx.core.graphics.createBitmap
 
 class ExtensionManager {
 
@@ -27,8 +31,11 @@ class ExtensionManager {
 
         val metadata = Gson().fromJson(jsonText, PluginMetadata::class.java)
 
-        val vectorImage = zipContents["meta/icon.svg"]
+        val vectorImageBytes: ByteArray = zipContents["meta/icon.svg"]
             ?: throw IllegalArgumentException("Missing meta/icon.svg in ${zipFile.name}")
+
+        val bitmapPainter: BitmapPainter = byteArrayToImageBitmap(vectorImageBytes)
+
 
         val dex = zipContents["dex/classes.dex"]
             ?: throw IllegalArgumentException("Missing dex/classes.dex in ${zipFile.name}")
@@ -37,27 +44,10 @@ class ExtensionManager {
             entryClass = metadata.entryClass,
             name = metadata.name,
             version = metadata.version,
-            icon = vectorImage,
+            icon = bitmapPainter,
             dexFile = dex
         )
     }
-
-    private fun readZip(zipBytes: ByteArray): Map<String, ByteArray> {
-        val zipMap = mutableMapOf<String, ByteArray>()
-        ZipInputStream(ByteArrayInputStream(zipBytes)).use { zis ->
-            var entry: ZipEntry? = zis.nextEntry
-            while (entry != null) {
-                if (!entry.isDirectory) {
-                    val buffer = ByteArrayOutputStream()
-                    zis.copyTo(buffer)
-                    zipMap[entry.name] = buffer.toByteArray()
-                }
-                entry = zis.nextEntry
-            }
-        }
-        return zipMap
-    }
-
 
     /**
      * Loads and instantiates the plugin Source from the .zip.
@@ -84,5 +74,37 @@ class ExtensionManager {
     }
 
 
+    /**
+     * Helper methods
+     */
+
+    private fun readZip(zipBytes: ByteArray): Map<String, ByteArray> {
+        val zipMap = mutableMapOf<String, ByteArray>()
+        ZipInputStream(ByteArrayInputStream(zipBytes)).use { zis ->
+            var entry: ZipEntry? = zis.nextEntry
+            while (entry != null) {
+                if (!entry.isDirectory) {
+                    val buffer = ByteArrayOutputStream()
+                    zis.copyTo(buffer)
+                    zipMap[entry.name] = buffer.toByteArray()
+                }
+                entry = zis.nextEntry
+            }
+        }
+        return zipMap
+    }
+
+    private fun byteArrayToImageBitmap(vectorImageBytes: ByteArray): BitmapPainter {
+        val svg: SVG = SVG.getFromString(vectorImageBytes.toString(Charsets.UTF_8))
+        val bitmap = createBitmap(64, 64)
+        val canvas = Canvas(bitmap)
+
+        svg.setDocumentWidth("100%")
+        svg.setDocumentHeight("100%")
+        svg.renderToCanvas(canvas)
+
+        val imageBitmap: ImageBitmap = bitmap.asImageBitmap()
+        return BitmapPainter(imageBitmap)
+    }
 
 }

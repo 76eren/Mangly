@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.androidx.room.common.jvm)
     implementation(libs.androidx.room.runtime.android)
     implementation("com.google.code.gson:gson:2.11.0")
+    implementation("com.caverock:androidsvg-aar:1.4")
 
     debugImplementation(compose.uiTooling)
 }
