@@ -7,15 +7,21 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import org.example.project.Composables.Standard.ExtensionDetails.ExtensionDetails
 import org.example.project.Composables.Standard.Home
 import org.example.project.Composables.Standard.Search
 import org.example.project.Composables.Standard.Settings
 import org.example.project.Composables.Standard.Extensions
+import org.example.project.ViewModels.ExtensionDetailsViewModel
 
 @Composable
 fun NavHostContainer(
     navController: NavHostController,
-    padding: PaddingValues
+    padding: PaddingValues,
+
+    // View models
+    extensionsViewModel: ExtensionDetailsViewModel
+
 ) {
 
     NavHost(
@@ -29,6 +35,7 @@ fun NavHostContainer(
 
         builder = {
 
+            // Bottom nav routes
             composable("home") {
                 Home()
             }
@@ -42,7 +49,17 @@ fun NavHostContainer(
             }
 
             composable("sources") {
-                Extensions()
+                Extensions(navController, extensionsViewModel)
+            }
+
+            // Regular routes
+
+            composable("extensionDetails/{id}") { backStackEntry ->
+                val name = backStackEntry.arguments?.getString("id")
+                extensionsViewModel.selectCardByName(name ?: "")
+                extensionsViewModel.selectedCardData?.let {
+                    ExtensionDetails(cardData = it)
+                }
             }
         })
 }

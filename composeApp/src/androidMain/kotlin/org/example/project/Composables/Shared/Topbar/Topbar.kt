@@ -1,11 +1,13 @@
 package org.example.project.Composables.Shared.Topbar
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -60,6 +62,29 @@ fun TopBarNewExtension() {
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = "Add"
+            )
+        }
+    }
+}
+
+@Composable
+fun TopBarDeleteExtensionFromExtensionDetails() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(end = 25.dp)
+            .height(48.dp),
+        contentAlignment = Alignment.CenterEnd
+    ) {
+        IconButton(
+            onClick = {
+                Log.d("lol", "Delete action triggered")
+            },
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Delete"
             )
         }
     }

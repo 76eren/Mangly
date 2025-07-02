@@ -1,6 +1,7 @@
 package org.example.project.Composables.Shared.Cards
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,15 +18,23 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import org.example.project.Composables.Standard.CardData
 
 
 @Composable
-fun CardTypeOne(imagePainter: Painter, title: String, description: String) {
+fun CardTypeOne(cardData: CardData, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        onClick()
+                    }
+                )
+            }
             .padding(8.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
@@ -35,7 +44,7 @@ fun CardTypeOne(imagePainter: Painter, title: String, description: String) {
                 .padding(16.dp)
         ) {
             Image(
-                painter = imagePainter,
+                painter = cardData.imagePainter,
                 contentDescription = null,
                 modifier = Modifier
                     .size(80.dp)
@@ -47,8 +56,8 @@ fun CardTypeOne(imagePainter: Painter, title: String, description: String) {
             Column(
                 verticalArrangement = Arrangement.SpaceEvenly
             ) {
-                Text(text = title, style = MaterialTheme.typography.titleMedium)
-                Text(text = description, style = MaterialTheme.typography.bodySmall)
+                Text(text = cardData.title, style = MaterialTheme.typography.titleMedium)
+                Text(text = cardData.description, style = MaterialTheme.typography.bodySmall)
             }
         }
     }

@@ -18,38 +18,48 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import com.example.manglyextension.plugins.ExtensionMetadata
+import com.example.manglyextension.plugins.Source
 import org.example.project.Composables.Shared.Cards.CardTypeOne
 import org.example.project.Composables.Shared.Topbar.TopBarNewExtension
 import org.example.project.Extension.ExtensionManager
 import org.example.project.FileManager.FileManager
 import org.example.project.Rooms.Entities.ExtensionEntity
+import org.example.project.ViewModels.ExtensionDetailsViewModel
 import java.io.File
 
 @Composable
-fun Extensions() {
+fun Extensions(navController: NavHostController, extensionDetailsViewModel: ExtensionDetailsViewModel) {
     val context = LocalContext.current
     val fileManager = remember { FileManager() }
     val extensionManager = remember { ExtensionManager() }
+
     val cardItems = remember { mutableStateListOf<CardData>() }
 
     LaunchedEffect(Unit) {
         val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
         for (entry in allEntries) {
-            val metadata = extensionManager.extractExtensionMetadata(File(entry.filePath))
-            val source = extensionManager.loadPluginSource(metadata, context)
+            val metadata: ExtensionMetadata = extensionManager.extractExtensionMetadata(File(entry.filePath))
+            val source: Source = extensionManager.loadPluginSource(metadata, context)
 
             val extensionName = source.getExtensionName()
             val extensionImageBitmap: BitmapPainter = metadata.icon
-
 
             cardItems.add(
                 CardData(
                     imagePainter = extensionImageBitmap,
                     title = extensionName,
-                    description = metadata.version
+                    description = metadata.version,
+                    metadata = metadata,
+                    source = source
                 )
             )
         }
+
+        extensionDetailsViewModel.setCards(cardItems)
+
     }
 
     Scaffold (
@@ -68,20 +78,21 @@ fun Extensions() {
             LazyColumn {
                 items(cardItems) { item ->
                     CardTypeOne(
-                        imagePainter = item.imagePainter,
-                        title = item.title,
-                        description = item.description
+                        cardData = item,
+                        onClick = {navController.navigate("extensionDetails/${item.metadata.name}")}
                     )
                 }
             }
 
         }
     }
-
 }
+
 
 data class CardData(
     val imagePainter: Painter,
     val title: String,
-    val description: String
+    val description: String,
+    val metadata: ExtensionMetadata,
+    val source: Source
 )
