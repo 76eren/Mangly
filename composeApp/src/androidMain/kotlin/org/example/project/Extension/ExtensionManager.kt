@@ -2,6 +2,7 @@ package org.example.project.Extension
 
 import android.content.Context
 import android.graphics.Canvas
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
@@ -15,6 +16,9 @@ import java.io.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import androidx.core.graphics.createBitmap
+import org.example.project.Composables.Standard.CardData
+import org.example.project.FileManager.FileManager
+import org.example.project.Rooms.Entities.ExtensionEntity
 
 class ExtensionManager {
 
@@ -73,6 +77,24 @@ class ExtensionManager {
         return clazz.getDeclaredConstructor().newInstance() as Source
     }
 
+    /**
+     * Gets the database entry for a given ExtensionMetadata.
+     */
+    suspend fun getDatabaseEntryByMetadata(currentMetadata: ExtensionMetadata, context: Context): ExtensionEntity {
+        val fileManager= FileManager()
+
+        val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
+        for (entry in allEntries) {
+            val targetMetaData: ExtensionMetadata = extractExtensionMetadata(File(entry.filePath))
+
+            if (
+                targetMetaData.entryClass == currentMetadata.entryClass && targetMetaData.dexFile.contentEquals(currentMetadata.dexFile)) {
+                return entry
+            }
+        }
+
+        throw IllegalArgumentException("No matching database entry found for metadata: ${currentMetadata.name}")
+    }
 
     /**
      * Helper methods

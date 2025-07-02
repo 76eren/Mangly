@@ -36,6 +36,16 @@ class FileManager {
         return file
     }
 
+    suspend fun deleteAndRemoveEntry(entityToBeDeleted: ExtensionEntity, context: Context) {
+        val db = AppDatabase.getDatabase(context)
+        db.extensionEntryDao().delete(entityToBeDeleted.id)
+
+        val file = File(entityToBeDeleted.filePath)
+        if (file.exists()) {
+            file.delete()
+        }
+    }
+
     suspend fun getAllEntries(context: Context): List<ExtensionEntity> {
         val db = AppDatabase.getDatabase(context)
         return db.extensionEntryDao().getAll()

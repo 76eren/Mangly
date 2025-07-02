@@ -20,4 +20,7 @@ interface ExtensionDao {
 
     @Query("SELECT * FROM ExtensionEntity WHERE name = :name")
     suspend fun getByName(name: String): List<ExtensionEntity>
+
+    @Query("DELETE FROM ExtensionEntity WHERE id = :id")
+    suspend fun delete(id: UUID)
 }
