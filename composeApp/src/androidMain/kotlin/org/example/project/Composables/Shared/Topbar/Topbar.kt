@@ -1,5 +1,6 @@
 package org.example.project.Composables.Shared.Topbar
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -25,6 +26,7 @@ import com.example.manglyextension.plugins.ExtensionMetadata
 import kotlinx.coroutines.launch
 import org.example.project.Extension.ExtensionManager
 import org.example.project.FileManager.FileManager
+import org.example.project.MainActivity
 import org.example.project.Rooms.Entities.ExtensionEntity
 import java.util.UUID
 
@@ -95,7 +97,11 @@ fun TopBarDeleteExtensionFromExtensionDetails(metadata: ExtensionMetadata) {
                     val entityToBeDeleted: ExtensionEntity = extensionManager.getDatabaseEntryByMetadata(metadata, context)
                     fileManager.deleteAndRemoveEntry(entityToBeDeleted, context)
 
-                    // Todo: go back to the previous screen
+                    val mainActivity = context as? MainActivity
+                    val intent = mainActivity?.intent
+                    intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    mainActivity?.finish()
+                    mainActivity?.startActivity(intent)
 
                 }
             },
