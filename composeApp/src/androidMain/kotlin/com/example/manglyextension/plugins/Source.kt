@@ -2,8 +2,17 @@
 
 package com.example.manglyextension.plugins
 
-interface Source {
-    fun getExtensionName(): String
+import java.util.UUID
 
-    // Todo: Add other sources as well
+abstract class Source(prefs: IPreferences?) {
+    val preferences: IPreferences? = prefs
+
+    abstract fun getExtensionName(): String
+
+    abstract fun getPreferenceKey(): UUID
+
+    abstract fun getUiPreferenceKey(): UUID
+
+    abstract fun generateSettings()
+
 }
