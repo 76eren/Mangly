@@ -17,6 +17,7 @@ import java.io.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import androidx.core.graphics.createBitmap
+import com.example.manglyextension.plugins.IPreferences
 import com.example.manglyextension.plugins.PreferenceImplementation
 import org.example.project.Composables.Standard.CardData
 import org.example.project.FileManager.FileManager
@@ -89,7 +90,7 @@ class ExtensionManager {
 
         val preferences = PreferenceImplementation(settingsKey, uiSettingsKey, context)
 
-        return clazz.getDeclaredConstructor(PreferenceImplementation::class.java)
+        return clazz.getDeclaredConstructor(IPreferences::class.java)
             .newInstance(preferences) as Source
     }
 
