@@ -83,21 +83,13 @@ class ExtensionManager {
         preferenceKeyField.isAccessible = true
         val settingsKey = preferenceKeyField.get(null) as UUID
 
-        val uiPreferenceKeyField = clazz.getDeclaredField("uiPreferenceKey")
-        uiPreferenceKeyField.isAccessible = true
-        val uiSettingsKey = uiPreferenceKeyField.get(null) as UUID
-
         val settingsSharedPreferences: SharedPreferences = context.getSharedPreferences(
             settingsKey.toString(),
             Context.MODE_PRIVATE
         )
 
-        val uiSettingsSharedPreferences: SharedPreferences = context.getSharedPreferences(
-            uiSettingsKey.toString(),
-            Context.MODE_PRIVATE
-        )
 
-        val preferences = PreferenceImplementation(settingsSharedPreferences, uiSettingsSharedPreferences, context)
+        val preferences = PreferenceImplementation(settingsSharedPreferences, context)
 
         return clazz.getDeclaredConstructor(IPreferences::class.java)
             .newInstance(preferences) as Source

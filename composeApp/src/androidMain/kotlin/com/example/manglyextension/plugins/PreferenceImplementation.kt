@@ -6,11 +6,9 @@ import androidx.core.content.edit
 
 class PreferenceImplementation(
     sharedPreferences: SharedPreferences,
-    uiSharedPreferences: SharedPreferences,
     context: Context
 ) : IPreferences(
     sharedPreferences,
-    uiSharedPreferences,
     context) {
 
     override fun getBoolean(key: String, defaultValue: Boolean): Boolean {
@@ -23,9 +21,7 @@ class PreferenceImplementation(
                 putBoolean(key, value)
             }
 
-        uiElement?.let { bindKeyToUiElement(key, uiElement) }
     }
-
 
     override fun getString(key: String, defaultValue: String): String {
         return settings.getString(key, defaultValue) ?: defaultValue
@@ -37,7 +33,6 @@ class PreferenceImplementation(
                 putString(key, value)
             }
 
-        uiElement?.let { bindKeyToUiElement(key, uiElement) }
     }
 
     override fun getInt(key: String, defaultValue: Int): Int {
@@ -50,14 +45,6 @@ class PreferenceImplementation(
                 putInt(key, value)
             }
 
-        uiElement?.let { bindKeyToUiElement(key, uiElement) }
     }
 
-
-    override fun bindKeyToUiElement(key: String, element: PreferenceUi) {
-        uiSettings
-            .edit {
-                putString(key, element.toString())
-            }
-    }
 }

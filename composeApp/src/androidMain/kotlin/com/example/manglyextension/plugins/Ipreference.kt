@@ -4,10 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import java.util.Objects
 
-abstract class IPreferences(settingsPreferences: Any?, uiPreferences: Any?, ctx: Any?) {
+abstract class IPreferences(settingsPreferences: Any?, ctx: Any?) {
     var settings: SharedPreferences = settingsPreferences as SharedPreferences
-
-    var uiSettings: SharedPreferences = uiPreferences as SharedPreferences // TODO: This is not needed anymore and can be removed
 
     var context: Context = ctx as Context
 
@@ -20,7 +18,6 @@ abstract class IPreferences(settingsPreferences: Any?, uiPreferences: Any?, ctx:
     abstract fun getInt(key: String, defaultValue: Int): Int
     abstract fun setInt(key: String, value: Int, uiElement: PreferenceUi? = null)
 
-    abstract fun bindKeyToUiElement(key: String, element: PreferenceUi)
 }
 
 enum class PreferenceUi {
