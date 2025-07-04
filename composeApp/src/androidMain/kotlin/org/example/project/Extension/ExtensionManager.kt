@@ -1,6 +1,7 @@
 package org.example.project.Extension
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.Canvas
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.ImageBitmap
@@ -16,9 +17,12 @@ import java.io.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import androidx.core.graphics.createBitmap
+import com.example.manglyextension.plugins.IPreferences
+import com.example.manglyextension.plugins.PreferenceImplementation
 import org.example.project.Composables.Standard.CardData
 import org.example.project.FileManager.FileManager
 import org.example.project.Rooms.Entities.ExtensionEntity
+import java.util.UUID
 
 class ExtensionManager {
 
@@ -74,7 +78,21 @@ class ExtensionManager {
         )
 
         val clazz = classLoader.loadClass(metadata.entryClass)
-        return clazz.getDeclaredConstructor().newInstance() as Source
+
+        val preferenceKeyField = clazz.getDeclaredField("preferenceKey")
+        preferenceKeyField.isAccessible = true
+        val settingsKey = preferenceKeyField.get(null) as UUID
+
+        val settingsSharedPreferences: SharedPreferences = context.getSharedPreferences(
+            settingsKey.toString(),
+            Context.MODE_PRIVATE
+        )
+
+
+        val preferences = PreferenceImplementation(settingsSharedPreferences, context)
+
+        return clazz.getDeclaredConstructor(IPreferences::class.java)
+            .newInstance(preferences) as Source
     }
 
     /**
