@@ -1,37 +1,63 @@
 package com.example.manglyextension.plugins
 
 import android.content.Context
+import android.content.SharedPreferences
+import androidx.core.content.edit
 
-class PreferenceImplementation(sharedPreferences: Any?, uiSharedPreferences: Any?, context: Any?) : IPreferences(sharedPreferences, uiSharedPreferences, context) {
+class PreferenceImplementation(
+    sharedPreferences: SharedPreferences,
+    uiSharedPreferences: SharedPreferences,
+    context: Context
+) : IPreferences(
+    sharedPreferences,
+    uiSharedPreferences,
+    context) {
+
     override fun getBoolean(key: String, defaultValue: Boolean): Boolean {
-        return defaultValue
+        return settings.getBoolean(key, defaultValue)
     }
 
     override fun setBoolean(key: String, value: Boolean, uiElement: PreferenceUi?) {
-        TODO("Not yet implemented")
+        settings
+            .edit {
+                putBoolean(key, value)
+            }
+
+        uiElement?.let { bindKeyToUiElement(key, uiElement) }
     }
 
 
     override fun getString(key: String, defaultValue: String): String {
-        return defaultValue
+        return settings.getString(key, defaultValue) ?: defaultValue
     }
 
     override fun setString(key: String, value: String, uiElement: PreferenceUi?) {
-        TODO("Not yet implemented")
+        settings
+            .edit {
+                putString(key, value)
+            }
+
+        uiElement?.let { bindKeyToUiElement(key, uiElement) }
     }
 
-
     override fun getInt(key: String, defaultValue: Int): Int {
-        return defaultValue
+        return settings.getInt(key, defaultValue)
     }
 
     override fun setInt(key: String, value: Int, uiElement: PreferenceUi?) {
-        TODO("Not yet implemented")
+        settings
+            .edit {
+                putInt(key, value)
+            }
+
+        uiElement?.let { bindKeyToUiElement(key, uiElement) }
     }
 
 
     override fun bindKeyToUiElement(key: String, element: PreferenceUi) {
-
+        uiSettings
+            .edit {
+                putString(key, element.toString())
+            }
     }
-
 }

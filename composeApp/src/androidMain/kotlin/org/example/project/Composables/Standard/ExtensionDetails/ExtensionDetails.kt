@@ -24,6 +24,9 @@ import org.example.project.Composables.Standard.CardData
 
 @Composable
 fun ExtensionDetails(cardData: CardData) {
+
+    seedSettings(cardData)
+
     Scaffold (topBar = { TopBarDeleteExtensionFromExtensionDetails(cardData.metadata) }
     ) { paddingValues ->
 
@@ -72,5 +75,11 @@ fun ExtensionDetails(cardData: CardData) {
             }
         }
     }
+
+}
+
+fun seedSettings(cardData: CardData) {
+    val rawSettings = cardData.source.generateSettings()
+    println("test")
 
 }

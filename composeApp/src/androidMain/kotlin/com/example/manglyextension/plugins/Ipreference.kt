@@ -5,9 +5,9 @@ import android.content.SharedPreferences
 import java.util.Objects
 
 abstract class IPreferences(settingsPreferences: Any?, uiPreferences: Any?, ctx: Any?) {
-    var settings: Any? = settingsPreferences
-    var uiSettings: Any? = uiPreferences
-    var context: Any? = ctx
+    var settings: SharedPreferences = settingsPreferences as SharedPreferences
+    var uiSettings: SharedPreferences = uiPreferences as SharedPreferences
+    var context: Context = ctx as Context
 
     abstract fun getBoolean(key: String, defaultValue: Boolean): Boolean
     abstract fun setBoolean(key: String, value: Boolean, uiElement: PreferenceUi? = null)
