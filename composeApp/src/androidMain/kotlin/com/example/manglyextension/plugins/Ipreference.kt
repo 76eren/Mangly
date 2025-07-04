@@ -6,7 +6,9 @@ import java.util.Objects
 
 abstract class IPreferences(settingsPreferences: Any?, uiPreferences: Any?, ctx: Any?) {
     var settings: SharedPreferences = settingsPreferences as SharedPreferences
-    var uiSettings: SharedPreferences = uiPreferences as SharedPreferences
+
+    var uiSettings: SharedPreferences = uiPreferences as SharedPreferences // TODO: This is not needed anymore and can be removed
+
     var context: Context = ctx as Context
 
     abstract fun getBoolean(key: String, defaultValue: Boolean): Boolean
