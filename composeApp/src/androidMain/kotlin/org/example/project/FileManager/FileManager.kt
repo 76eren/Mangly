@@ -15,6 +15,9 @@ class FileManager {
         inputStream: InputStream,
         id: UUID
     ): File {
+
+        // TODO: Handle extension updates and duplicates
+
         val file = File(context.filesDir, fileName)
 
         inputStream.use { input ->

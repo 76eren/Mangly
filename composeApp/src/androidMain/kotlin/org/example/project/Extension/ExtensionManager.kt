@@ -27,7 +27,7 @@ import java.util.UUID
 class ExtensionManager {
 
     /**
-     * Reads just the metadata out of a plugin .zip.
+     * Reads just the metadata out of a plugin .zip
      */
     fun extractExtensionMetadata(zipFile: File): ExtensionMetadata {
         val zipContents = readZip(zipFile.readBytes())
@@ -58,7 +58,7 @@ class ExtensionManager {
     }
 
     /**
-     * Loads and instantiates the plugin Source from the .zip.
+     * Loads and instantiates the plugin Source from the .zip
      */
     fun loadPluginSource(metadata: ExtensionMetadata, context: Context): Source {
         val dexFile = File.createTempFile("plugin", ".dex", context.codeCacheDir)

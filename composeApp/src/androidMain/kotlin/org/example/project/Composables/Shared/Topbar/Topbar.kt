@@ -2,6 +2,8 @@ package org.example.project.Composables.Shared.Topbar
 
 import android.content.Intent
 import android.net.Uri
+import android.provider.OpenableColumns
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -40,17 +42,29 @@ fun TopBarNewExtension() {
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri: Uri? ->
             uri?.let {
-                val inputStream = context.contentResolver.openInputStream(it)
-                if (inputStream != null) {
-                    val id = UUID.randomUUID()
-                    coroutineScope.launch {
-                        fileManager.saveAndInsertEntry(
-                            context = context,
-                            fileName = "$id.zip",
-                            inputStream = inputStream,
-                            id = id
-                        )
+                val name = context.contentResolver.query(it, null, null, null, null)?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (cursor.moveToFirst() && nameIndex >= 0) {
+                        cursor.getString(nameIndex)
+                    } else null
+                }
+
+                if (name?.endsWith(".mangly") == true) {
+                    val inputStream = context.contentResolver.openInputStream(it)
+                    if (inputStream != null) {
+                        val id = UUID.randomUUID()
+                        coroutineScope.launch {
+                            fileManager.saveAndInsertEntry(
+                                context = context,
+                                fileName = "$id.zip", // Internally it still does get saved as a zip
+                                inputStream = inputStream,
+                                id = id
+                            )
+                        }
                     }
+                }
+                else {
+                    Toast.makeText(context, "Selected file is not a valid .mangly file", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -65,7 +79,7 @@ fun TopBarNewExtension() {
     ) {
         IconButton(
             onClick = {
-                zipPickerLauncher.launch(arrayOf("application/zip"))
+                zipPickerLauncher.launch(arrayOf("*/*"))
             },
             modifier = Modifier.size(48.dp)
         ) {
