@@ -15,4 +15,15 @@ abstract class Source(prefs: IPreferences?) {
     )
     abstract fun generateSettings(): List<SettingGen>
 
+
+    data class SearchResult(
+        val title: String,
+        val imageUrl: String,
+        val url: String
+    )
+    abstract fun search(query: String): List<SearchResult>
+
+    abstract fun getReferer(): String
+
+
 }
