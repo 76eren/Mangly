@@ -41,10 +41,9 @@ fun Extensions(navController: NavHostController, extensionDetailsViewModel: Exte
     LaunchedEffect(Unit) {
         val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
         for (entry in allEntries) {
-            val metadata: ExtensionMetadata = extensionManager.extractExtensionMetadata(File(entry.filePath))
-            val source: Source = extensionManager.loadPluginSource(metadata, context)
+            val metadata: ExtensionMetadata = extensionManager.extractExtensionMetadata(File(entry.filePath), context)
 
-            val extensionName = source.getExtensionName()
+            val extensionName = metadata.source.getExtensionName()
             val extensionImageBitmap: BitmapPainter = metadata.icon
 
             cardItems.add(
@@ -53,7 +52,7 @@ fun Extensions(navController: NavHostController, extensionDetailsViewModel: Exte
                     title = extensionName,
                     description = metadata.version,
                     metadata = metadata,
-                    source = source
+                    source = metadata.source
                 )
             )
         }

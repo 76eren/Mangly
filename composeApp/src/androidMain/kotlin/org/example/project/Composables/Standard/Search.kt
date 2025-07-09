@@ -48,10 +48,9 @@ suspend fun querySearchFromSource(
     withContext(Dispatchers.IO) {
         val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
         for (entry in allEntries) {
-            val metadata: ExtensionMetadata = extensionManager.extractExtensionMetadata(File(entry.filePath))
-            val source: Source = extensionManager.loadPluginSource(metadata, context)
-            val searchResult = source.search(query)
-            results[source] = searchResult
+            val metadata: ExtensionMetadata = extensionManager.extractExtensionMetadata(File(entry.filePath), context)
+            val searchResult = metadata.source.search(query)
+            results[metadata.source] = searchResult
         }
     }
 
