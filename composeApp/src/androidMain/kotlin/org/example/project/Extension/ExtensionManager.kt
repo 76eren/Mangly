@@ -3,7 +3,6 @@ package org.example.project.Extension
 import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Canvas
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter

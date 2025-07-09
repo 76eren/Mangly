@@ -1,5 +1,6 @@
 package org.example.project
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -7,12 +8,19 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
+import com.example.manglyextension.plugins.ExtensionMetadata
 import org.example.project.Composables.Shared.Navigation.BottomNavigationBar
 import org.example.project.Composables.Shared.Navigation.NavHostContainer
+import org.example.project.Extension.ExtensionManager
+import org.example.project.FileManager.FileManager
+import org.example.project.Rooms.Entities.ExtensionEntity
 import org.example.project.ViewModels.ExtensionDetailsViewModel
+import org.example.project.ViewModels.ExtensionMetadataViewModel
+import java.io.File
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,13 +34,22 @@ class MainActivity : ComponentActivity() {
 
                     // Define viewModels
                     val extensionDetailsViewModel: ExtensionDetailsViewModel = viewModel()
+                    val sourcesViewModel: ExtensionMetadataViewModel = viewModel()
+
+
+                    // Populate data for view models if needed
+                    LaunchedEffect(Unit) {
+                        val metadataList = fetchSources(applicationContext)
+                        sourcesViewModel.setSources(metadataList)
+                    }
+
 
                     Surface(color = Color.White) {
                         Scaffold(
                             bottomBar = {
                                 BottomNavigationBar(navController = navController)
                             }, content = { padding ->
-                                NavHostContainer(navController = navController, padding = padding, extensionDetailsViewModel)
+                                NavHostContainer(navController = navController, padding = padding, extensionDetailsViewModel, sourcesViewModel)
                             }
                         )
                     }
@@ -40,4 +57,19 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+
+suspend fun fetchSources(context: Context): List<ExtensionMetadata> {
+    val fileManager = FileManager()
+    val extensionManager = ExtensionManager()
+    val sources = mutableListOf<ExtensionMetadata>()
+
+    val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
+    for (entry in allEntries) {
+        val metadata: ExtensionMetadata = extensionManager.extractExtensionMetadata(File(entry.filePath), context)
+        sources.add(metadata)
+    }
+
+    return sources
 }

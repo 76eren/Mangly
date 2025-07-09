@@ -28,38 +28,30 @@ import org.example.project.Extension.ExtensionManager
 import org.example.project.FileManager.FileManager
 import org.example.project.Rooms.Entities.ExtensionEntity
 import org.example.project.ViewModels.ExtensionDetailsViewModel
+import org.example.project.ViewModels.ExtensionMetadataViewModel
 import java.io.File
 
 @Composable
-fun Extensions(navController: NavHostController, extensionDetailsViewModel: ExtensionDetailsViewModel) {
-    val context = LocalContext.current
-    val fileManager = remember { FileManager() }
-    val extensionManager = remember { ExtensionManager() }
-
+fun Extensions(navController: NavHostController, extensionDetailsViewModel: ExtensionDetailsViewModel, extensionMetadataViewModel: ExtensionMetadataViewModel) {
     val cardItems = remember { mutableStateListOf<CardData>() }
 
-    LaunchedEffect(Unit) {
-        val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
-        for (entry in allEntries) {
-            val metadata: ExtensionMetadata = extensionManager.extractExtensionMetadata(File(entry.filePath), context)
+    for (metadata in extensionMetadataViewModel.getAllSources()) {
+        val extensionName = metadata.source.getExtensionName()
+        val extensionImageBitmap: BitmapPainter = metadata.icon
 
-            val extensionName = metadata.source.getExtensionName()
-            val extensionImageBitmap: BitmapPainter = metadata.icon
-
-            cardItems.add(
-                CardData(
-                    imagePainter = extensionImageBitmap,
-                    title = extensionName,
-                    description = metadata.version,
-                    metadata = metadata,
-                    source = metadata.source
-                )
+        cardItems.add(
+            CardData(
+                imagePainter = extensionImageBitmap,
+                title = extensionName,
+                description = metadata.version,
+                metadata = metadata,
+                source = metadata.source
             )
-        }
-
-        extensionDetailsViewModel.setCards(cardItems)
-
+        )
     }
+
+    extensionDetailsViewModel.setCards(cardItems)
+
 
     Scaffold (
         topBar = { TopBarNewExtension() }

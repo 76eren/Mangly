@@ -13,6 +13,7 @@ import org.example.project.Composables.Standard.Search
 import org.example.project.Composables.Standard.Settings
 import org.example.project.Composables.Standard.Extensions
 import org.example.project.ViewModels.ExtensionDetailsViewModel
+import org.example.project.ViewModels.ExtensionMetadataViewModel
 
 @Composable
 fun NavHostContainer(
@@ -20,7 +21,8 @@ fun NavHostContainer(
     padding: PaddingValues,
 
     // View models
-    extensionsViewModel: ExtensionDetailsViewModel
+    extensionsViewModel: ExtensionDetailsViewModel,
+    extensionMetadataViewModel: ExtensionMetadataViewModel
 
 ) {
 
@@ -41,7 +43,7 @@ fun NavHostContainer(
             }
 
             composable("search") {
-                Search()
+                Search(extensionMetadataViewModel)
             }
 
             composable("settings") {
@@ -49,7 +51,7 @@ fun NavHostContainer(
             }
 
             composable("sources") {
-                Extensions(navController, extensionsViewModel)
+                Extensions(navController, extensionsViewModel, extensionMetadataViewModel)
             }
 
             // Regular routes
