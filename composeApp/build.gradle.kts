@@ -76,5 +76,10 @@ dependencies {
     implementation("com.google.code.gson:gson:2.11.0")
     implementation("com.caverock:androidsvg-aar:1.4")
 
+    implementation("org.jsoup:jsoup:1.21.1")
+    implementation("io.coil-kt.coil3:coil-compose:3.2.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.2.0")
+
+
     debugImplementation(compose.uiTooling)
 }

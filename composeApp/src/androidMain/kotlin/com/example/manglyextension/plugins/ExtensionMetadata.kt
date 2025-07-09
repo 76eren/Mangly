@@ -7,5 +7,6 @@ data class ExtensionMetadata(
     val name: String,
     val version: String,
     val icon: BitmapPainter,
-    val dexFile: ByteArray
+    val dexFile: ByteArray,
+    val source: Source
 )

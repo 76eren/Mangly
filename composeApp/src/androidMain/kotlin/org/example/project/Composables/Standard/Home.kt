@@ -27,17 +27,6 @@ fun Home() {
     val context = LocalContext.current
     val em = ExtensionManager()
 
-    LaunchedEffect(Unit) {
-        val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context = context)
-        for (entry in allEntries) {
-
-            // Todo: this is example code for testing purposes, remove later
-            val x: ExtensionMetadata = em.extractExtensionMetadata(File(entry.filePath))
-            val y = em.loadPluginSource(x, context)
-            Log.d("lol", y.getExtensionName())
-        }
-    }
-
     Column ( modifier = Modifier
         .fillMaxSize()
         .background(Color.White),

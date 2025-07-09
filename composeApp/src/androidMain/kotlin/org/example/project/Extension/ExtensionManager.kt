@@ -3,7 +3,6 @@ package org.example.project.Extension
 import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Canvas
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
@@ -19,7 +18,6 @@ import java.util.zip.ZipInputStream
 import androidx.core.graphics.createBitmap
 import com.example.manglyextension.plugins.IPreferences
 import com.example.manglyextension.plugins.PreferenceImplementation
-import org.example.project.Composables.Standard.CardData
 import org.example.project.FileManager.FileManager
 import org.example.project.Rooms.Entities.ExtensionEntity
 import java.util.UUID
@@ -29,7 +27,7 @@ class ExtensionManager {
     /**
      * Reads just the metadata out of a plugin .zip
      */
-    fun extractExtensionMetadata(zipFile: File): ExtensionMetadata {
+    fun extractExtensionMetadata(zipFile: File, context: Context): ExtensionMetadata {
         val zipContents = readZip(zipFile.readBytes())
 
         val jsonBytes = zipContents["meta/plugin.json"]
@@ -53,17 +51,18 @@ class ExtensionManager {
             name = metadata.name,
             version = metadata.version,
             icon = bitmapPainter,
-            dexFile = dex
+            dexFile = dex,
+            loadPluginSource(metadata.entryClass, dex, context)
         )
     }
 
     /**
      * Loads and instantiates the plugin Source from the .zip
      */
-    fun loadPluginSource(metadata: ExtensionMetadata, context: Context): Source {
+     private fun loadPluginSource(entryClass: String, dex: ByteArray, context: Context): Source {
         val dexFile = File.createTempFile("plugin", ".dex", context.codeCacheDir)
 
-        dexFile.writeBytes(metadata.dexFile)
+        dexFile.writeBytes(dex)
 
         dexFile.setReadOnly()
 
@@ -77,7 +76,7 @@ class ExtensionManager {
             context.classLoader
         )
 
-        val clazz = classLoader.loadClass(metadata.entryClass)
+        val clazz = classLoader.loadClass(entryClass)
 
         val preferenceKeyField = clazz.getDeclaredField("preferenceKey")
         preferenceKeyField.isAccessible = true
@@ -103,7 +102,7 @@ class ExtensionManager {
 
         val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
         for (entry in allEntries) {
-            val targetMetaData: ExtensionMetadata = extractExtensionMetadata(File(entry.filePath))
+            val targetMetaData: ExtensionMetadata = extractExtensionMetadata(File(entry.filePath), context)
 
             if (
                 targetMetaData.entryClass == currentMetadata.entryClass && targetMetaData.dexFile.contentEquals(currentMetadata.dexFile)) {
