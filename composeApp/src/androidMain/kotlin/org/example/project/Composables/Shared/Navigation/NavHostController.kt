@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import org.example.project.Composables.Standard.ChaptersList.ChaptersList
 import org.example.project.Composables.Standard.ExtensionDetails.ExtensionDetails
 import org.example.project.Composables.Standard.Home
 import org.example.project.Composables.Standard.Search
@@ -14,6 +15,8 @@ import org.example.project.Composables.Standard.Settings
 import org.example.project.Composables.Standard.Extensions
 import org.example.project.ViewModels.ExtensionDetailsViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 
 @Composable
 fun NavHostContainer(
@@ -43,7 +46,7 @@ fun NavHostContainer(
             }
 
             composable("search") {
-                Search(extensionMetadataViewModel)
+                Search(extensionMetadataViewModel, navController)
             }
 
             composable("settings") {
@@ -55,7 +58,6 @@ fun NavHostContainer(
             }
 
             // Regular routes
-
             composable("extensionDetails/{id}") { backStackEntry ->
                 val name = backStackEntry.arguments?.getString("id")
                 extensionsViewModel.selectCardByName(name ?: "")
@@ -63,5 +65,12 @@ fun NavHostContainer(
                     ExtensionDetails(cardData = it)
                 }
             }
+
+            composable("chapters/{url}") { backStackEntry ->
+                val encodedUrl = backStackEntry.arguments?.getString("url").orEmpty()
+                val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
+                ChaptersList(url, extensionMetadataViewModel)
+            }
+
         })
 }

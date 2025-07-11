@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
@@ -49,10 +50,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.example.project.ViewModels.ExtensionMetadataViewModel
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 suspend fun querySearchFromSource(
     query: String,
-    extensionMetadataViewModel: ExtensionMetadataViewModel
+    extensionMetadataViewModel: ExtensionMetadataViewModel,
 ): HashMap<Source, List<Source.SearchResult>> {
 
     val results = HashMap<Source, List<Source.SearchResult>>()
@@ -68,7 +71,7 @@ suspend fun querySearchFromSource(
 }
 
 @Composable
-fun Search(extensionMetadataViewModel: ExtensionMetadataViewModel) {
+fun Search(extensionMetadataViewModel: ExtensionMetadataViewModel, navHostController: NavHostController) {
     val textFieldState = remember { TextFieldState() }
     var searchResults by remember { mutableStateOf(HashMap<Source, List<Source.SearchResult>>()) }
     val scope = CoroutineScope(Dispatchers.IO)
@@ -89,6 +92,7 @@ fun Search(extensionMetadataViewModel: ExtensionMetadataViewModel) {
                 }
             },
             searchResults = searchResults,
+            navHostController = navHostController,
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -100,6 +104,7 @@ fun SimpleSearchBar(
     textFieldState: TextFieldState,
     onSearch: (String) -> Unit,
     searchResults: HashMap<Source, List<Source.SearchResult>>,
+    navHostController: NavHostController,
     modifier: Modifier = Modifier
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -157,9 +162,7 @@ fun SimpleSearchBar(
                                     imageUrl = result.imageUrl,
                                     referer = source.getReferer(),
                                     onClick = {
-                                        textFieldState.edit { replace(0, length, result.title) }
-                                        expanded = false
-                                        searchTriggered = false
+                                        onItemClick(result.url, navHostController)
                                     }
                                 )
                             }
@@ -234,4 +237,10 @@ fun SearchResultImage(
         modifier = modifier,
         contentScale = ContentScale.Crop
     )
+}
+
+
+fun onItemClick(url: String, navController: NavHostController) {
+    val encodedUrl = URLEncoder.encode(url, StandardCharsets.UTF_8.toString())
+    navController.navigate("chapters/${encodedUrl}")
 }
