@@ -44,6 +44,7 @@ import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.example.manglyextension.plugins.ExtensionMetadata
 import com.example.manglyextension.plugins.Source
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -56,14 +57,14 @@ import java.nio.charset.StandardCharsets
 suspend fun querySearchFromSource(
     query: String,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
-): HashMap<Source, List<Source.SearchResult>> {
+): HashMap<ExtensionMetadata, List<Source.SearchResult>> {
 
-    val results = HashMap<Source, List<Source.SearchResult>>()
+    val results = HashMap<ExtensionMetadata, List<Source.SearchResult>>()
 
     withContext(Dispatchers.IO) {
         for (metadata in extensionMetadataViewModel.getAllSources()) {
             val searchResult = metadata.source.search(query)
-            results[metadata.source] = searchResult
+            results[metadata] = searchResult
         }
     }
 
@@ -73,7 +74,7 @@ suspend fun querySearchFromSource(
 @Composable
 fun Search(extensionMetadataViewModel: ExtensionMetadataViewModel, navHostController: NavHostController) {
     val textFieldState = remember { TextFieldState() }
-    var searchResults by remember { mutableStateOf(HashMap<Source, List<Source.SearchResult>>()) }
+    var searchResults by remember { mutableStateOf(HashMap<ExtensionMetadata, List<Source.SearchResult>>()) }
     val scope = CoroutineScope(Dispatchers.IO)
 
     Column(
@@ -93,6 +94,7 @@ fun Search(extensionMetadataViewModel: ExtensionMetadataViewModel, navHostContro
             },
             searchResults = searchResults,
             navHostController = navHostController,
+            extensionMetadataViewModel = extensionMetadataViewModel,
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -103,8 +105,9 @@ fun Search(extensionMetadataViewModel: ExtensionMetadataViewModel, navHostContro
 fun SimpleSearchBar(
     textFieldState: TextFieldState,
     onSearch: (String) -> Unit,
-    searchResults: HashMap<Source, List<Source.SearchResult>>,
+    searchResults: HashMap<ExtensionMetadata, List<Source.SearchResult>>,
     navHostController: NavHostController,
+    extensionMetadataViewModel: ExtensionMetadataViewModel,
     modifier: Modifier = Modifier
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -145,9 +148,9 @@ fun SimpleSearchBar(
                         .verticalScroll(rememberScrollState())
                         .padding(8.dp)
                 ) {
-                    searchResults.forEach { (source, results) ->
+                    searchResults.forEach { (extensionMetadata, results) ->
                         Text(
-                            text = source.getExtensionName(),
+                            text = extensionMetadata.source.getExtensionName(),
                             style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
@@ -160,9 +163,9 @@ fun SimpleSearchBar(
                                 SearchResultCard(
                                     title = result.title,
                                     imageUrl = result.imageUrl,
-                                    referer = source.getReferer(),
+                                    referer = extensionMetadata.source.getReferer(),
                                     onClick = {
-                                        onItemClick(result.url, navHostController)
+                                        onItemClick(result.url, navHostController, extensionMetadataViewModel, extensionMetadata)
                                     }
                                 )
                             }
@@ -240,7 +243,9 @@ fun SearchResultImage(
 }
 
 
-fun onItemClick(url: String, navController: NavHostController) {
+fun onItemClick(url: String, navController: NavHostController, extensionMetadataViewModel: ExtensionMetadataViewModel, correspondingSource: ExtensionMetadata) {
+    extensionMetadataViewModel.setSelectedSource(source = correspondingSource)
+
     val encodedUrl = URLEncoder.encode(url, StandardCharsets.UTF_8.toString())
     navController.navigate("chapters/${encodedUrl}")
 }
