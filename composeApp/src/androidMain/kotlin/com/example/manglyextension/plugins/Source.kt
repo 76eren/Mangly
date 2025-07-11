@@ -37,4 +37,6 @@ abstract class Source(prefs: IPreferences?) {
         val url: String,
     )
     abstract fun getChaptersFromChapterUrl(targetUrl: String): List<ChapterValue>
+
+    abstract fun getSummary(url: String): String
 }
