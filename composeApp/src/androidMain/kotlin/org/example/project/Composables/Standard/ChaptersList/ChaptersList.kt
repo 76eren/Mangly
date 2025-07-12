@@ -81,6 +81,7 @@ fun ChaptersList(
                 painter = rememberAsyncImagePainter(it.imageUrl),
                 contentDescription = "Comic Cover",
                 contentScale = ContentScale.Crop,
+
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .width(220.dp)

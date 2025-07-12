@@ -23,6 +23,7 @@ import org.example.project.Navigation.NavigationConstants
 import org.example.project.Rooms.Entities.ExtensionEntity
 import org.example.project.ViewModels.ExtensionDetailsViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
+import org.example.project.ViewModels.SearchViewModel
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -45,6 +46,7 @@ class MainActivity : ComponentActivity() {
                     // Define viewModels
                     val extensionDetailsViewModel: ExtensionDetailsViewModel = viewModel()
                     val sourcesViewModel: ExtensionMetadataViewModel = viewModel()
+                    val searchViewModel: SearchViewModel = viewModel()
 
 
                     // Populate data for view models if needed
@@ -65,7 +67,8 @@ class MainActivity : ComponentActivity() {
                                 navController = navController,
                                 padding = padding,
                                 extensionDetailsViewModel,
-                                sourcesViewModel
+                                sourcesViewModel,
+                                searchViewModel
                             )
                         }
                     }

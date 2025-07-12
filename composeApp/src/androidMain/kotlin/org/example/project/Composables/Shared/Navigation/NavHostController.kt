@@ -15,6 +15,7 @@ import org.example.project.Composables.Standard.Settings
 import org.example.project.Composables.Standard.Extensions
 import org.example.project.ViewModels.ExtensionDetailsViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
+import org.example.project.ViewModels.SearchViewModel
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
@@ -25,7 +26,8 @@ fun NavHostContainer(
 
     // View models
     extensionsViewModel: ExtensionDetailsViewModel,
-    extensionMetadataViewModel: ExtensionMetadataViewModel
+    extensionMetadataViewModel: ExtensionMetadataViewModel,
+    searchViewModel: SearchViewModel
 
 ) {
 
@@ -42,18 +44,21 @@ fun NavHostContainer(
 
             // Bottom nav routes
             composable("home") {
+                searchViewModel.clearSearchResults()
                 Home()
             }
 
             composable("search") {
-                Search(extensionMetadataViewModel, navController)
+                Search(extensionMetadataViewModel = extensionMetadataViewModel, navHostController = navController, searchViewModel = searchViewModel)
             }
 
             composable("settings") {
+                searchViewModel.clearSearchResults()
                 Settings()
             }
 
             composable("sources") {
+                searchViewModel.clearSearchResults()
                 Extensions(navController, extensionsViewModel, extensionMetadataViewModel)
             }
 

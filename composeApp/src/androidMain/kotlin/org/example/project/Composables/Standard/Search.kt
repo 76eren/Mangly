@@ -51,6 +51,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.example.project.ViewModels.ExtensionMetadataViewModel
+import org.example.project.ViewModels.SearchViewModel
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -72,10 +73,11 @@ suspend fun querySearchFromSource(
 }
 
 @Composable
-fun Search(extensionMetadataViewModel: ExtensionMetadataViewModel, navHostController: NavHostController) {
+fun Search(extensionMetadataViewModel: ExtensionMetadataViewModel, navHostController: NavHostController, searchViewModel: SearchViewModel) {
     val textFieldState = remember { TextFieldState() }
-    var searchResults by remember { mutableStateOf(HashMap<ExtensionMetadata, List<Source.SearchResult>>()) }
     val scope = CoroutineScope(Dispatchers.IO)
+
+    var searchResults by searchViewModel::searchResults
 
     Column(
         modifier = Modifier
@@ -90,6 +92,7 @@ fun Search(extensionMetadataViewModel: ExtensionMetadataViewModel, navHostContro
                 scope.launch {
                     val results = querySearchFromSource(query, extensionMetadataViewModel)
                     searchResults = results
+                    searchViewModel.updateSearchResults(results)
                 }
             },
             searchResults = searchResults,
@@ -142,7 +145,7 @@ fun SimpleSearchBar(
             expanded = expanded,
             onExpandedChange = { expanded = it },
         ) {
-            if (searchTriggered) {
+            if (searchTriggered ||  searchResults.isNotEmpty()) {
                 Column(
                     Modifier
                         .verticalScroll(rememberScrollState())
