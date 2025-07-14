@@ -26,8 +26,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil3.compose.rememberAsyncImagePainter
+import coil3.network.NetworkHeaders
+import coil3.network.httpHeaders
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import kotlinx.coroutines.Dispatchers
 
 
@@ -77,9 +82,26 @@ fun ChaptersList(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
+        // TODO: Make headers dynamically configurable
+        val headers = if (image?.referer != null) {
+            NetworkHeaders.Builder()
+                .set("Referer", image?.referer!!)
+                .build()
+        }
+        else {
+            NetworkHeaders.Builder()
+                .build()
+        }
+
+        val imageRequest = ImageRequest.Builder(LocalContext.current)
+            .data(image?.imageUrl)
+            .httpHeaders(headers)
+            .crossfade(true)
+            .build()
+
         image?.let {
             Image(
-                painter = rememberAsyncImagePainter(it.imageUrl),
+                painter = rememberAsyncImagePainter(imageRequest),
                 contentDescription = "Comic Cover",
                 contentScale = ContentScale.Crop,
 

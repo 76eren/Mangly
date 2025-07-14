@@ -220,7 +220,7 @@ fun SearchResultImage(
 ) {
     val context = LocalContext.current
 
-    // TODO: add user agent through source
+    // TODO: Make headers dynamically configurable
     val headers = if (referer != null) {
         NetworkHeaders.Builder()
             .set("Referer", referer)
