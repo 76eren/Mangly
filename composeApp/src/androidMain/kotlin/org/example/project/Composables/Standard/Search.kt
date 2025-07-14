@@ -38,29 +38,34 @@ import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.example.manglyextension.plugins.ExtensionMetadata
 import com.example.manglyextension.plugins.Source
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.example.project.ViewModels.ExtensionMetadataViewModel
+import org.example.project.ViewModels.SearchViewModel
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 suspend fun querySearchFromSource(
     query: String,
-    extensionMetadataViewModel: ExtensionMetadataViewModel
-): HashMap<Source, List<Source.SearchResult>> {
+    extensionMetadataViewModel: ExtensionMetadataViewModel,
+): HashMap<ExtensionMetadata, List<Source.SearchResult>> {
 
-    val results = HashMap<Source, List<Source.SearchResult>>()
+    val results = HashMap<ExtensionMetadata, List<Source.SearchResult>>()
 
     withContext(Dispatchers.IO) {
         for (metadata in extensionMetadataViewModel.getAllSources()) {
             val searchResult = metadata.source.search(query)
-            results[metadata.source] = searchResult
+            results[metadata] = searchResult
         }
     }
 
@@ -68,10 +73,11 @@ suspend fun querySearchFromSource(
 }
 
 @Composable
-fun Search(extensionMetadataViewModel: ExtensionMetadataViewModel) {
+fun Search(extensionMetadataViewModel: ExtensionMetadataViewModel, navHostController: NavHostController, searchViewModel: SearchViewModel) {
     val textFieldState = remember { TextFieldState() }
-    var searchResults by remember { mutableStateOf(HashMap<Source, List<Source.SearchResult>>()) }
     val scope = CoroutineScope(Dispatchers.IO)
+
+    var searchResults by searchViewModel::searchResults
 
     Column(
         modifier = Modifier
@@ -86,9 +92,12 @@ fun Search(extensionMetadataViewModel: ExtensionMetadataViewModel) {
                 scope.launch {
                     val results = querySearchFromSource(query, extensionMetadataViewModel)
                     searchResults = results
+                    searchViewModel.updateSearchResults(results)
                 }
             },
             searchResults = searchResults,
+            navHostController = navHostController,
+            extensionMetadataViewModel = extensionMetadataViewModel,
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -99,7 +108,9 @@ fun Search(extensionMetadataViewModel: ExtensionMetadataViewModel) {
 fun SimpleSearchBar(
     textFieldState: TextFieldState,
     onSearch: (String) -> Unit,
-    searchResults: HashMap<Source, List<Source.SearchResult>>,
+    searchResults: HashMap<ExtensionMetadata, List<Source.SearchResult>>,
+    navHostController: NavHostController,
+    extensionMetadataViewModel: ExtensionMetadataViewModel,
     modifier: Modifier = Modifier
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -134,15 +145,15 @@ fun SimpleSearchBar(
             expanded = expanded,
             onExpandedChange = { expanded = it },
         ) {
-            if (searchTriggered) {
+            if (searchTriggered ||  searchResults.isNotEmpty()) {
                 Column(
                     Modifier
                         .verticalScroll(rememberScrollState())
                         .padding(8.dp)
                 ) {
-                    searchResults.forEach { (source, results) ->
+                    searchResults.forEach { (extensionMetadata, results) ->
                         Text(
-                            text = source.getExtensionName(),
+                            text = extensionMetadata.source.getExtensionName(),
                             style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
@@ -155,11 +166,9 @@ fun SimpleSearchBar(
                                 SearchResultCard(
                                     title = result.title,
                                     imageUrl = result.imageUrl,
-                                    referer = source.getReferer(),
+                                    referer = extensionMetadata.source.getReferer(),
                                     onClick = {
-                                        textFieldState.edit { replace(0, length, result.title) }
-                                        expanded = false
-                                        searchTriggered = false
+                                        onItemClick(result.url, navHostController, extensionMetadataViewModel, extensionMetadata)
                                     }
                                 )
                             }
@@ -211,7 +220,7 @@ fun SearchResultImage(
 ) {
     val context = LocalContext.current
 
-    // TODO: add user agent through source
+    // TODO: Make headers dynamically configurable
     val headers = if (referer != null) {
         NetworkHeaders.Builder()
             .set("Referer", referer)
@@ -234,4 +243,12 @@ fun SearchResultImage(
         modifier = modifier,
         contentScale = ContentScale.Crop
     )
+}
+
+
+fun onItemClick(url: String, navController: NavHostController, extensionMetadataViewModel: ExtensionMetadataViewModel, correspondingSource: ExtensionMetadata) {
+    extensionMetadataViewModel.setSelectedSource(source = correspondingSource)
+
+    val encodedUrl = URLEncoder.encode(url, StandardCharsets.UTF_8.toString())
+    navController.navigate("chapters/${encodedUrl}")
 }
