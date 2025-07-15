@@ -60,6 +60,13 @@ fun TopBarNewExtension() {
                                 inputStream = inputStream,
                                 id = id
                             )
+
+                            // Todo: stop being lazy
+                            val mainActivity = context as? MainActivity
+                            val intent = mainActivity?.intent
+                            intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                            mainActivity?.finish()
+                            mainActivity?.startActivity(intent)
                         }
                     }
                 }
@@ -111,6 +118,7 @@ fun TopBarDeleteExtensionFromExtensionDetails(metadata: ExtensionMetadata) {
                     val entityToBeDeleted: ExtensionEntity = extensionManager.getDatabaseEntryByMetadata(metadata, context)
                     fileManager.deleteAndRemoveEntry(entityToBeDeleted, context)
 
+                    // Todo: stop being lazy
                     val mainActivity = context as? MainActivity
                     val intent = mainActivity?.intent
                     intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
