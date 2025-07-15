@@ -1,9 +1,12 @@
-// Package matches location in extension project
-
 package com.example.manglyextension.plugins
 
 abstract class Source(prefs: IPreferences?) {
     val preferences: IPreferences? = prefs
+
+    data class Header(
+        val name: String,
+        val value: String
+    )
 
     abstract fun getExtensionName(): String
 
@@ -18,16 +21,15 @@ abstract class Source(prefs: IPreferences?) {
     data class SearchResult(
         val title: String,
         val imageUrl: String,
-        val url: String
+        val url: String,
+        val headers: List<Header>
     )
     abstract fun search(query: String): List<SearchResult>
 
-    abstract fun getReferer(): String
-    abstract fun getUserAgent(): String
 
     data class ImageForChaptersList(
         val imageUrl: String,
-        val referer: String?,
+        val headers: List<Header>
     )
     abstract fun getImageForChaptersList(chaptersUrl: String): ImageForChaptersList
 
@@ -39,4 +41,5 @@ abstract class Source(prefs: IPreferences?) {
     abstract fun getChaptersFromChapterUrl(targetUrl: String): List<ChapterValue>
 
     abstract fun getSummary(url: String): String
+
 }
