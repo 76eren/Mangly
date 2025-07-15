@@ -82,20 +82,21 @@ fun ChaptersList(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
-        // TODO: Make headers dynamically configurable
-        val headers = if (image?.referer != null) {
-            NetworkHeaders.Builder()
-                .set("Referer", image?.referer!!)
-                .build()
+        val headers: List<Source.Header> = image?.headers.let {
+            it ?: emptyList()
+        }.map { header ->
+            Source.Header(header.name, header.value)
         }
-        else {
-            NetworkHeaders.Builder()
-                .build()
-        }
+
+        val networkHeaders = NetworkHeaders.Builder().apply {
+            for (header in headers) {
+                this[header.name] = header.value
+            }
+        }.build()
 
         val imageRequest = ImageRequest.Builder(LocalContext.current)
             .data(image?.imageUrl)
-            .httpHeaders(headers)
+            .httpHeaders(networkHeaders)
             .crossfade(true)
             .build()
 

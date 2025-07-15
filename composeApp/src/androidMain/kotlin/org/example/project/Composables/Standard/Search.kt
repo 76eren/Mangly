@@ -164,9 +164,7 @@ fun SimpleSearchBar(
                         ) {
                             items(results) { result ->
                                 SearchResultCard(
-                                    title = result.title,
-                                    imageUrl = result.imageUrl,
-                                    referer = extensionMetadata.source.getReferer(),
+                                    searchResult = result,
                                     onClick = {
                                         onItemClick(result.url, navHostController, extensionMetadataViewModel, extensionMetadata)
                                     }
@@ -182,9 +180,7 @@ fun SimpleSearchBar(
 
 @Composable
 fun SearchResultCard(
-    title: String,
-    imageUrl: String,
-    referer: String,
+    searchResult: Source.SearchResult,
     onClick: () -> Unit
 ) {
     Card(
@@ -196,15 +192,13 @@ fun SearchResultCard(
     ) {
         Column {
             SearchResultImage(
-                imageUrl = imageUrl,
-                referer = referer,
-                contentDescription = title,
+                searchResult = searchResult,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(140.dp)
             )
             Column(modifier = Modifier.padding(8.dp)) {
-                Text(text = title, style = MaterialTheme.typography.titleSmall)
+                Text(text = searchResult.title, style = MaterialTheme.typography.titleSmall)
             }
         }
     }
@@ -212,34 +206,27 @@ fun SearchResultCard(
 
 @Composable
 fun SearchResultImage(
-    imageUrl: String,
-    contentDescription: String,
-    referer: String?,
-
+    searchResult: Source.SearchResult,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
 
-    // TODO: Make headers dynamically configurable
-    val headers = if (referer != null) {
-        NetworkHeaders.Builder()
-            .set("Referer", referer)
-            .build()
-    }
-    else {
-        NetworkHeaders.Builder()
-            .build()
-    }
+    val headers: List<Source.Header> = searchResult.headers
+    val networkHeaders = NetworkHeaders.Builder().apply {
+        for (header in headers) {
+            this[header.name] = header.value
+        }
+    }.build()
 
     val imageRequest = ImageRequest.Builder(context)
-        .data(imageUrl)
-        .httpHeaders(headers)
+        .data(searchResult.imageUrl)
+        .httpHeaders(networkHeaders)
         .crossfade(true)
         .build()
 
     AsyncImage(
         model = imageRequest,
-        contentDescription = contentDescription,
+        contentDescription = searchResult.title,
         modifier = modifier,
         contentScale = ContentScale.Crop
     )
