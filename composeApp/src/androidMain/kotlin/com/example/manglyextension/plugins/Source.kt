@@ -38,7 +38,7 @@ abstract class Source(prefs: IPreferences?) {
         val url: String,
         val headers: List<Header>
     )
-    abstract fun search(query: String): List<SearchResult>
+    abstract suspend fun search(query: String): List<SearchResult>
 
 
     /**
@@ -49,7 +49,7 @@ abstract class Source(prefs: IPreferences?) {
         val imageUrl: String,
         val headers: List<Header>
     )
-    abstract fun getImageForChaptersList(chaptersUrl: String): ImageForChaptersList
+    abstract suspend fun getImageForChaptersList(chaptersUrl: String): ImageForChaptersList
 
     /**
      * Gets the chapters from the chapter URL.
@@ -59,13 +59,13 @@ abstract class Source(prefs: IPreferences?) {
         val title: String,
         val url: String,
     )
-    abstract fun getChaptersFromChapterUrl(targetUrl: String): List<ChapterValue>
+    abstract suspend fun getChaptersFromChapterUrl(targetUrl: String): List<ChapterValue>
 
     /**
      * Gets the summary/description which will be shown on the chapter list screen.
      * @param url The URL to fetch the summary from.
      */
-    abstract fun getSummary(url: String): String
+    abstract suspend fun getSummary(url: String): String
 
     /**
      * Gets all images.
@@ -75,6 +75,6 @@ abstract class Source(prefs: IPreferences?) {
         val images: List<String>,
         val headers: List<Header>
     )
-    abstract fun getChapterImages(chapterUrl: String): ChapterImages
+    abstract suspend fun getChapterImages(chapterUrl: String): ChapterImages
 
 }

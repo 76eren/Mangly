@@ -18,22 +18,36 @@ fun Read(targetUrl: String, extensionMetadataViewModel: ExtensionMetadataViewMod
     var chapterImagses by remember { mutableStateOf<Source.ChapterImages?>(null) }
 
     val metadata: ExtensionMetadata? = extensionMetadataViewModel.selectedSingleSource.value
-    if (metadata == null) {
-        Text("Something went wrong...")
-        return
-    }
 
     LaunchedEffect(targetUrl, metadata) {
-        chapterImagses = runCatching {
-            withContext(Dispatchers.IO) {
+        if (metadata != null) {
+            chapterImagses = withContext(Dispatchers.IO) {
                 getChapterImages(targetUrl, metadata)
             }
-        }.getOrNull()
+        } else {
+            chapterImagses = Source.ChapterImages(emptyList(), emptyList())
+        }
+
     }
+
+    // For testing
+    Text(chapterImagses.let {
+        if (it != null) {
+            it.images[0]
+        } else {
+            "Failed to load chapter images."
+        }
+    })
 
 }
 
 
 suspend fun getChapterImages(url: String, metadata: ExtensionMetadata): Source.ChapterImages {
-    return metadata.source.getChapterImages(url)
+    try {
+        val data =  metadata.source.getChapterImages(url)
+        return data
+    }
+    catch (e: Exception) {
+        return Source.ChapterImages(emptyList(), emptyList())
+    }
 }
