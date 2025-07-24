@@ -21,9 +21,8 @@ fun WebtoonImage(
         model = request,
         contentDescription = contentDescription,
         modifier = Modifier
-            .fillMaxWidth()
-            .wrapContentHeight(),
-        contentScale = ContentScale.Fit
+            .fillMaxWidth(),
+        contentScale = ContentScale.FillWidth
     )
 }
 
