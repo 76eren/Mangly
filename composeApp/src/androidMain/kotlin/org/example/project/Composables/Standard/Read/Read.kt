@@ -36,7 +36,10 @@ fun Read(targetUrl: String, extensionMetadataViewModel: ExtensionMetadataViewMod
     }
 
     if (chapterImages != null && chapterImages!!.images.isNotEmpty()) {
+
+        // Todo: this does not work properly yet
         PreloadImages(chapterImages!!.images, chapterImages!!.headers)
+
 
         // Todo: styles should be selectable dynamically
         WebtoonReader(

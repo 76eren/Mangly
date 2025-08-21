@@ -1,10 +1,11 @@
 package org.example.project.Composables.Standard.Read.viewer.webtoon
 
+import org.example.project.R
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import coil3.compose.AsyncImage
 import com.example.manglyextension.plugins.Source
 
@@ -13,7 +14,6 @@ fun WebtoonImage(
     imageUrl: String,
     headers: List<Source.Header>,
     contentDescription: String,
-    scale: Float
 ) {
     val request = buildImageRequest(imageUrl, headers)
 
@@ -22,7 +22,8 @@ fun WebtoonImage(
         contentDescription = contentDescription,
         modifier = Modifier
             .fillMaxWidth(),
-        contentScale = ContentScale.FillWidth
+        contentScale = ContentScale.FillWidth,
+        placeholder = painterResource(R.drawable.ic_launcher_background),
     )
 }
 
