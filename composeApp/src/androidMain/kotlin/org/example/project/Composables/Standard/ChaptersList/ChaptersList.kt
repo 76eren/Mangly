@@ -28,18 +28,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import coil3.compose.rememberAsyncImagePainter
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import kotlinx.coroutines.Dispatchers
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 
 @Composable
 fun ChaptersList(
     targetUrl: String,
-    extensionMetadataViewModel: ExtensionMetadataViewModel
+    extensionMetadataViewModel: ExtensionMetadataViewModel,
+    navHostController: NavHostController
 ) {
     val metadata: ExtensionMetadata? = extensionMetadataViewModel.selectedSingleSource.value
 
@@ -155,7 +159,7 @@ fun ChaptersList(
                 it.forEach { chapter ->
                     OutlinedButton(
                         onClick = {
-                            onChapterClick()
+                            onChapterClick(navHostController, chapter.url)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -182,6 +186,7 @@ suspend fun fetchSummary(source: Source, url: String): String {
     return source.getSummary(url)
 }
 
-fun onChapterClick() {
-
+fun onChapterClick(navHostController: NavHostController, url: String) {
+    val encodedUrl = URLEncoder.encode(url, StandardCharsets.UTF_8.toString())
+    navHostController.navigate("read/${encodedUrl}")
 }

@@ -13,6 +13,7 @@ import org.example.project.Composables.Standard.Home
 import org.example.project.Composables.Standard.Search
 import org.example.project.Composables.Standard.Settings
 import org.example.project.Composables.Standard.Extensions
+import org.example.project.Composables.Standard.Read.Read
 import org.example.project.ViewModels.ExtensionDetailsViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
 import org.example.project.ViewModels.SearchViewModel
@@ -74,7 +75,13 @@ fun NavHostContainer(
             composable("chapters/{url}") { backStackEntry ->
                 val encodedUrl = backStackEntry.arguments?.getString("url").orEmpty()
                 val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
-                ChaptersList(url, extensionMetadataViewModel)
+                ChaptersList(url, extensionMetadataViewModel, navController)
+            }
+
+            composable("read/{url}") { backStackEntry ->
+                val encodedUrl = backStackEntry.arguments?.getString("url").orEmpty()
+                val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
+                Read(url, extensionMetadataViewModel)
             }
 
         })
