@@ -35,6 +35,7 @@ import com.example.manglyextension.plugins.Source
 import com.example.manglyextension.plugins.Source.ImageForChaptersList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.example.project.ViewModels.ChaptersListViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -44,6 +45,7 @@ import java.nio.charset.StandardCharsets
 fun ChaptersList(
     targetUrl: String,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
+    chaptersListViewModel: ChaptersListViewModel,
     navHostController: NavHostController
 ) {
     val metadata: ExtensionMetadata? = extensionMetadataViewModel.selectedSingleSource.value
@@ -64,21 +66,37 @@ fun ChaptersList(
     LaunchedEffect(targetUrl, metadata) {
         chapters = runCatching {
             withContext(Dispatchers.IO) {
-                fetchChapterList(metadata.source, targetUrl)
+                if (chaptersListViewModel.getChapters().isEmpty()) {
+                    fetchChapterList(metadata.source, targetUrl)
+                } else {
+                    chaptersListViewModel.getChapters()
+                }
             }
         }.getOrNull()
 
         image = runCatching {
             withContext(Dispatchers.IO) {
-                fetchChapterImage(metadata.source, targetUrl)
+                if (chaptersListViewModel.getImage() != null) {
+                    chaptersListViewModel.getImage()
+                } else {
+                    fetchChapterImage(metadata.source, targetUrl)
+                }
             }
         }.getOrNull()
 
         summary = runCatching {
             withContext(Dispatchers.IO) {
-                fetchSummary(metadata.source, targetUrl)
+                if (chaptersListViewModel.getSummary().isNotBlank()) {
+                    chaptersListViewModel.getSummary()
+                } else {
+                    fetchSummary(metadata.source, targetUrl)
+                }
             }
         }.getOrDefault("")
+
+        chaptersListViewModel.setChapters(chapters)
+        chaptersListViewModel.setImage(image)
+        chaptersListViewModel.setSummary(summary)
     }
 
     Column(

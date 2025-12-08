@@ -10,7 +10,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -21,10 +20,11 @@ import org.example.project.Extension.ExtensionManager
 import org.example.project.FileManager.FileManager
 import org.example.project.Navigation.NavigationConstants
 import org.example.project.Rooms.Entities.ExtensionEntity
+import org.example.project.Themes.AppTheme
+import org.example.project.ViewModels.ChaptersListViewModel
 import org.example.project.ViewModels.ExtensionDetailsViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
 import org.example.project.ViewModels.SearchViewModel
-import org.example.project.Themes.AppTheme
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -40,7 +40,8 @@ class MainActivity : ComponentActivity() {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
                     val currentRoute = navBackStackEntry?.destination?.route
-                    val routesThatShouldShowBottomBar: List<String> = NavigationConstants.BottomNavItems.map { it.route }
+                    val routesThatShouldShowBottomBar: List<String> =
+                        NavigationConstants.BottomNavItems.map { it.route }
                     val showBottomBar: Boolean = currentRoute in routesThatShouldShowBottomBar
 
 
@@ -48,6 +49,7 @@ class MainActivity : ComponentActivity() {
                     val extensionDetailsViewModel: ExtensionDetailsViewModel = viewModel()
                     val sourcesViewModel: ExtensionMetadataViewModel = viewModel()
                     val searchViewModel: SearchViewModel = viewModel()
+                    val chaptersListViewModel: ChaptersListViewModel = viewModel()
 
 
                     // Populate data for view models if needed
@@ -69,7 +71,8 @@ class MainActivity : ComponentActivity() {
                                 padding = padding,
                                 extensionDetailsViewModel,
                                 sourcesViewModel,
-                                searchViewModel
+                                searchViewModel,
+                                chaptersListViewModel
                             )
                         }
                     }
@@ -87,7 +90,8 @@ suspend fun fetchSources(context: Context): List<ExtensionMetadata> {
 
     val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
     for (entry in allEntries) {
-        val metadata: ExtensionMetadata = extensionManager.extractExtensionMetadata(File(entry.filePath), context)
+        val metadata: ExtensionMetadata =
+            extensionManager.extractExtensionMetadata(File(entry.filePath), context)
         sources.add(metadata)
     }
 
