@@ -1,11 +1,15 @@
 package org.example.project.Composables.Shared.Navigation
 
-import androidx.activity.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
-import androidx.compose.ui.graphics.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.surfaceColorAtElevation
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import org.example.project.Navigation.NavigationConstants
@@ -13,9 +17,10 @@ import org.example.project.Navigation.NavigationConstants
 @Composable
 fun BottomNavigationBar(navController: NavHostController) {
 
-    NavigationBar(
+    val barColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
 
-        containerColor = Color(0xFF0F9D58)
+    NavigationBar(
+        containerColor = barColor
     ) {
 
         val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -43,10 +48,11 @@ fun BottomNavigationBar(navController: NavHostController) {
                 alwaysShowLabel = false,
 
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color.White, // Icon color when selected
-                    unselectedIconColor = Color.White, // Icon color when not selected
-                    selectedTextColor = Color.White, // Label color when selected
-                    indicatorColor = Color(0xFF195334) // Highlight color for selected item
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer
                 )
             )
         }

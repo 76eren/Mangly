@@ -82,7 +82,7 @@ fun Search(extensionMetadataViewModel: ExtensionMetadataViewModel, navHostContro
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White),
+            .background(MaterialTheme.colorScheme.background),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -151,7 +151,7 @@ fun SimpleSearchBar(
                         .verticalScroll(rememberScrollState())
                         .padding(8.dp)
                 ) {
-                    searchResults.forEach { (extensionMetadata, results) ->
+                    searchResults.forEach { (extensionMetadata: ExtensionMetadata, results: List<Source.SearchResult>) ->
                         Text(
                             text = extensionMetadata.source.getExtensionName(),
                             style = MaterialTheme.typography.titleLarge,

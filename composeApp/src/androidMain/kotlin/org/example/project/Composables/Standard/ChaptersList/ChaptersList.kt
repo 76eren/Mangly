@@ -3,7 +3,6 @@ package org.example.project.Composables.Standard.ChaptersList
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -11,18 +10,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import com.example.manglyextension.plugins.ExtensionMetadata
-import com.example.manglyextension.plugins.Source
-import com.example.manglyextension.plugins.Source.ImageForChaptersList
-import kotlinx.coroutines.withContext
-import org.example.project.ViewModels.ExtensionMetadataViewModel
-import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -34,7 +30,12 @@ import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.example.manglyextension.plugins.ExtensionMetadata
+import com.example.manglyextension.plugins.Source
+import com.example.manglyextension.plugins.Source.ImageForChaptersList
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.example.project.ViewModels.ExtensionMetadataViewModel
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -56,7 +57,7 @@ fun ChaptersList(
     }
 
     var chapters by remember { mutableStateOf<List<Source.ChapterValue>?>(null) }
-    var image by remember { mutableStateOf<Source.ImageForChaptersList?>(null) }
+    var image by remember { mutableStateOf<ImageForChaptersList?>(null) }
     var summary by remember { mutableStateOf("") }
     var isSummaryExpanded by remember { mutableStateOf(false) }
 

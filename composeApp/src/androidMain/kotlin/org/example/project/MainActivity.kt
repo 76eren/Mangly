@@ -24,6 +24,7 @@ import org.example.project.Rooms.Entities.ExtensionEntity
 import org.example.project.ViewModels.ExtensionDetailsViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
 import org.example.project.ViewModels.SearchViewModel
+import org.example.project.Themes.AppTheme
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -32,7 +33,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            setContent {
+            AppTheme {
                 MaterialTheme {
                     // Picks when the bottom bar should be shown
                     val navController = rememberNavController()
@@ -55,7 +56,7 @@ class MainActivity : ComponentActivity() {
                         sourcesViewModel.setSources(metadataList)
                     }
 
-                    Surface(color = Color.White) {
+                    Surface(color = MaterialTheme.colorScheme.background) {
                         Scaffold(
                             bottomBar = {
                                 if (showBottomBar) {
