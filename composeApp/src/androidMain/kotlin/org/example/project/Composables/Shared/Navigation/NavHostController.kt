@@ -9,11 +9,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import org.example.project.Composables.Standard.ChaptersList.ChaptersList
 import org.example.project.Composables.Standard.ExtensionDetails.ExtensionDetails
+import org.example.project.Composables.Standard.Extensions
 import org.example.project.Composables.Standard.Home
+import org.example.project.Composables.Standard.Read.Read
 import org.example.project.Composables.Standard.Search
 import org.example.project.Composables.Standard.Settings
-import org.example.project.Composables.Standard.Extensions
-import org.example.project.Composables.Standard.Read.Read
+import org.example.project.ViewModels.ChaptersListViewModel
 import org.example.project.ViewModels.ExtensionDetailsViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
 import org.example.project.ViewModels.SearchViewModel
@@ -28,7 +29,8 @@ fun NavHostContainer(
     // View models
     extensionsViewModel: ExtensionDetailsViewModel,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
-    searchViewModel: SearchViewModel
+    searchViewModel: SearchViewModel,
+    chaptersListViewModel: ChaptersListViewModel
 
 ) {
 
@@ -50,16 +52,24 @@ fun NavHostContainer(
             }
 
             composable("search") {
-                Search(extensionMetadataViewModel = extensionMetadataViewModel, navHostController = navController, searchViewModel = searchViewModel)
+                chaptersListViewModel.clear()
+
+                Search(
+                    extensionMetadataViewModel = extensionMetadataViewModel,
+                    navHostController = navController,
+                    searchViewModel = searchViewModel
+                )
             }
 
             composable("settings") {
                 searchViewModel.clearSearchResults()
+                chaptersListViewModel.clear()
                 Settings()
             }
 
             composable("sources") {
                 searchViewModel.clearSearchResults()
+                chaptersListViewModel.clear()
                 Extensions(navController, extensionsViewModel, extensionMetadataViewModel)
             }
 
@@ -75,7 +85,7 @@ fun NavHostContainer(
             composable("chapters/{url}") { backStackEntry ->
                 val encodedUrl = backStackEntry.arguments?.getString("url").orEmpty()
                 val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
-                ChaptersList(url, extensionMetadataViewModel, navController)
+                ChaptersList(url, extensionMetadataViewModel, chaptersListViewModel, navController)
             }
 
             composable("read/{url}") { backStackEntry ->
