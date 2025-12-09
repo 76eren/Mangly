@@ -56,22 +56,31 @@ jobs:
             -Pandroid.injected.signing.key.password="$ANDROID_KEY_ALIAS_PASSWORD" \
             -Pandroid.injected.signing.enabled=true
 
-      - name: Find generated release APK
+      - name: Find and rename generated release APK
         id: find_apk
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
           APK_PATH=$(find composeApp -type f -name "*-release.apk" | head -n 1)
+
           if [ -z "$APK_PATH" ]; then
             echo "No release APK found" >&2
             exit 1
           fi
-          echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
-          echo "Found APK at: $APK_PATH"
+
+          DIR_NAME=$(dirname "$APK_PATH")
+          NEW_APK_PATH="$DIR_NAME/Mangly-v${RUN_NUMBER}.apk"
+
+          mv "$APK_PATH" "$NEW_APK_PATH"
+
+          echo "apk_path=$NEW_APK_PATH" >> "$GITHUB_OUTPUT"
+          echo "Renamed APK to: $NEW_APK_PATH"
 
       - name: Create GitHub Release and upload APK
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
-          name: Mangly build ${{ github.run_number }}
+          name: Mangly v${{ github.run_number }}
           draft: false
           prerelease: false
           files: ${{ steps.find_apk.outputs.apk_path }}
