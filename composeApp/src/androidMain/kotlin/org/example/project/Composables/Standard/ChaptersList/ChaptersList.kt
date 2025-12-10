@@ -49,6 +49,7 @@ fun ChaptersList(
     navHostController: NavHostController
 ) {
     val metadata: ExtensionMetadata? = extensionMetadataViewModel.selectedSingleSource.value
+    val isFavorite = chaptersListViewModel.isFavorite.value
 
     if (metadata == null) {
         Text(

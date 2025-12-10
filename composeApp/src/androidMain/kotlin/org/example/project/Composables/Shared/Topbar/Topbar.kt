@@ -17,23 +17,26 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.manglyextension.plugins.ExtensionMetadata
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
-import org.example.project.Extension.ExtensionManager
-import org.example.project.FileManager.FileManager
 import org.example.project.MainActivity
-import org.example.project.Rooms.Entities.ExtensionEntity
+import org.example.project.di.FileManagersEntryPoint
 
 @Composable
 fun TopBarNewExtension() {
     val context = LocalContext.current
-    val fileManager = FileManager()
+
+    val appContext = context.applicationContext
+    val entryPoint =
+        EntryPointAccessors.fromApplication(appContext, FileManagersEntryPoint::class.java)
+    val fileManager = entryPoint.fileManager()
+
     val coroutineScope = rememberCoroutineScope()
 
     val zipPickerLauncher = rememberLauncherForActivityResult(
@@ -99,10 +102,14 @@ fun TopBarNewExtension() {
 
 @Composable
 fun TopBarDeleteExtensionFromExtensionDetails(metadata: ExtensionMetadata) {
-    val extensionManager = remember { ExtensionManager() }
-    val coroutineScope = rememberCoroutineScope()
-    val fileManager = remember { FileManager() }
     val context = LocalContext.current
+    val appContext = context.applicationContext
+    val entryPoint =
+        EntryPointAccessors.fromApplication(appContext, FileManagersEntryPoint::class.java)
+    val fileManager = entryPoint.fileManager()
+    val extensionManager = entryPoint.extensionManager()
+
+    val coroutineScope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -114,7 +121,7 @@ fun TopBarDeleteExtensionFromExtensionDetails(metadata: ExtensionMetadata) {
         IconButton(
             onClick = {
                 coroutineScope.launch {
-                    val entityToBeDeleted: ExtensionEntity =
+                    val entityToBeDeleted =
                         extensionManager.getDatabaseEntryByMetadata(metadata, context)
                     fileManager.deleteAndRemoveEntry(entityToBeDeleted, context)
 

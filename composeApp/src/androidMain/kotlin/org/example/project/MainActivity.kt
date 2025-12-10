@@ -10,10 +10,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.manglyextension.plugins.ExtensionMetadata
+import dagger.hilt.android.AndroidEntryPoint
 import org.example.project.Composables.Shared.Navigation.BottomNavigationBar
 import org.example.project.Composables.Shared.Navigation.NavHostContainer
 import org.example.project.Extension.ExtensionManager
@@ -26,8 +27,17 @@ import org.example.project.ViewModels.ExtensionDetailsViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
 import org.example.project.ViewModels.SearchViewModel
 import java.io.File
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var fileManager: FileManager
+
+    @Inject
+    lateinit var extensionManager: ExtensionManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -45,11 +55,11 @@ class MainActivity : ComponentActivity() {
                     val showBottomBar: Boolean = currentRoute in routesThatShouldShowBottomBar
 
 
-                    // Define viewModels
-                    val extensionDetailsViewModel: ExtensionDetailsViewModel = viewModel()
-                    val sourcesViewModel: ExtensionMetadataViewModel = viewModel()
-                    val searchViewModel: SearchViewModel = viewModel()
-                    val chaptersListViewModel: ChaptersListViewModel = viewModel()
+                    // Define viewModels via Hilt
+                    val extensionDetailsViewModel: ExtensionDetailsViewModel = hiltViewModel()
+                    val sourcesViewModel: ExtensionMetadataViewModel = hiltViewModel()
+                    val searchViewModel: SearchViewModel = hiltViewModel()
+                    val chaptersListViewModel: ChaptersListViewModel = hiltViewModel()
 
 
                     // Populate data for view models if needed
@@ -80,20 +90,17 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
 
+    suspend fun fetchSources(context: Context): List<ExtensionMetadata> {
+        val sources = mutableListOf<ExtensionMetadata>()
 
-suspend fun fetchSources(context: Context): List<ExtensionMetadata> {
-    val fileManager = FileManager()
-    val extensionManager = ExtensionManager()
-    val sources = mutableListOf<ExtensionMetadata>()
+        val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
+        for (entry in allEntries) {
+            val metadata: ExtensionMetadata =
+                extensionManager.extractExtensionMetadata(File(entry.filePath).readBytes(), context)
+            sources.add(metadata)
+        }
 
-    val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
-    for (entry in allEntries) {
-        val metadata: ExtensionMetadata =
-            extensionManager.extractExtensionMetadata(File(entry.filePath).readBytes(), context)
-        sources.add(metadata)
+        return sources
     }
-
-    return sources
 }

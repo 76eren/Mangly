@@ -15,15 +15,18 @@ import com.example.manglyextension.plugins.PreferenceImplementation
 import com.example.manglyextension.plugins.Source
 import com.google.gson.Gson
 import dalvik.system.DexClassLoader
-import org.example.project.FileManager.FileManager
+import org.example.project.Rooms.Dao.ExtensionDao
 import org.example.project.Rooms.Entities.ExtensionEntity
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
+import javax.inject.Inject
 
-class ExtensionManager {
+class ExtensionManager @Inject constructor(
+    private val extensionDao: ExtensionDao
+) {
     /**
      * Reads just the metadata out of a plugin .zip file (as a bytearray).
      */
@@ -101,9 +104,8 @@ class ExtensionManager {
         currentMetadata: ExtensionMetadata,
         context: Context
     ): ExtensionEntity {
-        val fileManager = FileManager()
 
-        val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
+        val allEntries: List<ExtensionEntity> = extensionDao.getAll()
         for (entry in allEntries) {
             val targetMetaData: ExtensionMetadata =
                 extractExtensionMetadata(File(entry.filePath).readBytes(), context)
