@@ -32,7 +32,7 @@ class FileManager {
 
         val zipFileEntry = ExtensionEntity(
             id = id,
-            name = fileName,
+            name = extensionMetadata.name,
             filePath = file.absolutePath,
             uploadTime = System.currentTimeMillis()
         )
