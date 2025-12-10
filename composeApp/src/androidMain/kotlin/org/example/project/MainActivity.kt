@@ -25,6 +25,7 @@ import org.example.project.Themes.AppTheme
 import org.example.project.ViewModels.ChaptersListViewModel
 import org.example.project.ViewModels.ExtensionDetailsViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
+import org.example.project.ViewModels.FavoritesViewModel
 import org.example.project.ViewModels.SearchViewModel
 import java.io.File
 import javax.inject.Inject
@@ -54,15 +55,15 @@ class MainActivity : ComponentActivity() {
                         NavigationConstants.BottomNavItems.map { it.route }
                     val showBottomBar: Boolean = currentRoute in routesThatShouldShowBottomBar
 
-
                     // Define viewModels via Hilt
                     val extensionDetailsViewModel: ExtensionDetailsViewModel = hiltViewModel()
                     val sourcesViewModel: ExtensionMetadataViewModel = hiltViewModel()
                     val searchViewModel: SearchViewModel = hiltViewModel()
                     val chaptersListViewModel: ChaptersListViewModel = hiltViewModel()
+                    val favoritesViewModel: FavoritesViewModel = hiltViewModel()
 
 
-                    // Populate data for view models if needed
+                    // Populate data for view models
                     LaunchedEffect(Unit) {
                         val metadataList = fetchSources(applicationContext)
                         sourcesViewModel.setSources(metadataList)
@@ -82,7 +83,8 @@ class MainActivity : ComponentActivity() {
                                 extensionDetailsViewModel,
                                 sourcesViewModel,
                                 searchViewModel,
-                                chaptersListViewModel
+                                chaptersListViewModel,
+                                favoritesViewModel
                             )
                         }
                     }

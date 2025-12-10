@@ -20,5 +20,8 @@ interface FavoritesDao {
 
     @Query("SELECT * FROM FavoritesEntity")
     suspend fun getAll(): List<FavoritesEntity>
+
+    @Query("SELECT * FROM FavoritesEntity WHERE mangaUrl = :url")
+    suspend fun getByUrl(url: String): List<FavoritesEntity>
 }
 

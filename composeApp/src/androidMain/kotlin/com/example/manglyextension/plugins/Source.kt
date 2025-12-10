@@ -70,6 +70,10 @@ abstract class Source(val prefs: IPreferences?) {
         val url: String,
     )
 
+    /**
+     * Gets the chapters from the chapter URL.
+     * @param targetUrl The URL to fetch the chapters from.
+     */
     abstract suspend fun getChaptersFromChapterUrl(targetUrl: String): List<ChapterValue>
 
     /**
@@ -88,5 +92,11 @@ abstract class Source(val prefs: IPreferences?) {
     )
 
     abstract suspend fun getChapterImages(chapterUrl: String): ChapterImages
+
+    /**
+     * Gets the manga name from a chapter URL.
+     * @param chapterUrl The URL to fetch the manga name from.
+     */
+    abstract suspend fun getMangaNameFromChapterUrl(chapterUrl: String): String
 
 }

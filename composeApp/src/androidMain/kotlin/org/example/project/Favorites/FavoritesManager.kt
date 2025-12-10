@@ -9,6 +9,10 @@ class FavoritesManager @Inject constructor(
     private val favoritesDao: FavoritesDao
 ) {
 
+    suspend fun getAllFavoritesFromDb(): List<FavoritesEntity> {
+        return favoritesDao.getAll()
+    }
+
     suspend fun addFavoriteToDb(favorite: FavoritesEntity) {
         favoritesDao.insert(favorite)
     }
@@ -17,8 +21,8 @@ class FavoritesManager @Inject constructor(
         favoritesDao.delete(id)
     }
 
-    suspend fun isFavoriteInDb(extensionId: UUID): Boolean {
-        return favoritesDao.getByExtensionId(extensionId).isNotEmpty()
+    suspend fun isFavoriteInDb(url: String): Boolean {
+        return favoritesDao.getByUrl(url).isNotEmpty()
     }
 
 }

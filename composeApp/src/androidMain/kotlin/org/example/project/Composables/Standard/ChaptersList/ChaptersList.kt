@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -35,10 +39,13 @@ import com.example.manglyextension.plugins.Source
 import com.example.manglyextension.plugins.Source.ImageForChaptersList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.example.project.Rooms.Entities.FavoritesEntity
 import org.example.project.ViewModels.ChaptersListViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
+import org.example.project.ViewModels.FavoritesViewModel
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.util.UUID
 
 
 @Composable
@@ -46,10 +53,10 @@ fun ChaptersList(
     targetUrl: String,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
     chaptersListViewModel: ChaptersListViewModel,
+    favoritesViewModel: FavoritesViewModel,
     navHostController: NavHostController
 ) {
     val metadata: ExtensionMetadata? = extensionMetadataViewModel.selectedSingleSource.value
-    val isFavorite = chaptersListViewModel.isFavorite.value
 
     if (metadata == null) {
         Text(
@@ -63,6 +70,7 @@ fun ChaptersList(
     var image by remember { mutableStateOf<ImageForChaptersList?>(null) }
     var summary by remember { mutableStateOf("") }
     var isSummaryExpanded by remember { mutableStateOf(false) }
+    var mangaName by remember { mutableStateOf("") }
 
     LaunchedEffect(targetUrl, metadata) {
         chapters = runCatching {
@@ -95,9 +103,20 @@ fun ChaptersList(
             }
         }.getOrDefault("")
 
+        mangaName = runCatching {
+            withContext(Dispatchers.IO) {
+                if (chaptersListViewModel.getName().isNotBlank()) {
+                    chaptersListViewModel.getName()
+                } else {
+                    fetchMangaTitle(metadata.source, targetUrl)
+                }
+            }
+        }.getOrDefault("")
+
         chaptersListViewModel.setChapters(chapters)
         chaptersListViewModel.setImage(image)
         chaptersListViewModel.setSummary(summary)
+        chaptersListViewModel.setName(mangaName)
     }
 
     Column(
@@ -123,6 +142,50 @@ fun ChaptersList(
             .httpHeaders(networkHeaders)
             .crossfade(true)
             .build()
+
+        var isFavorite by remember { mutableStateOf(false) }
+        for (favoriteItem in favoritesViewModel.favorites.value) {
+            if (favoriteItem.mangaUrl == targetUrl) {
+                isFavorite = true
+                break
+            }
+        }
+
+        if (isFavorite) {
+            Icon(
+                imageVector = Icons.Default.Favorite,
+                contentDescription = "Favorite",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable {
+                    for (favoriteItem in favoritesViewModel.favorites.value) {
+                        if (favoriteItem.mangaUrl == targetUrl) {
+                            favoritesViewModel.removeFavorite(favoriteItem.id)
+                            isFavorite = !isFavorite
+                            break
+                        }
+                    }
+                }
+
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Default.FavoriteBorder,
+                contentDescription = "Favorite",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable {
+                    val favoriteEntity = FavoritesEntity(
+                        id = UUID.randomUUID(),
+                        mangaUrl = targetUrl,
+                        mangaTitle = mangaName,
+                        created_at = System.currentTimeMillis(),
+                        extensionId = UUID.fromString(metadata.source.getExtensionId())
+
+                    )
+                    favoritesViewModel.addFavorite(favoriteEntity)
+                    isFavorite = !isFavorite
+                }
+            )
+        }
 
         image?.let {
             Image(
@@ -204,6 +267,10 @@ suspend fun fetchChapterList(source: Source, url: String): List<Source.ChapterVa
 
 suspend fun fetchSummary(source: Source, url: String): String {
     return source.getSummary(url)
+}
+
+suspend fun fetchMangaTitle(source: Source, url: String): String {
+    return source.getMangaNameFromChapterUrl(url)
 }
 
 fun onChapterClick(navHostController: NavHostController, url: String) {
