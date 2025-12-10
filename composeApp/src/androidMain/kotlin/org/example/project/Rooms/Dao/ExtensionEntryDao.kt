@@ -4,7 +4,9 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import org.example.project.Rooms.Entities.ExtensionEntity
+import org.example.project.Rooms.Relations.ExtensionWithFavorites
 import java.util.UUID
 
 @Dao
@@ -23,4 +25,8 @@ interface ExtensionDao {
 
     @Query("DELETE FROM ExtensionEntity WHERE id = :id")
     suspend fun delete(id: UUID)
+
+    @Transaction
+    @Query("SELECT * FROM ExtensionEntity WHERE id = :extensionId")
+    suspend fun getExtensionWithFavorites(extensionId: UUID): ExtensionWithFavorites
 }

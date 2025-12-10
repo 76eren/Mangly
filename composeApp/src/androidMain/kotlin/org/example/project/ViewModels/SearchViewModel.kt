@@ -6,8 +6,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.example.manglyextension.plugins.ExtensionMetadata
 import com.example.manglyextension.plugins.Source
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class SearchViewModel : ViewModel() {
+@HiltViewModel
+class SearchViewModel @Inject constructor() : ViewModel() {
     var searchResults by mutableStateOf(HashMap<ExtensionMetadata, List<Source.SearchResult>>())
 
 

@@ -4,11 +4,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import com.example.manglyextension.plugins.Source
 import com.example.manglyextension.plugins.Source.ImageForChaptersList
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class ChaptersListViewModel : ViewModel() {
+@HiltViewModel
+class ChaptersListViewModel
+@Inject constructor() : ViewModel() {
+
     private val chapters = mutableStateOf<List<Source.ChapterValue>?>(null)
     private val image = mutableStateOf<ImageForChaptersList?>(null)
     private val summary = mutableStateOf("")
+    private val name = mutableStateOf("")
 
     fun setChapters(chapterList: List<Source.ChapterValue>?) {
         chapters.value = chapterList
@@ -20,6 +26,14 @@ class ChaptersListViewModel : ViewModel() {
 
     fun setSummary(chapterSummary: String) {
         summary.value = chapterSummary
+    }
+
+    fun setName(chapterName: String) {
+        name.value = chapterName
+    }
+
+    fun getName(): String {
+        return name.value
     }
 
     fun getChapters(): List<Source.ChapterValue> {
@@ -39,5 +53,7 @@ class ChaptersListViewModel : ViewModel() {
         chapters.value = null
         image.value = null
         summary.value = ""
+        name.value = ""
     }
+
 }

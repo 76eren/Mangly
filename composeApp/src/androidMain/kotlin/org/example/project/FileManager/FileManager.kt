@@ -1,47 +1,52 @@
 package org.example.project.FileManager
 
 import android.content.Context
-import org.example.project.Rooms.Database.AppDatabase
+import com.example.manglyextension.plugins.ExtensionMetadata
+import org.example.project.Extension.ExtensionManager
+import org.example.project.Rooms.Dao.ExtensionDao
 import org.example.project.Rooms.Entities.ExtensionEntity
 import java.io.File
 import java.io.InputStream
 import java.util.UUID
+import javax.inject.Inject
 
-class FileManager {
+class FileManager @Inject constructor(
+    private val extensionManager: ExtensionManager,
+    private val extensionDao: ExtensionDao
+) {
 
+    // TODO: Handle extension updates and duplicates
     suspend fun saveAndInsertEntry(
         context: Context,
-        fileName: String,
         inputStream: InputStream,
-        id: UUID
     ): File {
+        val zipBytes = inputStream.readBytes()
 
-        // TODO: Handle extension updates and duplicates
+        val extensionMetadata: ExtensionMetadata =
+            extensionManager.extractExtensionMetadata(zipBytes, context)
 
+        val extensionId = extensionMetadata.source.getExtensionId()
+        val fileName = "$extensionId.zip"
         val file = File(context.filesDir, fileName)
 
-        inputStream.use { input ->
-            file.outputStream().use { output ->
-                input.copyTo(output)
-            }
-        }
+        file.outputStream().use { it.write(zipBytes) }
+
+        val id = UUID.fromString(extensionId)
 
         val zipFileEntry = ExtensionEntity(
             id = id,
-            name = fileName,
+            name = extensionMetadata.name,
             filePath = file.absolutePath,
             uploadTime = System.currentTimeMillis()
         )
 
-        val db = AppDatabase.getDatabase(context)
-        db.extensionEntryDao().insert(zipFileEntry)
+        extensionDao.insert(zipFileEntry)
 
         return file
     }
 
     suspend fun deleteAndRemoveEntry(entityToBeDeleted: ExtensionEntity, context: Context) {
-        val db = AppDatabase.getDatabase(context)
-        db.extensionEntryDao().delete(entityToBeDeleted.id)
+        extensionDao.delete(entityToBeDeleted.id)
 
         val file = File(entityToBeDeleted.filePath)
         if (file.exists()) {
@@ -50,11 +55,8 @@ class FileManager {
     }
 
     suspend fun getAllEntries(context: Context): List<ExtensionEntity> {
-        val db = AppDatabase.getDatabase(context)
-        return db.extensionEntryDao().getAll()
+        return extensionDao.getAll()
     }
-
-
 
 
 }
