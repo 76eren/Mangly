@@ -50,7 +50,7 @@ fun NavHostContainer(
             // Bottom nav routes
             composable("home") {
                 searchViewModel.clearSearchResults()
-                Home()
+                Home(favoritesViewModel, extensionMetadataViewModel, navController)
             }
 
             composable("search") {
@@ -85,6 +85,8 @@ fun NavHostContainer(
             }
 
             composable("chapters/{url}") { backStackEntry ->
+                chaptersListViewModel.clear()
+
                 val encodedUrl = backStackEntry.arguments?.getString("url").orEmpty()
                 val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
                 ChaptersList(
