@@ -6,21 +6,22 @@ import android.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.core.graphics.createBitmap
 import com.caverock.androidsvg.SVG
 import com.example.manglyextension.plugins.ExtensionMetadata
+import com.example.manglyextension.plugins.IPreferences
 import com.example.manglyextension.plugins.PluginMetadata
+import com.example.manglyextension.plugins.PreferenceImplementation
 import com.example.manglyextension.plugins.Source
 import com.google.gson.Gson
 import dalvik.system.DexClassLoader
-import java.io.*
-import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
-import androidx.core.graphics.createBitmap
-import com.example.manglyextension.plugins.IPreferences
-import com.example.manglyextension.plugins.PreferenceImplementation
 import org.example.project.FileManager.FileManager
 import org.example.project.Rooms.Entities.ExtensionEntity
-import java.util.UUID
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 
 class ExtensionManager {
 
@@ -59,7 +60,7 @@ class ExtensionManager {
     /**
      * Loads and instantiates the plugin Source from the .zip
      */
-     private fun loadPluginSource(entryClass: String, dex: ByteArray, context: Context): Source {
+    private fun loadPluginSource(entryClass: String, dex: ByteArray, context: Context): Source {
         val dexFile = File.createTempFile("plugin", ".dex", context.codeCacheDir)
 
         dexFile.writeBytes(dex)
@@ -78,15 +79,17 @@ class ExtensionManager {
 
         val clazz = classLoader.loadClass(entryClass)
 
-        val preferenceKeyField = clazz.getDeclaredField("preferenceKey")
-        preferenceKeyField.isAccessible = true
-        val settingsKey = preferenceKeyField.get(null) as UUID
+        // The problem is that IPreferences depends on the extensionId and you cannot get the extensionId without an instance of Source.
+        // To fix this we first create an instance of Source with null preferences to get the extensionId,
+        val sourceWithoutPrefs = clazz.getDeclaredConstructor(IPreferences::class.java)
+            .newInstance(null) as Source
+
+        val settingsKey: String = sourceWithoutPrefs.getExtensionId()
 
         val settingsSharedPreferences: SharedPreferences = context.getSharedPreferences(
-            settingsKey.toString(),
+            settingsKey,
             Context.MODE_PRIVATE
         )
-
 
         val preferences = PreferenceImplementation(settingsSharedPreferences, context)
 
@@ -97,15 +100,22 @@ class ExtensionManager {
     /**
      * Gets the database entry for a given ExtensionMetadata.
      */
-    suspend fun getDatabaseEntryByMetadata(currentMetadata: ExtensionMetadata, context: Context): ExtensionEntity {
-        val fileManager= FileManager()
+    suspend fun getDatabaseEntryByMetadata(
+        currentMetadata: ExtensionMetadata,
+        context: Context
+    ): ExtensionEntity {
+        val fileManager = FileManager()
 
         val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
         for (entry in allEntries) {
-            val targetMetaData: ExtensionMetadata = extractExtensionMetadata(File(entry.filePath), context)
+            val targetMetaData: ExtensionMetadata =
+                extractExtensionMetadata(File(entry.filePath), context)
 
             if (
-                targetMetaData.entryClass == currentMetadata.entryClass && targetMetaData.dexFile.contentEquals(currentMetadata.dexFile)) {
+                targetMetaData.entryClass == currentMetadata.entryClass && targetMetaData.dexFile.contentEquals(
+                    currentMetadata.dexFile
+                )
+            ) {
                 return entry
             }
         }

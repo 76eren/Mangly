@@ -1,7 +1,14 @@
 package com.example.manglyextension.plugins
 
-abstract class Source(prefs: IPreferences?) {
+abstract class Source(val prefs: IPreferences?) {
     val preferences: IPreferences? = prefs
+
+    /**
+     * Gets the ID  for the extension.
+     * Returns a UUID as a String
+     * Is also used as the preference key, to create shared preferences based on the extension rather than a global one referencing each extension.
+     */
+    abstract fun getExtensionId(): String
 
     /**
      * This class represents a header that can be used in HTTP requests.
@@ -25,6 +32,7 @@ abstract class Source(prefs: IPreferences?) {
         var defaultValue: Any,
         var uiElement: PreferenceUi? = null
     )
+
     abstract fun generateSettings(): List<SettingGen>
 
 
@@ -38,6 +46,7 @@ abstract class Source(prefs: IPreferences?) {
         val url: String,
         val headers: List<Header>
     )
+
     abstract suspend fun search(query: String): List<SearchResult>
 
 
@@ -49,6 +58,7 @@ abstract class Source(prefs: IPreferences?) {
         val imageUrl: String,
         val headers: List<Header>
     )
+
     abstract suspend fun getImageForChaptersList(chaptersUrl: String): ImageForChaptersList
 
     /**
@@ -59,6 +69,7 @@ abstract class Source(prefs: IPreferences?) {
         val title: String,
         val url: String,
     )
+
     abstract suspend fun getChaptersFromChapterUrl(targetUrl: String): List<ChapterValue>
 
     /**
@@ -75,6 +86,7 @@ abstract class Source(prefs: IPreferences?) {
         val images: List<String>,
         val headers: List<Header>
     )
+
     abstract suspend fun getChapterImages(chapterUrl: String): ChapterImages
 
 }
