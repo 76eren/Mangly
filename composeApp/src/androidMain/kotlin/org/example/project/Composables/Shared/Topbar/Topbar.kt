@@ -4,7 +4,6 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -30,7 +29,6 @@ import org.example.project.Extension.ExtensionManager
 import org.example.project.FileManager.FileManager
 import org.example.project.MainActivity
 import org.example.project.Rooms.Entities.ExtensionEntity
-import java.util.UUID
 
 @Composable
 fun TopBarNewExtension() {
@@ -42,23 +40,21 @@ fun TopBarNewExtension() {
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri: Uri? ->
             uri?.let {
-                val name = context.contentResolver.query(it, null, null, null, null)?.use { cursor ->
-                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    if (cursor.moveToFirst() && nameIndex >= 0) {
-                        cursor.getString(nameIndex)
-                    } else null
-                }
+                val name =
+                    context.contentResolver.query(it, null, null, null, null)?.use { cursor ->
+                        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        if (cursor.moveToFirst() && nameIndex >= 0) {
+                            cursor.getString(nameIndex)
+                        } else null
+                    }
 
                 if (name?.endsWith(".mangly") == true) {
                     val inputStream = context.contentResolver.openInputStream(it)
                     if (inputStream != null) {
-                        val id = UUID.randomUUID()
                         coroutineScope.launch {
                             fileManager.saveAndInsertEntry(
                                 context = context,
-                                fileName = "$id.zip", // Internally it still does get saved as a zip
                                 inputStream = inputStream,
-                                id = id
                             )
 
                             // Todo: stop being lazy
@@ -69,9 +65,12 @@ fun TopBarNewExtension() {
                             mainActivity?.startActivity(intent)
                         }
                     }
-                }
-                else {
-                    Toast.makeText(context, "Selected file is not a valid .mangly file", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(
+                        context,
+                        "Selected file is not a valid .mangly file",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }
@@ -115,7 +114,8 @@ fun TopBarDeleteExtensionFromExtensionDetails(metadata: ExtensionMetadata) {
         IconButton(
             onClick = {
                 coroutineScope.launch {
-                    val entityToBeDeleted: ExtensionEntity = extensionManager.getDatabaseEntryByMetadata(metadata, context)
+                    val entityToBeDeleted: ExtensionEntity =
+                        extensionManager.getDatabaseEntryByMetadata(metadata, context)
                     fileManager.deleteAndRemoveEntry(entityToBeDeleted, context)
 
                     // Todo: stop being lazy

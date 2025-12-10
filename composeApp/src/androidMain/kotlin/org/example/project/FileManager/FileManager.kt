@@ -1,6 +1,8 @@
 package org.example.project.FileManager
 
 import android.content.Context
+import com.example.manglyextension.plugins.ExtensionMetadata
+import org.example.project.Extension.ExtensionManager
 import org.example.project.Rooms.Database.AppDatabase
 import org.example.project.Rooms.Entities.ExtensionEntity
 import java.io.File
@@ -9,22 +11,24 @@ import java.util.UUID
 
 class FileManager {
 
+    // TODO: Handle extension updates and duplicates
     suspend fun saveAndInsertEntry(
         context: Context,
-        fileName: String,
         inputStream: InputStream,
-        id: UUID
     ): File {
+        val zipBytes = inputStream.readBytes()
 
-        // TODO: Handle extension updates and duplicates
+        val extensionManager = ExtensionManager()
+        val extensionMetadata: ExtensionMetadata =
+            extensionManager.extractExtensionMetadata(zipBytes, context)
 
+        val extensionId = extensionMetadata.source.getExtensionId()
+        val fileName = "$extensionId.zip"
         val file = File(context.filesDir, fileName)
 
-        inputStream.use { input ->
-            file.outputStream().use { output ->
-                input.copyTo(output)
-            }
-        }
+        file.outputStream().use { it.write(zipBytes) }
+
+        val id = UUID.fromString(extensionId)
 
         val zipFileEntry = ExtensionEntity(
             id = id,
@@ -53,8 +57,6 @@ class FileManager {
         val db = AppDatabase.getDatabase(context)
         return db.extensionEntryDao().getAll()
     }
-
-
 
 
 }

@@ -91,7 +91,7 @@ suspend fun fetchSources(context: Context): List<ExtensionMetadata> {
     val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
     for (entry in allEntries) {
         val metadata: ExtensionMetadata =
-            extensionManager.extractExtensionMetadata(File(entry.filePath), context)
+            extensionManager.extractExtensionMetadata(File(entry.filePath).readBytes(), context)
         sources.add(metadata)
     }
 

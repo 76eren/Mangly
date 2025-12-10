@@ -24,28 +24,25 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
 class ExtensionManager {
-
     /**
-     * Reads just the metadata out of a plugin .zip
+     * Reads just the metadata out of a plugin .zip file (as a bytearray).
      */
-    fun extractExtensionMetadata(zipFile: File, context: Context): ExtensionMetadata {
-        val zipContents = readZip(zipFile.readBytes())
+    fun extractExtensionMetadata(zipBytes: ByteArray, context: Context): ExtensionMetadata {
+        val zipContents = readZip(zipBytes)
 
         val jsonBytes = zipContents["meta/plugin.json"]
-            ?: throw IllegalArgumentException("Missing meta/plugin.json in ${zipFile.name}")
+            ?: throw IllegalArgumentException("Missing meta/plugin.json")
 
-        val jsonText = jsonBytes.toString(Charsets.UTF_8)
+        val metadata =
+            Gson().fromJson(jsonBytes.toString(Charsets.UTF_8), PluginMetadata::class.java)
 
-        val metadata = Gson().fromJson(jsonText, PluginMetadata::class.java)
+        val vectorImageBytes = zipContents["meta/icon.svg"]
+            ?: throw IllegalArgumentException("Missing meta/icon.svg")
 
-        val vectorImageBytes: ByteArray = zipContents["meta/icon.svg"]
-            ?: throw IllegalArgumentException("Missing meta/icon.svg in ${zipFile.name}")
-
-        val bitmapPainter: BitmapPainter = byteArrayToImageBitmap(vectorImageBytes)
-
+        val bitmapPainter = byteArrayToImageBitmap(vectorImageBytes)
 
         val dex = zipContents["dex/classes.dex"]
-            ?: throw IllegalArgumentException("Missing dex/classes.dex in ${zipFile.name}")
+            ?: throw IllegalArgumentException("Missing dex/classes.dex")
 
         return ExtensionMetadata(
             entryClass = metadata.entryClass,
@@ -109,7 +106,7 @@ class ExtensionManager {
         val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
         for (entry in allEntries) {
             val targetMetaData: ExtensionMetadata =
-                extractExtensionMetadata(File(entry.filePath), context)
+                extractExtensionMetadata(File(entry.filePath).readBytes(), context)
 
             if (
                 targetMetaData.entryClass == currentMetadata.entryClass && targetMetaData.dexFile.contentEquals(
