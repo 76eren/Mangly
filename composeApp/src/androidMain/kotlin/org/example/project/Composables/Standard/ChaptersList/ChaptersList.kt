@@ -223,8 +223,19 @@ fun ChaptersList(
                     text = if (isSummaryExpanded) "Show less" else "Read more",
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier
-                        .padding(top = 4.dp, start = 8.dp)
+                        .padding(top = 4.dp, start = 8.dp, bottom = 4.dp)
                         .clickable { isSummaryExpanded = !isSummaryExpanded }
+                )
+
+                Text(
+                    text = "Extension",
+                    modifier = Modifier.padding(bottom = 4.dp, top = 20.dp),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = metadata.source.getExtensionName(),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
                 )
             }
         }
