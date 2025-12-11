@@ -78,8 +78,8 @@ fun NavHostContainer(
 
             // Regular routes
             composable("extensionDetails/{id}") { backStackEntry ->
-                val name = backStackEntry.arguments?.getString("id")
-                extensionsViewModel.selectCardByName(name ?: "")
+                val sourceId = backStackEntry.arguments?.getString("id")
+                extensionsViewModel.selectCardBySource(sourceId ?: "")
                 extensionsViewModel.selectedCardData?.let {
                     ExtensionDetails(cardData = it)
                 }
