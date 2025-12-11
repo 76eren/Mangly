@@ -21,7 +21,10 @@ import com.example.manglyextension.plugins.Source
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.example.project.Composables.Standard.Read.viewer.ReaderMode
-import org.example.project.Composables.Standard.Read.viewer.webtoon.WebtoonReaderMode
+import org.example.project.Composables.Standard.Read.viewer.ReaderModePrefs
+import org.example.project.Composables.Standard.Read.viewer.ReaderModeType
+import org.example.project.Composables.Standard.Read.viewer.createReaderMode
+import org.example.project.Composables.Standard.Read.viewer.getReaderModeTypeFromPref
 import org.example.project.ViewModels.ExtensionMetadataViewModel
 
 @Composable
@@ -41,6 +44,21 @@ fun Read(
         return
     }
 
+    val context = LocalContext.current
+    val prefs = remember {
+        context.getSharedPreferences(
+            ReaderModePrefs.PREFS_NAME,
+            android.content.Context.MODE_PRIVATE
+        )
+    }
+
+    val modeValue = prefs.getString(
+        ReaderModePrefs.KEY_READER_MODE,
+        ReaderModePrefs.DEFAULT_READER_MODE_VALUE
+    )
+    val modeType: ReaderModeType = getReaderModeTypeFromPref(modeValue)
+    val readerMode: ReaderMode = createReaderMode(modeType)
+
     LaunchedEffect(targetUrl, metadata) {
         chapterImages = withContext(Dispatchers.IO) {
             getChapterImages(targetUrl, metadata)
@@ -52,11 +70,7 @@ fun Read(
         // Todo: this does not work properly yet
         PreloadImages(chapterImages!!.images, chapterImages!!.headers)
 
-
-        // Todo: styles should be selectable dynamically
-        val webtoonReaderMode: ReaderMode = WebtoonReaderMode
-
-        webtoonReaderMode.Content(
+        readerMode.Content(
             images = chapterImages!!.images,
             headers = chapterImages!!.headers,
             modifier = Modifier
