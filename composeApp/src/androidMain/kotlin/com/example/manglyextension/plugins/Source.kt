@@ -26,10 +26,13 @@ abstract class Source(val prefs: IPreferences?) {
     /**
      * Gets the settings needed by the the extension
      * A uiElement may be provided to indicate how the setting should be displayed in the UI, if empty it won't be displayed.
+     * TODO: Ideally we'd have a superclass with subclasses for different setting types rather than using 'Any' and nullable fields.
      */
     data class SettingGen(
-        var key: String,
+        var key: String, // The key used to identify the setting
+        var description: String, // The text that will show up as the description for the setting
         var defaultValue: Any,
+        var content: String? = null, // Additional content or information related to the setting IF needed, not all setting types support/need this
         var uiElement: PreferenceUi? = null
     )
 
