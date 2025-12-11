@@ -15,7 +15,8 @@ class ChaptersListViewModel
     private val image = mutableStateOf<ImageForChaptersList?>(null)
     private val summary = mutableStateOf("")
     private val name = mutableStateOf("")
-
+    private val scrollPosition = mutableStateOf(0)
+    
     fun setChapters(chapterList: List<Source.ChapterValue>?) {
         chapters.value = chapterList
     }
@@ -49,11 +50,20 @@ class ChaptersListViewModel
         return summary.value
     }
 
+    fun setScrollPosition(position: Int) {
+        scrollPosition.value = position
+    }
+
+    fun getScrollPosition(): Int {
+        return scrollPosition.value
+    }
+
     fun clear() {
         chapters.value = null
         image.value = null
         summary.value = ""
         name.value = ""
+        scrollPosition.value = 0
     }
 
 }
