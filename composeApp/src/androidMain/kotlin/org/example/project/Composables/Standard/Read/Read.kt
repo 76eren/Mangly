@@ -20,11 +20,16 @@ import com.example.manglyextension.plugins.ExtensionMetadata
 import com.example.manglyextension.plugins.Source
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.example.project.Composables.Standard.Read.viewer.webtoon.WebtoonReader
+import org.example.project.Composables.Standard.Read.viewer.ReaderMode
+import org.example.project.Composables.Standard.Read.viewer.webtoon.WebtoonReaderMode
 import org.example.project.ViewModels.ExtensionMetadataViewModel
 
 @Composable
-fun Read(targetUrl: String, extensionMetadataViewModel: ExtensionMetadataViewModel) {
+fun Read(
+    targetUrl: String,
+    extensionMetadataViewModel: ExtensionMetadataViewModel
+
+) {
     var chapterImages by remember { mutableStateOf<Source.ChapterImages?>(null) }
 
     val metadata: ExtensionMetadata? = extensionMetadataViewModel.selectedSingleSource.value
@@ -49,13 +54,16 @@ fun Read(targetUrl: String, extensionMetadataViewModel: ExtensionMetadataViewMod
 
 
         // Todo: styles should be selectable dynamically
-        WebtoonReader(
+        val webtoonReaderMode: ReaderMode = WebtoonReaderMode
+
+        webtoonReaderMode.Content(
             images = chapterImages!!.images,
             headers = chapterImages!!.headers,
             modifier = Modifier
                 .fillMaxSize()
                 .zIndex(1000f)
         )
+
     } else {
         Text(
             text = "Loading images or no images available...",

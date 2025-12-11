@@ -4,8 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -20,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import org.example.project.Themes.setAppTheme
 
@@ -33,6 +36,11 @@ fun Settings() {
         verticalArrangement = Arrangement.Top
     ) {
         ThemeSettings()
+
+        HorizontalDivider(
+            modifier = Modifier.padding(top = 20.dp, bottom = 10.dp),
+        )
+
     }
 }
 
@@ -51,7 +59,7 @@ fun ThemeSettings() {
             prefs.getString("settings_theme", "dark") ?: "dark"
         )
     }
-    
+
     Icon(
         imageVector = Icons.Default.Settings,
         contentDescription = "Settings page",
@@ -89,4 +97,9 @@ fun ThemeSettings() {
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onBackground
     )
+}
+
+@Composable
+fun ReadViewerSettings() {
+
 }
