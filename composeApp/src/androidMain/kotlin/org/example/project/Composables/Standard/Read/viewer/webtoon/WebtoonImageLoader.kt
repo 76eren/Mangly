@@ -10,6 +10,7 @@ import coil3.network.httpHeaders
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.example.manglyextension.plugins.Source
 
 @Composable
 fun rememberStrongImageLoader(): ImageLoader {
@@ -23,7 +24,7 @@ fun rememberStrongImageLoader(): ImageLoader {
 fun buildImageRequest(
     context: Context,
     url: String,
-    headers: List<com.example.manglyextension.plugins.Source.Header>
+    headers: List<Source.Header>
 ): ImageRequest {
     val networkHeaders = NetworkHeaders.Builder().apply {
         for (header in headers) {

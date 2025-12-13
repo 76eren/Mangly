@@ -26,7 +26,7 @@ fun WebtoonReader(
 
             RecyclerView(context).apply {
                 layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-                adapter = WebtoonRecyclerAdapter(images, headers, imageLoader, prefetchCount = 5)
+                adapter = WebtoonRecyclerAdapter(images, headers, imageLoader)
                 setHasFixedSize(false)
                 setItemViewCacheSize(images.size)
                 recycledViewPool.setMaxRecycledViews(0, images.size)
@@ -36,8 +36,6 @@ fun WebtoonReader(
             }
         },
         update = { recyclerView: RecyclerView ->
-            recyclerView.adapter =
-                WebtoonRecyclerAdapter(images, headers, imageLoader, prefetchCount = 5)
             recyclerView.setItemViewCacheSize(images.size)
             recyclerView.recycledViewPool.setMaxRecycledViews(0, images.size)
             recyclerView.translationZ = 20f
