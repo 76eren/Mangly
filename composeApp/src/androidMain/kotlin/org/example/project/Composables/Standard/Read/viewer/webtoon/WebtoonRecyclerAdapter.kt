@@ -7,14 +7,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.recyclerview.widget.RecyclerView
+import coil3.ImageLoader
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 import com.example.manglyextension.plugins.Source
 
 class WebtoonRecyclerAdapter(
     private val images: List<String>,
-    private val headers: List<Source.Header>
+    private val headers: List<Source.Header>,
+    private val imageLoader: ImageLoader,
+    private val prefetchCount: Int = 3
 ) : RecyclerView.Adapter<WebtoonRecyclerAdapter.ComposeViewHolder>() {
 
     class ComposeViewHolder(val composeView: ComposeView) : RecyclerView.ViewHolder(composeView)
@@ -25,7 +30,6 @@ class WebtoonRecyclerAdapter(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
-
         composeView.translationZ = 10f
         composeView.elevation = 10f
         composeView.bringToFront()
@@ -36,11 +40,31 @@ class WebtoonRecyclerAdapter(
 
     override fun onBindViewHolder(holder: ComposeViewHolder, position: Int) {
         val imageUrl = images[position]
+
+        holder.setIsRecyclable(false)
         holder.composeView.translationZ = 10f
         holder.composeView.elevation = 10f
         holder.composeView.bringToFront()
+
+        for (i in 1..prefetchCount) {
+            val nextIndex = position + i
+            if (nextIndex in images.indices) {
+                val req: ImageRequest =
+                    buildImageRequest(holder.composeView.context, images[nextIndex], headers)
+                imageLoader.enqueue(req)
+            }
+        }
+
+        if (position == 0) {
+            for (nextIndex in (position + prefetchCount + 1) until images.size) {
+                val req: ImageRequest =
+                    buildImageRequest(holder.composeView.context, images[nextIndex], headers)
+                imageLoader.enqueue(req)
+            }
+        }
+
         holder.composeView.setContent {
-            WebtoonItem(imageUrl, headers, "Chapter image ${position + 1}")
+            WebtoonItem(imageUrl, headers, imageLoader, "Chapter image ${position + 1}")
         }
     }
 }
@@ -49,12 +73,14 @@ class WebtoonRecyclerAdapter(
 private fun WebtoonItem(
     imageUrl: String,
     headers: List<Source.Header>,
+    imageLoader: ImageLoader,
     contentDescription: String,
 ) {
-    val request = buildImageRequest(imageUrl, headers)
+    val request = buildImageRequest(LocalContext.current, imageUrl, headers)
 
     AsyncImage(
         model = request,
+        imageLoader = imageLoader,
         contentDescription = contentDescription,
         modifier = Modifier
             .fillMaxWidth()
