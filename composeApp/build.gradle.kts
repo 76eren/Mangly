@@ -22,6 +22,7 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
+            implementation("androidx.recyclerview:recyclerview:1.3.2")
         }
         commonMain.dependencies {
             implementation(compose.runtime)
