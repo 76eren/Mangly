@@ -8,11 +8,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.recyclerview.widget.RecyclerView
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import com.example.manglyextension.plugins.Source
+import org.example.project.R
 
 class WebtoonRecyclerAdapter(
     private val images: List<String>,
@@ -67,5 +69,7 @@ private fun WebtoonItem(
             .fillMaxWidth()
             .heightIn(min = 1.dp),
         contentScale = ContentScale.FillWidth,
+        placeholder = painterResource(R.drawable.outline_cached_24),
+        error = painterResource(R.drawable.outline_error_24)
     )
 }
