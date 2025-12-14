@@ -1,14 +1,23 @@
 package org.example.project.Composables.Standard.Read.viewer.webtoon
 
 import android.view.ViewGroup
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.recyclerview.widget.RecyclerView
 import coil3.ImageLoader
@@ -20,9 +29,25 @@ class WebtoonRecyclerAdapter(
     private val images: List<String>,
     private val headers: List<Source.Header>,
     private val imageLoader: ImageLoader,
+    private val onPreviousChapter: () -> Unit = {},
+    private val onNextChapter: () -> Unit = {}
 ) : RecyclerView.Adapter<WebtoonRecyclerAdapter.ComposeViewHolder>() {
 
+    companion object {
+        private const val VIEW_TYPE_PREVIOUS = 0
+        private const val VIEW_TYPE_IMAGE = 1
+        private const val VIEW_TYPE_NEXT = 2
+    }
+
     class ComposeViewHolder(val composeView: ComposeView) : RecyclerView.ViewHolder(composeView)
+
+    override fun getItemViewType(position: Int): Int {
+        return when (position) {
+            0 -> VIEW_TYPE_PREVIOUS
+            itemCount - 1 -> VIEW_TYPE_NEXT
+            else -> VIEW_TYPE_IMAGE
+        }
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ComposeViewHolder {
         val composeView = ComposeView(parent.context)
@@ -36,19 +61,56 @@ class WebtoonRecyclerAdapter(
         return ComposeViewHolder(composeView)
     }
 
-    override fun getItemCount(): Int = images.size
+    override fun getItemCount(): Int = images.size + 2 // +2 for navigation boxes
 
     override fun onBindViewHolder(holder: ComposeViewHolder, position: Int) {
-        val imageUrl = images[position]
-
         holder.setIsRecyclable(false)
         holder.composeView.translationZ = 10f
         holder.composeView.elevation = 10f
         holder.composeView.bringToFront()
 
         holder.composeView.setContent {
-            WebtoonItem(imageUrl, headers, imageLoader, "Chapter image ${position + 1}")
+            when (getItemViewType(position)) {
+                VIEW_TYPE_PREVIOUS -> NavigationBox(
+                    text = "Previous Chapter",
+                    onClick = onPreviousChapter
+                )
+
+                VIEW_TYPE_NEXT -> NavigationBox(
+                    text = "Next Chapter",
+                    onClick = onNextChapter
+                )
+
+                else -> {
+                    val imageIndex = position - 1 // Adjust for the first navigation box
+                    val imageUrl = images[imageIndex]
+                    WebtoonItem(imageUrl, headers, imageLoader, "Chapter image ${imageIndex + 1}")
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun NavigationBox(
+    text: String,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }
 

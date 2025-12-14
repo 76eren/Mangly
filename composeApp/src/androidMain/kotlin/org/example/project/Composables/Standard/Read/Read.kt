@@ -1,5 +1,6 @@
 package org.example.project.Composables.Standard.Read
 
+import android.util.Log
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -13,9 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import coil3.network.NetworkHeaders
-import coil3.network.httpHeaders
-import coil3.request.ImageRequest
 import com.example.manglyextension.plugins.ExtensionMetadata
 import com.example.manglyextension.plugins.Source
 import kotlinx.coroutines.Dispatchers
@@ -25,14 +23,16 @@ import org.example.project.Composables.Standard.Read.viewer.ReaderModePrefs
 import org.example.project.Composables.Standard.Read.viewer.ReaderModeType
 import org.example.project.Composables.Standard.Read.viewer.createReaderMode
 import org.example.project.Composables.Standard.Read.viewer.getReaderModeTypeFromPref
+import org.example.project.ViewModels.ChaptersListViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
 
 @Composable
 fun Read(
     targetUrl: String,
-    extensionMetadataViewModel: ExtensionMetadataViewModel
-
+    extensionMetadataViewModel: ExtensionMetadataViewModel,
+    chaptersListViewModel: ChaptersListViewModel
 ) {
+    var url by remember(targetUrl) { mutableStateOf(targetUrl) }
     var chapterImages by remember { mutableStateOf<Source.ChapterImages?>(null) }
 
     val metadata: ExtensionMetadata? = extensionMetadataViewModel.selectedSingleSource.value
@@ -59,23 +59,36 @@ fun Read(
     val modeType: ReaderModeType = getReaderModeTypeFromPref(modeValue)
     val readerMode: ReaderMode = createReaderMode(modeType)
 
-    LaunchedEffect(targetUrl, metadata) {
+    LaunchedEffect(url, metadata) {
         chapterImages = withContext(Dispatchers.IO) {
-            getChapterImages(targetUrl, metadata)
+            getChapterImages(url, metadata)
         }
     }
 
     if (chapterImages != null && chapterImages!!.images.isNotEmpty()) {
-
-        // Todo: this does not work properly yet
-        PreloadImages(chapterImages!!.images, chapterImages!!.headers)
 
         readerMode.Content(
             images = chapterImages!!.images,
             headers = chapterImages!!.headers,
             modifier = Modifier
                 .fillMaxSize()
-                .zIndex(1000f)
+                .zIndex(1000f),
+            onNextChapter = {
+                val chapters = chaptersListViewModel.getChapters()
+                val currentIndex = chapters.indexOfFirst { it.url == url }
+                if (currentIndex >= 0 && currentIndex + 1 < chapters.size) {
+                    url = chapters[currentIndex + 1].url
+                }
+                Log.d("lol", "onNextChapter: $url")
+            },
+            onPreviousChapter = {
+                val chapters = chaptersListViewModel.getChapters()
+                val currentIndex = chapters.indexOfFirst { it.url == url }
+                if (currentIndex > 0) {
+                    url = chapters[currentIndex - 1].url
+                }
+                Log.d("lol", "onPreviousChapter: $url")
+            }
         )
 
     } else {
@@ -83,31 +96,6 @@ fun Read(
             text = "Loading images or no images available...",
             modifier = Modifier.padding(16.dp)
         )
-    }
-}
-
-@Composable
-fun PreloadImages(
-    urls: List<String>,
-    headers: List<Source.Header>
-) {
-    val context = LocalContext.current
-    LaunchedEffect(Unit) {
-        val imageLoader = coil3.ImageLoader(context)
-        for (url in urls) {
-            val networkHeaders = NetworkHeaders.Builder().apply {
-                for (header in headers) {
-                    this[header.name] = header.value
-                }
-            }.build()
-
-            val request = ImageRequest.Builder(context)
-                .data(url)
-                .httpHeaders(networkHeaders)
-                .build()
-
-            imageLoader.enqueue(request)
-        }
     }
 }
 

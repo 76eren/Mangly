@@ -12,7 +12,9 @@ import com.example.manglyextension.plugins.Source
 fun WebtoonReader(
     images: List<String>,
     headers: List<Source.Header>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onPreviousChapter: () -> Unit = {},
+    onNextChapter: () -> Unit = {}
 ) {
     val imageLoader = rememberStrongImageLoader()
 
@@ -38,7 +40,13 @@ fun WebtoonReader(
                 setItemViewCacheSize(images.size)
                 setItemViewCacheSize(images.size)
 
-                adapter = WebtoonRecyclerAdapter(images, headers, imageLoader)
+                adapter = WebtoonRecyclerAdapter(
+                    images,
+                    headers,
+                    imageLoader,
+                    onPreviousChapter,
+                    onNextChapter
+                )
                 recycledViewPool.setMaxRecycledViews(0, 0)
 
 
@@ -48,9 +56,25 @@ fun WebtoonReader(
             }
         },
         update = { recyclerView: RecyclerView ->
+            recyclerView.adapter = WebtoonRecyclerAdapter(
+                images,
+                headers,
+                imageLoader,
+                onPreviousChapter,
+                onNextChapter
+            )
+
+            // Preload new images
+            images.forEach { url ->
+                val req = buildImageRequest(recyclerView.context, url, headers)
+                imageLoader.enqueue(req)
+            }
+
             recyclerView.setItemViewCacheSize(images.size)
             recyclerView.recycledViewPool.setMaxRecycledViews(0, 0)
             (recyclerView.layoutManager as? LinearLayoutManager)?.isItemPrefetchEnabled = false
+
+            recyclerView.scrollToPosition(0)
         }
     )
 }

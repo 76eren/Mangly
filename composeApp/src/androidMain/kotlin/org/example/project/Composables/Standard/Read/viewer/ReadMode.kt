@@ -12,7 +12,9 @@ interface ReaderMode {
     fun Content(
         images: List<String>,
         headers: List<Source.Header>,
-        modifier: Modifier = Modifier
+        modifier: Modifier = Modifier,
+        onPreviousChapter: () -> Unit = {},
+        onNextChapter: () -> Unit = {}
     )
 }
 

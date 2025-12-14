@@ -100,7 +100,7 @@ fun NavHostContainer(
             composable("read/{url}") { backStackEntry ->
                 val encodedUrl = backStackEntry.arguments?.getString("url").orEmpty()
                 val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
-                Read(url, extensionMetadataViewModel)
+                Read(url, extensionMetadataViewModel, chaptersListViewModel)
             }
 
         })

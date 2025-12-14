@@ -12,12 +12,16 @@ object WebtoonReaderMode : ReaderMode {
     override fun Content(
         images: List<String>,
         headers: List<Source.Header>,
-        modifier: Modifier
+        modifier: Modifier,
+        onPreviousChapter: () -> Unit,
+        onNextChapter: () -> Unit
     ) {
         WebtoonReader(
             images = images,
             headers = headers,
-            modifier = modifier
+            modifier = modifier,
+            onPreviousChapter = onPreviousChapter,
+            onNextChapter = onNextChapter
         )
     }
 }
