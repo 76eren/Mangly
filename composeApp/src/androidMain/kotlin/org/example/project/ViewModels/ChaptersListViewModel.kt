@@ -16,7 +16,10 @@ class ChaptersListViewModel
     private val summary = mutableStateOf("")
     private val name = mutableStateOf("")
     private val scrollPosition = mutableStateOf(0)
-    
+
+    // Horrible way of keeping track of selected chapter number across composable recompositions
+    private val selectedChapterNumber = mutableStateOf("")
+
     fun setChapters(chapterList: List<Source.ChapterValue>?) {
         chapters.value = chapterList
     }
@@ -64,6 +67,14 @@ class ChaptersListViewModel
         summary.value = ""
         name.value = ""
         scrollPosition.value = 0
+    }
+
+    fun setSelectedChapterNumber(chapterNumber: String) {
+        selectedChapterNumber.value = chapterNumber
+    }
+
+    fun getSelectedChapterNumber(): String {
+        return selectedChapterNumber.value
     }
 
 }

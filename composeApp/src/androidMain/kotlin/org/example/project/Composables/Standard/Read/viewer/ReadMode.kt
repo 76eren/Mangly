@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.manglyextension.plugins.Source
 import org.example.project.Composables.Standard.Read.viewer.webtoon.WebtoonReaderMode
+import org.example.project.ViewModels.ChaptersListViewModel
 
 interface ReaderMode {
     val name: String
@@ -14,7 +15,8 @@ interface ReaderMode {
         headers: List<Source.Header>,
         modifier: Modifier = Modifier,
         onPreviousChapter: () -> Unit = {},
-        onNextChapter: () -> Unit = {}
+        onNextChapter: () -> Unit = {},
+        chaptersListViewModel: ChaptersListViewModel
     )
 }
 

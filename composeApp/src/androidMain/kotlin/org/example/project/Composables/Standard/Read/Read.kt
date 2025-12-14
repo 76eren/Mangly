@@ -79,6 +79,7 @@ fun Read(
                 if (currentIndex >= 0 && currentIndex + 1 < chapters.size) {
                     url = chapters[currentIndex + 1].url
                 }
+                chaptersListViewModel.setSelectedChapterNumber(chapters[currentIndex + 1].title)
                 Log.d("lol", "onNextChapter: $url")
             },
             onPreviousChapter = {
@@ -86,9 +87,11 @@ fun Read(
                 val currentIndex = chapters.indexOfFirst { it.url == url }
                 if (currentIndex > 0) {
                     url = chapters[currentIndex - 1].url
+                    chaptersListViewModel.setSelectedChapterNumber(chapters[currentIndex - 1].title)
                 }
                 Log.d("lol", "onPreviousChapter: $url")
-            }
+            },
+            chaptersListViewModel = chaptersListViewModel
         )
 
     } else {

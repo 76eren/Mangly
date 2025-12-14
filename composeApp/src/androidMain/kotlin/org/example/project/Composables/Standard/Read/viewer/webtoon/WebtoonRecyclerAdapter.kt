@@ -4,6 +4,7 @@ import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -24,13 +25,15 @@ import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import com.example.manglyextension.plugins.Source
 import org.example.project.R
+import org.example.project.ViewModels.ChaptersListViewModel
 
 class WebtoonRecyclerAdapter(
     private val images: List<String>,
     private val headers: List<Source.Header>,
     private val imageLoader: ImageLoader,
     private val onPreviousChapter: () -> Unit = {},
-    private val onNextChapter: () -> Unit = {}
+    private val onNextChapter: () -> Unit = {},
+    private val chaptersListViewModel: ChaptersListViewModel
 ) : RecyclerView.Adapter<WebtoonRecyclerAdapter.ComposeViewHolder>() {
 
     companion object {
@@ -73,12 +76,14 @@ class WebtoonRecyclerAdapter(
             when (getItemViewType(position)) {
                 VIEW_TYPE_PREVIOUS -> NavigationBox(
                     text = "Previous Chapter",
-                    onClick = onPreviousChapter
+                    onClick = onPreviousChapter,
+                    chaptersListViewModel
                 )
 
                 VIEW_TYPE_NEXT -> NavigationBox(
                     text = "Next Chapter",
-                    onClick = onNextChapter
+                    onClick = onNextChapter,
+                    chaptersListViewModel
                 )
 
                 else -> {
@@ -94,23 +99,37 @@ class WebtoonRecyclerAdapter(
 @Composable
 private fun NavigationBox(
     text: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    chaptersListViewModel: ChaptersListViewModel
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(120.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (text == "Previous Chapter") {
+            Text(
+                text = "Current chapter: " + chaptersListViewModel.getSelectedChapterNumber(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .padding(bottom = 8.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable(onClick = onClick)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 

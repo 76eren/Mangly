@@ -278,7 +278,8 @@ fun ChaptersList(
                                 navHostController,
                                 chapter.url,
                                 chaptersListViewModel,
-                                scrollState.value
+                                scrollState.value,
+                                chapter.title
                             )
                         },
                         modifier = Modifier
@@ -313,9 +314,11 @@ fun onChapterClick(
     navHostController: NavHostController,
     url: String,
     chaptersListViewModel: ChaptersListViewModel,
-    scrollPosition: Int
+    scrollPosition: Int,
+    chapterTitle: String
 ) {
     chaptersListViewModel.setScrollPosition(scrollPosition)
+    chaptersListViewModel.setSelectedChapterNumber(chapterTitle)
     val encodedUrl = URLEncoder.encode(url, StandardCharsets.UTF_8.toString())
     navHostController.navigate("read/${encodedUrl}")
 }

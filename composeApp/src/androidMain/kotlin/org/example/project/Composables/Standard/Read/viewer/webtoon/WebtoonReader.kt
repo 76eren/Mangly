@@ -7,6 +7,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.manglyextension.plugins.Source
+import org.example.project.ViewModels.ChaptersListViewModel
 
 @Composable
 fun WebtoonReader(
@@ -14,7 +15,8 @@ fun WebtoonReader(
     headers: List<Source.Header>,
     modifier: Modifier = Modifier,
     onPreviousChapter: () -> Unit = {},
-    onNextChapter: () -> Unit = {}
+    onNextChapter: () -> Unit = {},
+    chaptersListViewModel: ChaptersListViewModel
 ) {
     val imageLoader = rememberStrongImageLoader()
 
@@ -39,7 +41,8 @@ fun WebtoonReader(
                     headers,
                     imageLoader,
                     onPreviousChapter,
-                    onNextChapter
+                    onNextChapter,
+                    chaptersListViewModel
                 )
                 recycledViewPool.setMaxRecycledViews(0, 0)
 
@@ -60,7 +63,8 @@ fun WebtoonReader(
                 headers,
                 imageLoader,
                 onPreviousChapter,
-                onNextChapter
+                onNextChapter,
+                chaptersListViewModel
             )
 
             images.forEach { url ->
