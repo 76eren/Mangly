@@ -68,9 +68,9 @@ fun ExtensionDetails(cardData: CardData) {
 
             for (setting in allUiSettings) {
                 when (setting.uiElement) {
-                    PreferenceUi.SWITCH   -> PreferenceSwitch(setting, prefs)
+                    PreferenceUi.SWITCH -> PreferenceSwitch(setting, prefs)
                     PreferenceUi.TEXTAREA -> PreferenceTextArea(setting, prefs)
-                    else                  -> { }
+                    else -> {}
                 }
             }
         }
@@ -93,7 +93,7 @@ private fun PreferenceSwitch(
             .padding(vertical = 8.dp)
     ) {
         Text(
-            text = setting.key,
+            text = setting.description,
             modifier = Modifier.weight(1f)
         )
         Switch(
@@ -113,7 +113,7 @@ private fun PreferenceTextArea(
     modifier: Modifier = Modifier
 ) {
     val key = setting.key
-    var text by remember(key) { mutableStateOf(prefs.getString(key, "")) }
+    var text by remember(key) { mutableStateOf(prefs.getString(key, setting.content ?: "")) }
     var expanded by remember(key) { mutableStateOf(false) }
 
     Column(
@@ -126,7 +126,7 @@ private fun PreferenceTextArea(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = setting.key,
+                text = setting.description,
                 modifier = Modifier.weight(1f)
             )
             Button(onClick = { expanded = !expanded }) {
@@ -141,7 +141,7 @@ private fun PreferenceTextArea(
                     text = newText
                     prefs.setString(key, newText, uiElement = setting.uiElement)
                 },
-                label = { Text("Enter ${setting.key}") },
+                label = { Text("Enter ${setting.description}") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(150.dp)
@@ -161,15 +161,31 @@ private fun PreferenceTextArea(
 
 fun seedSettings(cardData: CardData): List<Source.SettingGen> {
     val rawSettings = cardData.source.generateSettings()
-    val preferences: PreferenceImplementation = cardData.source.preferences as PreferenceImplementation
+    val preferences: PreferenceImplementation =
+        cardData.source.preferences as PreferenceImplementation
 
     // If the UI settings aren't present yet, we initialize them
     for (setting in rawSettings) {
         if (!preferences.settings.contains(setting.key)) {
             when (val settingUnknownType = setting.defaultValue) {
-                is Boolean -> preferences.setBoolean(key = setting.key, value = settingUnknownType, uiElement = setting.uiElement)
-                is String -> preferences.setString(key = setting.key, value = settingUnknownType, uiElement = setting.uiElement)
-                is Int -> preferences.setInt(key = setting.key, value = settingUnknownType, uiElement = setting.uiElement)
+                is Boolean -> preferences.setBoolean(
+                    key = setting.key,
+                    value = settingUnknownType,
+                    uiElement = setting.uiElement
+                )
+
+                is String -> preferences.setString(
+                    key = setting.key,
+                    value = settingUnknownType,
+                    uiElement = setting.uiElement
+                )
+
+                is Int -> preferences.setInt(
+                    key = setting.key,
+                    value = settingUnknownType,
+                    uiElement = setting.uiElement
+                )
+
                 else -> throw IllegalArgumentException("Unsupported type for setting: ${settingUnknownType::class.java}")
             }
         }

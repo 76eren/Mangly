@@ -50,6 +50,7 @@ fun NavHostContainer(
             // Bottom nav routes
             composable("home") {
                 searchViewModel.clearSearchResults()
+                chaptersListViewModel.clear()
                 Home(favoritesViewModel, extensionMetadataViewModel, navController)
             }
 
@@ -77,16 +78,14 @@ fun NavHostContainer(
 
             // Regular routes
             composable("extensionDetails/{id}") { backStackEntry ->
-                val name = backStackEntry.arguments?.getString("id")
-                extensionsViewModel.selectCardByName(name ?: "")
+                val sourceId = backStackEntry.arguments?.getString("id")
+                extensionsViewModel.selectCardBySource(sourceId ?: "")
                 extensionsViewModel.selectedCardData?.let {
                     ExtensionDetails(cardData = it)
                 }
             }
 
             composable("chapters/{url}") { backStackEntry ->
-                chaptersListViewModel.clear()
-
                 val encodedUrl = backStackEntry.arguments?.getString("url").orEmpty()
                 val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
                 ChaptersList(

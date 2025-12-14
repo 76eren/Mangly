@@ -21,7 +21,7 @@ class ExtensionDetailsViewModel @Inject constructor() : ViewModel() {
         cards.addAll(data)
     }
 
-    fun selectCardByName(id: String) {
-        selectedCardData = cards.find { it.metadata.name == id }
+    fun selectCardBySource(id: String) {
+        selectedCardData = cards.find { it.metadata.source.getExtensionId() == id }
     }
 }

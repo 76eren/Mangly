@@ -10,30 +10,26 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.manglyextension.plugins.ExtensionMetadata
 import com.example.manglyextension.plugins.Source
 import org.example.project.Composables.Shared.Cards.CardTypeOne
 import org.example.project.Composables.Shared.Topbar.TopBarNewExtension
-import org.example.project.Extension.ExtensionManager
-import org.example.project.FileManager.FileManager
-import org.example.project.Rooms.Entities.ExtensionEntity
 import org.example.project.ViewModels.ExtensionDetailsViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
-import java.io.File
 
 @Composable
-fun Extensions(navController: NavHostController, extensionDetailsViewModel: ExtensionDetailsViewModel, extensionMetadataViewModel: ExtensionMetadataViewModel) {
+fun Extensions(
+    navController: NavHostController,
+    extensionDetailsViewModel: ExtensionDetailsViewModel,
+    extensionMetadataViewModel: ExtensionMetadataViewModel
+) {
     val cardItems = remember { mutableStateListOf<CardData>() }
 
     for (metadata in extensionMetadataViewModel.getAllSources()) {
@@ -54,14 +50,15 @@ fun Extensions(navController: NavHostController, extensionDetailsViewModel: Exte
     extensionDetailsViewModel.setCards(cardItems)
 
 
-    Scaffold (
+    Scaffold(
         topBar = { TopBarNewExtension() }
-    ){ paddingValues ->
+    ) { paddingValues ->
 
-        Column ( modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .background(MaterialTheme.colorScheme.background),
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background),
 
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
@@ -71,7 +68,7 @@ fun Extensions(navController: NavHostController, extensionDetailsViewModel: Exte
                 items(cardItems) { item ->
                     CardTypeOne(
                         cardData = item,
-                        onClick = {navController.navigate("extensionDetails/${item.metadata.name}")}
+                        onClick = { navController.navigate("extensionDetails/${item.metadata.source.getExtensionId()}") }
                     )
                 }
             }

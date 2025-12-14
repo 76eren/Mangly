@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +39,7 @@ import com.example.manglyextension.plugins.ExtensionMetadata
 import com.example.manglyextension.plugins.Source
 import com.example.manglyextension.plugins.Source.ImageForChaptersList
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.example.project.Rooms.Entities.FavoritesEntity
 import org.example.project.ViewModels.ChaptersListViewModel
@@ -72,8 +74,17 @@ fun ChaptersList(
     var isSummaryExpanded by remember { mutableStateOf(false) }
     var mangaName by remember { mutableStateOf("") }
 
+    val scrollState = rememberScrollState()
+
+    DisposableEffect(Unit) {
+        onDispose {
+            val position = scrollState.value
+            chaptersListViewModel.setScrollPosition(position)
+        }
+    }
+
     LaunchedEffect(targetUrl, metadata) {
-        chapters = runCatching {
+        val fetchedChapters = runCatching {
             withContext(Dispatchers.IO) {
                 if (chaptersListViewModel.getChapters().isEmpty()) {
                     fetchChapterList(metadata.source, targetUrl)
@@ -83,7 +94,7 @@ fun ChaptersList(
             }
         }.getOrNull()
 
-        image = runCatching {
+        val fetchedImage = runCatching {
             withContext(Dispatchers.IO) {
                 if (chaptersListViewModel.getImage() != null) {
                     chaptersListViewModel.getImage()
@@ -93,7 +104,7 @@ fun ChaptersList(
             }
         }.getOrNull()
 
-        summary = runCatching {
+        val fetchedSummary = runCatching {
             withContext(Dispatchers.IO) {
                 if (chaptersListViewModel.getSummary().isNotBlank()) {
                     chaptersListViewModel.getSummary()
@@ -103,7 +114,7 @@ fun ChaptersList(
             }
         }.getOrDefault("")
 
-        mangaName = runCatching {
+        val fetchedMangaName = runCatching {
             withContext(Dispatchers.IO) {
                 if (chaptersListViewModel.getName().isNotBlank()) {
                     chaptersListViewModel.getName()
@@ -113,16 +124,29 @@ fun ChaptersList(
             }
         }.getOrDefault("")
 
-        chaptersListViewModel.setChapters(chapters)
-        chaptersListViewModel.setImage(image)
-        chaptersListViewModel.setSummary(summary)
-        chaptersListViewModel.setName(mangaName)
+        chapters = fetchedChapters
+        image = fetchedImage
+        summary = fetchedSummary
+        mangaName = fetchedMangaName
+
+        chaptersListViewModel.setChapters(fetchedChapters)
+        chaptersListViewModel.setImage(fetchedImage)
+        chaptersListViewModel.setSummary(fetchedSummary)
+        chaptersListViewModel.setName(fetchedMangaName)
+
+        // Restore scroll position after data is loaded
+        val savedPosition = chaptersListViewModel.getScrollPosition()
+        if (savedPosition > 0 && fetchedChapters != null) {
+            // Small delay to ensure layout is complete
+            delay(100)
+            scrollState.scrollTo(savedPosition)
+        }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
         val headers: List<Source.Header> = image?.headers.let {
@@ -165,7 +189,6 @@ fun ChaptersList(
                         }
                     }
                 }
-
             )
         } else {
             Icon(
@@ -179,7 +202,6 @@ fun ChaptersList(
                         mangaTitle = mangaName,
                         created_at = System.currentTimeMillis(),
                         extensionId = UUID.fromString(metadata.source.getExtensionId())
-
                     )
                     favoritesViewModel.addFavorite(favoriteEntity)
                     isFavorite = !isFavorite
@@ -192,7 +214,6 @@ fun ChaptersList(
                 painter = rememberAsyncImagePainter(imageRequest),
                 contentDescription = "Comic Cover",
                 contentScale = ContentScale.Crop,
-
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .width(220.dp)
@@ -253,7 +274,12 @@ fun ChaptersList(
                 it.forEach { chapter ->
                     OutlinedButton(
                         onClick = {
-                            onChapterClick(navHostController, chapter.url)
+                            onChapterClick(
+                                navHostController,
+                                chapter.url,
+                                chaptersListViewModel,
+                                scrollState.value
+                            )
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -266,7 +292,6 @@ fun ChaptersList(
         } ?: Text("Loading chapters...", style = MaterialTheme.typography.bodySmall)
     }
 }
-
 
 suspend fun fetchChapterImage(source: Source, url: String): ImageForChaptersList {
     return source.getImageForChaptersList(url)
@@ -284,7 +309,13 @@ suspend fun fetchMangaTitle(source: Source, url: String): String {
     return source.getMangaNameFromChapterUrl(url)
 }
 
-fun onChapterClick(navHostController: NavHostController, url: String) {
+fun onChapterClick(
+    navHostController: NavHostController,
+    url: String,
+    chaptersListViewModel: ChaptersListViewModel,
+    scrollPosition: Int
+) {
+    chaptersListViewModel.setScrollPosition(scrollPosition)
     val encodedUrl = URLEncoder.encode(url, StandardCharsets.UTF_8.toString())
     navHostController.navigate("read/${encodedUrl}")
 }
