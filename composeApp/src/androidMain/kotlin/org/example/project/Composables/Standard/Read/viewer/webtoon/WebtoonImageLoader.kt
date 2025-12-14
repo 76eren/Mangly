@@ -17,6 +17,8 @@ fun rememberStrongImageLoader(): ImageLoader {
     val context = LocalContext.current
     return remember {
         ImageLoader.Builder(context)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
             .build()
     }
 }
@@ -37,6 +39,6 @@ fun buildImageRequest(
         .httpHeaders(networkHeaders)
         .diskCachePolicy(CachePolicy.ENABLED)
         .memoryCachePolicy(CachePolicy.ENABLED)
-        .crossfade(true)
+        .crossfade(false)
         .build()
 }

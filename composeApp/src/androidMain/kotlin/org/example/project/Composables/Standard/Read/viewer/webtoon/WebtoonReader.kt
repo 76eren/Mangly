@@ -19,17 +19,29 @@ fun WebtoonReader(
     AndroidView<RecyclerView>(
         modifier = modifier,
         factory = { context: Context ->
+            // Preload all images into cache
             images.forEach { url ->
                 val req = buildImageRequest(context, url, headers)
                 imageLoader.enqueue(req)
             }
 
             RecyclerView(context).apply {
-                layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-                adapter = WebtoonRecyclerAdapter(images, headers, imageLoader)
-                setHasFixedSize(false)
+
+                // This is so it doesn't load in real time when scrolling
+                // This can also causes performance issues, I am currently not sure what the best approach would be
+                // TODO: Find a better solution
+                layoutManager =
+                    LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false).apply {
+                        isItemPrefetchEnabled = false // Prevent lazy loading
+                    }
+                setHasFixedSize(true)
                 setItemViewCacheSize(images.size)
-                recycledViewPool.setMaxRecycledViews(0, images.size)
+                setItemViewCacheSize(images.size)
+
+                adapter = WebtoonRecyclerAdapter(images, headers, imageLoader)
+                recycledViewPool.setMaxRecycledViews(0, 0)
+
+
                 translationZ = 20f
                 elevation = 20f
                 bringToFront()
@@ -37,10 +49,8 @@ fun WebtoonReader(
         },
         update = { recyclerView: RecyclerView ->
             recyclerView.setItemViewCacheSize(images.size)
-            recyclerView.recycledViewPool.setMaxRecycledViews(0, images.size)
-            recyclerView.translationZ = 20f
-            recyclerView.elevation = 20f
-            recyclerView.bringToFront()
+            recyclerView.recycledViewPool.setMaxRecycledViews(0, 0)
+            (recyclerView.layoutManager as? LinearLayoutManager)?.isItemPrefetchEnabled = false
         }
     )
 }

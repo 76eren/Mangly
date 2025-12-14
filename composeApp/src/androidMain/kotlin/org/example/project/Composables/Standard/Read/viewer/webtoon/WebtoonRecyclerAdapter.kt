@@ -69,7 +69,6 @@ private fun WebtoonItem(
             .fillMaxWidth()
             .heightIn(min = 1.dp),
         contentScale = ContentScale.FillWidth,
-        placeholder = painterResource(R.drawable.outline_cached_24),
         error = painterResource(R.drawable.outline_error_24)
     )
 }
