@@ -279,7 +279,8 @@ fun ChaptersList(
                                 chapter.url,
                                 chaptersListViewModel,
                                 scrollState.value,
-                                chapter.title
+                                chapter.title,
+                                targetUrl
                             )
                         },
                         modifier = Modifier
@@ -312,13 +313,15 @@ suspend fun fetchMangaTitle(source: Source, url: String): String {
 
 fun onChapterClick(
     navHostController: NavHostController,
-    url: String,
+    mangaUrl: String,
     chaptersListViewModel: ChaptersListViewModel,
     scrollPosition: Int,
-    chapterTitle: String
+    chapterTitle: String,
+    chapterUrl: String
 ) {
     chaptersListViewModel.setScrollPosition(scrollPosition)
     chaptersListViewModel.setSelectedChapterNumber(chapterTitle)
-    val encodedUrl = URLEncoder.encode(url, StandardCharsets.UTF_8.toString())
+    chaptersListViewModel.setSelectedMangaUrl(chapterUrl)
+    val encodedUrl = URLEncoder.encode(mangaUrl, StandardCharsets.UTF_8.toString())
     navHostController.navigate("read/${encodedUrl}")
 }

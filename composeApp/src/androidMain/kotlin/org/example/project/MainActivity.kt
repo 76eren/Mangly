@@ -26,6 +26,7 @@ import org.example.project.ViewModels.ChaptersListViewModel
 import org.example.project.ViewModels.ExtensionDetailsViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
 import org.example.project.ViewModels.FavoritesViewModel
+import org.example.project.ViewModels.HistoryViewModel
 import org.example.project.ViewModels.SearchViewModel
 import java.io.File
 import javax.inject.Inject
@@ -61,6 +62,7 @@ class MainActivity : ComponentActivity() {
                     val searchViewModel: SearchViewModel = hiltViewModel()
                     val chaptersListViewModel: ChaptersListViewModel = hiltViewModel()
                     val favoritesViewModel: FavoritesViewModel = hiltViewModel()
+                    val historyViewModel: HistoryViewModel = hiltViewModel()
 
 
                     // Populate data for view models
@@ -80,11 +82,12 @@ class MainActivity : ComponentActivity() {
                             NavHostContainer(
                                 navController = navController,
                                 padding = padding,
-                                extensionDetailsViewModel,
-                                sourcesViewModel,
-                                searchViewModel,
-                                chaptersListViewModel,
-                                favoritesViewModel
+                                extensionsViewModel = extensionDetailsViewModel,
+                                extensionMetadataViewModel = sourcesViewModel,
+                                searchViewModel = searchViewModel,
+                                chaptersListViewModel = chaptersListViewModel,
+                                favoritesViewModel = favoritesViewModel,
+                                historyViewModel = historyViewModel
                             )
                         }
                     }

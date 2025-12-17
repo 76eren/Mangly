@@ -18,6 +18,7 @@ import org.example.project.ViewModels.ChaptersListViewModel
 import org.example.project.ViewModels.ExtensionDetailsViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
 import org.example.project.ViewModels.FavoritesViewModel
+import org.example.project.ViewModels.HistoryViewModel
 import org.example.project.ViewModels.SearchViewModel
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -32,7 +33,8 @@ fun NavHostContainer(
     extensionMetadataViewModel: ExtensionMetadataViewModel,
     searchViewModel: SearchViewModel,
     chaptersListViewModel: ChaptersListViewModel,
-    favoritesViewModel: FavoritesViewModel
+    favoritesViewModel: FavoritesViewModel,
+    historyViewModel: HistoryViewModel
 
 ) {
 
@@ -100,7 +102,12 @@ fun NavHostContainer(
             composable("read/{url}") { backStackEntry ->
                 val encodedUrl = backStackEntry.arguments?.getString("url").orEmpty()
                 val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
-                Read(url, extensionMetadataViewModel, chaptersListViewModel)
+                Read(
+                    targetUrl = url,
+                    extensionMetadataViewModel = extensionMetadataViewModel,
+                    chaptersListViewModel = chaptersListViewModel,
+                    historyViewModel = historyViewModel
+                )
             }
 
         })

@@ -19,6 +19,7 @@ class ChaptersListViewModel
 
     // Horrible way of keeping track of selected chapter number across composable recompositions
     private val selectedChapterNumber = mutableStateOf("")
+    private val setSelectedMangaUrl = mutableStateOf("")
 
     fun setChapters(chapterList: List<Source.ChapterValue>?) {
         chapters.value = chapterList
@@ -77,4 +78,11 @@ class ChaptersListViewModel
         return selectedChapterNumber.value
     }
 
+    fun setSelectedMangaUrl(url: String) {
+        setSelectedMangaUrl.value = url
+    }
+
+    fun getSelectedMangaUrl(): String {
+        return setSelectedMangaUrl.value
+    }
 }

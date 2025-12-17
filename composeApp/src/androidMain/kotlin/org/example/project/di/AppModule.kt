@@ -9,6 +9,8 @@ import dagger.hilt.components.SingletonComponent
 import org.example.project.Extension.ExtensionManager
 import org.example.project.FileManager.FileManager
 import org.example.project.Rooms.Dao.ExtensionDao
+import org.example.project.Rooms.Dao.HistoryDao
+import org.example.project.Rooms.Dao.HistoryReadChapterDao
 import org.example.project.Rooms.Database.AppDatabase
 import javax.inject.Singleton
 
@@ -26,6 +28,13 @@ object AppModule {
 
     @Provides
     fun provideExtensionDao(db: AppDatabase): ExtensionDao = db.extensionEntryDao()
+
+    @Provides
+    fun provideHistoryDao(db: AppDatabase): HistoryDao = db.historyDao()
+
+    @Provides
+    fun provideHistoryReadChapterDao(db: AppDatabase): HistoryReadChapterDao =
+        db.historyReadChapterDao()
 
     @Provides
     @Singleton

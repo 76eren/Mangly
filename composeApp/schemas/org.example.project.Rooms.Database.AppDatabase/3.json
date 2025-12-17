@@ -1,0 +1,190 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "864a1350cb42492ff73edb38f90dd399",
+    "entities": [
+      {
+        "tableName": "ExtensionEntity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` BLOB NOT NULL, `name` TEXT NOT NULL, `filePath` TEXT NOT NULL, `uploadTime` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "filePath",
+            "columnName": "filePath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uploadTime",
+            "columnName": "uploadTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "FavoritesEntity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` BLOB NOT NULL, `mangaUrl` TEXT NOT NULL, `mangaTitle` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `extensionId` BLOB NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`extensionId`) REFERENCES `ExtensionEntity`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mangaUrl",
+            "columnName": "mangaUrl",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mangaTitle",
+            "columnName": "mangaTitle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "created_at",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "extensionId",
+            "columnName": "extensionId",
+            "affinity": "BLOB",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_FavoritesEntity_extensionId",
+            "unique": false,
+            "columnNames": [
+              "extensionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_FavoritesEntity_extensionId` ON `${TABLE_NAME}` (`extensionId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "ExtensionEntity",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "extensionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "HistoryEntity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` BLOB NOT NULL, `mangaUrl` TEXT NOT NULL, `mangaName` TEXT NOT NULL, `readChapters` TEXT NOT NULL, `extensionId` BLOB NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`extensionId`) REFERENCES `ExtensionEntity`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mangaUrl",
+            "columnName": "mangaUrl",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mangaName",
+            "columnName": "mangaName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "readChapters",
+            "columnName": "readChapters",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "extensionId",
+            "columnName": "extensionId",
+            "affinity": "BLOB",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_HistoryEntity_extensionId",
+            "unique": false,
+            "columnNames": [
+              "extensionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_HistoryEntity_extensionId` ON `${TABLE_NAME}` (`extensionId`)"
+          },
+          {
+            "name": "index_HistoryEntity_mangaUrl",
+            "unique": false,
+            "columnNames": [
+              "mangaUrl"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_HistoryEntity_mangaUrl` ON `${TABLE_NAME}` (`mangaUrl`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "ExtensionEntity",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "extensionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '864a1350cb42492ff73edb38f90dd399')"
+    ]
+  }
+}
