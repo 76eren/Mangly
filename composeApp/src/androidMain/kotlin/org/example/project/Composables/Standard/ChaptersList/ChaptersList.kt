@@ -3,16 +3,21 @@ package org.example.project.Composables.Standard.ChaptersList
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -45,6 +50,7 @@ import org.example.project.Rooms.Entities.FavoritesEntity
 import org.example.project.ViewModels.ChaptersListViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
 import org.example.project.ViewModels.FavoritesViewModel
+import org.example.project.ViewModels.HistoryViewModel
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.UUID
@@ -56,6 +62,7 @@ fun ChaptersList(
     extensionMetadataViewModel: ExtensionMetadataViewModel,
     chaptersListViewModel: ChaptersListViewModel,
     favoritesViewModel: FavoritesViewModel,
+    historyViewModel: HistoryViewModel,
     navHostController: NavHostController
 ) {
     val metadata: ExtensionMetadata? = extensionMetadataViewModel.selectedSingleSource.value
@@ -272,6 +279,14 @@ fun ChaptersList(
                 Text("No chapters found.", style = MaterialTheme.typography.bodySmall)
             } else {
                 it.forEach { chapter ->
+                    val isRead =
+                        historyViewModel.historyWithChapters.value.any { history ->
+                            history.history.mangaUrl == targetUrl && history.readChapters.any { readChapter
+                                ->
+                                readChapter.chapterUrl == chapter.url
+                            }
+                        }
+
                     OutlinedButton(
                         onClick = {
                             onChapterClick(
@@ -285,15 +300,48 @@ fun ChaptersList(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp)
+                            .padding(vertical = 4.dp),
+                        colors = if (isRead) {
+                            ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            ButtonDefaults.outlinedButtonColors()
+                        }
                     ) {
-                        Text(text = chapter.title)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (isRead) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+
+                            Text(
+                                text = chapter.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f),
+                                color = if (isRead)
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
+
+
                 }
             }
-        } ?: Text("Loading chapters...", style = MaterialTheme.typography.bodySmall)
+        }
     }
 }
+
 
 suspend fun fetchChapterImage(source: Source, url: String): ImageForChaptersList {
     return source.getImageForChaptersList(url)

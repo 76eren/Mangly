@@ -23,7 +23,6 @@ import org.example.project.Composables.Standard.Read.viewer.ReaderModePrefs
 import org.example.project.Composables.Standard.Read.viewer.ReaderModeType
 import org.example.project.Composables.Standard.Read.viewer.createReaderMode
 import org.example.project.Composables.Standard.Read.viewer.getReaderModeTypeFromPref
-import org.example.project.Rooms.Entities.HistoryEntity
 import org.example.project.ViewModels.ChaptersListViewModel
 import org.example.project.ViewModels.ExtensionMetadataViewModel
 import org.example.project.ViewModels.HistoryViewModel
@@ -85,12 +84,11 @@ fun Read(
                 chaptersListViewModel.setSelectedChapterNumber(chapters[currentIndex + 1].title)
                 Log.d("lol", "onNextChapter: $url")
 
-                addChapterToHistory(
-                    mangaName = chaptersListViewModel.getName(),
-                    chapterUrl = url,
+                historyViewModel.ensureHistoryAndAddChapter(
                     mangaUrl = chaptersListViewModel.getSelectedMangaUrl(),
-                    extension = metadata.source,
-                    historyViewModel = historyViewModel
+                    mangaName = chaptersListViewModel.getName(),
+                    extensionId = UUID.fromString(metadata.source.getExtensionId()),
+                    chapterUrl = url
                 )
             },
             onPreviousChapter = {
@@ -102,24 +100,22 @@ fun Read(
                 }
                 Log.d("lol", "onPreviousChapter: $url")
 
-                addChapterToHistory(
-                    mangaName = chaptersListViewModel.getName(),
-                    chapterUrl = url,
+                historyViewModel.ensureHistoryAndAddChapter(
                     mangaUrl = chaptersListViewModel.getSelectedMangaUrl(),
-                    extension = metadata.source,
-                    historyViewModel = historyViewModel
+                    mangaName = chaptersListViewModel.getName(),
+                    extensionId = UUID.fromString(metadata.source.getExtensionId()),
+                    chapterUrl = url
                 )
 
             },
             chaptersListViewModel = chaptersListViewModel
         )
 
-        addChapterToHistory(
-            mangaName = chaptersListViewModel.getName(),
-            chapterUrl = url,
+        historyViewModel.ensureHistoryAndAddChapter(
             mangaUrl = chaptersListViewModel.getSelectedMangaUrl(),
-            extension = metadata.source,
-            historyViewModel = historyViewModel
+            mangaName = chaptersListViewModel.getName(),
+            extensionId = UUID.fromString(metadata.source.getExtensionId()),
+            chapterUrl = url
         )
 
     } else {
@@ -138,36 +134,4 @@ suspend fun getChapterImages(url: String, metadata: ExtensionMetadata): Source.C
     } catch (e: Exception) {
         return Source.ChapterImages(emptyList(), emptyList())
     }
-}
-
-fun addChapterToHistory(
-    mangaName: String,
-    chapterUrl: String,
-    mangaUrl: String,
-    extension: Source,
-    historyViewModel: HistoryViewModel
-) {
-    val currentHistory: List<HistoryEntity> = historyViewModel.history.value
-
-    var entity: HistoryEntity? = null
-    for (entry in currentHistory) {
-        if (entry.mangaUrl == mangaUrl) {
-            entity = entry
-            break
-        }
-    }
-
-    if (entity == null) {
-        entity = HistoryEntity(
-            id = UUID.randomUUID(),
-            mangaUrl = mangaUrl,
-            mangaName = mangaName,
-            extensionId = UUID.fromString(extension.getExtensionId())
-        )
-        historyViewModel.addNewHistoryEntity(entity)
-        historyViewModel.addChapterToExistingHistoryEntity(mangaUrl, chapterUrl)
-    } else {
-        historyViewModel.addChapterToExistingHistoryEntity(mangaUrl, chapterUrl)
-    }
-
 }

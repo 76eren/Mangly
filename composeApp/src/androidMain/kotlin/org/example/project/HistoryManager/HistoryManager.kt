@@ -1,14 +1,13 @@
 package org.example.project.HistoryManager
 
 import org.example.project.Rooms.Dao.HistoryDao
-import org.example.project.Rooms.Dao.HistoryReadChapterDao
 import org.example.project.Rooms.Entities.HistoryEntity
 import org.example.project.Rooms.Entities.HistoryReadChapterEntity
+import org.example.project.Rooms.Entities.HistoryWithReadChapters
 import javax.inject.Inject
 
 class HistoryManager @Inject constructor(
-    private val historyDao: HistoryDao,
-    private val historyReadChapterDao: HistoryReadChapterDao
+    private val historyDao: HistoryDao
 ) {
     suspend fun clearHistory() {
         historyDao.clearAll()
@@ -22,8 +21,12 @@ class HistoryManager @Inject constructor(
         return historyDao.getAll()
     }
 
+    suspend fun getAllHistoryWithReadChapters(): List<HistoryWithReadChapters> {
+        return historyDao.getAllWithReadChapters()
+    }
+
     suspend fun addChapter(historyId: java.util.UUID, chapterUrl: String, readAt: Long? = null) {
-        historyReadChapterDao.insert(
+        historyDao.insertReadChapter(
             HistoryReadChapterEntity(
                 historyId = historyId,
                 chapterUrl = chapterUrl,
@@ -33,6 +36,10 @@ class HistoryManager @Inject constructor(
     }
 
     suspend fun getChapters(historyId: java.util.UUID): List<HistoryReadChapterEntity> {
-        return historyReadChapterDao.getByHistoryId(historyId)
+        return historyDao.getReadChaptersByHistoryId(historyId)
+    }
+
+    suspend fun findByMangaUrl(mangaUrl: String): HistoryEntity? {
+        return historyDao.getByMangaUrl(mangaUrl)
     }
 }

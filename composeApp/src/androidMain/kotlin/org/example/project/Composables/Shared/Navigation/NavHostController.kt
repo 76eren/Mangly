@@ -95,6 +95,7 @@ fun NavHostContainer(
                     extensionMetadataViewModel,
                     chaptersListViewModel,
                     favoritesViewModel,
+                    historyViewModel,
                     navController
                 )
             }

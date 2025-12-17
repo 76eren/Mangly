@@ -7,37 +7,49 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import org.example.project.HistoryManager.HistoryManager
 import org.example.project.Rooms.Entities.HistoryEntity
+import org.example.project.Rooms.Entities.HistoryWithReadChapters
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class HistoryViewModel
 @Inject constructor(private val historyManager: HistoryManager) : ViewModel() {
-    val history = mutableStateOf<List<HistoryEntity>>(emptyList())
+    val historyWithChapters = mutableStateOf<List<HistoryWithReadChapters>>(emptyList())
 
     init {
+        refresh()
+    }
+
+    private fun refresh() {
         viewModelScope.launch {
-            history.value = historyManager.getAllHistoryEntries()
+            historyWithChapters.value = historyManager.getAllHistoryWithReadChapters()
         }
     }
 
     fun addNewHistoryEntity(historyEntity: HistoryEntity) {
         viewModelScope.launch {
             historyManager.addHistoryEntry(historyEntity)
-            history.value = historyManager.getAllHistoryEntries()
+            refresh()
         }
     }
 
-    fun addChapterToExistingHistoryEntity(mangaUrl: String, chapterToAdd: String) {
+    fun ensureHistoryAndAddChapter(
+        mangaUrl: String,
+        mangaName: String,
+        extensionId: UUID,
+        chapterUrl: String
+    ) {
         viewModelScope.launch {
-            val existingHistoryEntities = history.value.filter { it.mangaUrl == mangaUrl }
-            if (existingHistoryEntities.isNotEmpty()) {
-                val existingEntity: HistoryEntity = existingHistoryEntities[0]
-                historyManager.addChapter(
-                    existingEntity.id,
-                    chapterToAdd,
-                    System.currentTimeMillis()
-                )
-            }
+            val existing = historyManager.findByMangaUrl(mangaUrl)
+            val historyEntity = existing ?: HistoryEntity(
+                id = UUID.randomUUID(),
+                mangaUrl = mangaUrl,
+                mangaName = mangaName,
+                extensionId = extensionId
+            ).also { historyManager.addHistoryEntry(it) }
+
+            historyManager.addChapter(historyEntity.id, chapterUrl, System.currentTimeMillis())
+            refresh()
         }
     }
 
