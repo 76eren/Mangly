@@ -75,13 +75,14 @@ ksp {
 }
 
 dependencies {
-    ksp("androidx.room:room-compiler:2.7.1")
+    // Use target-specific KSP configuration for Android in KMP modules
+    add("kspAndroid", "androidx.room:room-compiler:2.7.1")
     implementation(libs.androidx.room.common.jvm)
     implementation(libs.androidx.room.runtime.android)
     implementation("androidx.room:room-ktx:2.7.1")
 
     implementation("com.google.dagger:hilt-android:2.57.1")
-    ksp("com.google.dagger:hilt-compiler:2.57.1")
+    add("kspAndroid", "com.google.dagger:hilt-compiler:2.57.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     implementation("com.google.code.gson:gson:2.11.0")
