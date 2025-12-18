@@ -57,6 +57,9 @@ interface HistoryDao {
     @Query("DELETE FROM HistoryReadChapterEntity WHERE historyId = :historyId")
     suspend fun deleteReadChaptersForHistory(historyId: UUID)
 
+    @Query("DELETE FROM HistoryReadChapterEntity WHERE historyId = :historyId AND chapterUrl IN (:chapterUrls)")
+    suspend fun deleteReadChaptersByHistoryIdAndUrls(historyId: UUID, chapterUrls: List<String>)
+
     // Relations
     @Transaction
     @Query("SELECT * FROM HistoryEntity ORDER BY mangaUrl ASC")

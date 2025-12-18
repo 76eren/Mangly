@@ -53,4 +53,10 @@ class HistoryViewModel
         }
     }
 
+    fun deleteChaptersForManga(mangaUrl: String, chapterUrls: Collection<String>) {
+        viewModelScope.launch {
+            historyManager.deleteChaptersByMangaUrlAndChapterUrls(mangaUrl, chapterUrls)
+            refresh()
+        }
+    }
 }

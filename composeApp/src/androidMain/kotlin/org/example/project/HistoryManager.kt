@@ -43,4 +43,14 @@ class HistoryManager @Inject constructor(
     suspend fun findByMangaUrl(mangaUrl: String): HistoryEntity? {
         return historyDao.getByMangaUrl(mangaUrl)
     }
+
+    suspend fun deleteChaptersByMangaUrlAndChapterUrls(
+        mangaUrl: String,
+        chapterUrls: Collection<String>
+    ) {
+        if (chapterUrls.isEmpty()) return
+
+        val historyEntity = historyDao.getByMangaUrl(mangaUrl) ?: return
+        historyDao.deleteReadChaptersByHistoryIdAndUrls(historyEntity.id, chapterUrls.toList())
+    }
 }

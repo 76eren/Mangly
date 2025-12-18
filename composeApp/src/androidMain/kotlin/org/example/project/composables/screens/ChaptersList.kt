@@ -1,7 +1,9 @@
 package org.example.project.composables.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,10 +17,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -26,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -55,7 +60,6 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
-
 @Composable
 fun ChaptersList(
     targetUrl: String,
@@ -66,6 +70,7 @@ fun ChaptersList(
     navHostController: NavHostController
 ) {
     val metadata: ExtensionMetadata? = extensionMetadataViewModel.selectedSingleSource.value
+
 
     if (metadata == null) {
         Text(
@@ -80,8 +85,16 @@ fun ChaptersList(
     var summary by remember { mutableStateOf("") }
     var isSummaryExpanded by remember { mutableStateOf(false) }
     var mangaName by remember { mutableStateOf("") }
-
     val scrollState = rememberScrollState()
+
+    // Local selection state for this screen only
+    val selectedChapterUrls = remember { mutableStateListOf<String>() }
+    val isSelectionMode = selectedChapterUrls.isNotEmpty()
+
+    // Handle back press: exit selection mode first
+    BackHandler(enabled = isSelectionMode) {
+        selectedChapterUrls.clear()
+    }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -274,74 +287,156 @@ fun ChaptersList(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
+        if (isSelectionMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${selectedChapterUrls.size} selected",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = {
+                    historyViewModel.deleteChaptersForManga(targetUrl, selectedChapterUrls.toList())
+                    selectedChapterUrls.clear()
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete selected"
+                    )
+                }
+            }
+        }
+
         chapters?.let {
             if (it.isEmpty()) {
                 Text("No chapters found.", style = MaterialTheme.typography.bodySmall)
             } else {
                 it.forEach { chapter ->
-                    val isRead =
-                        historyViewModel.historyWithChapters.value.any { history ->
-                            history.history.mangaUrl == targetUrl && history.readChapters.any { readChapter
-                                ->
-                                readChapter.chapterUrl == chapter.url
-                            }
-                        }
-
-                    OutlinedButton(
-                        onClick = {
-                            onChapterClick(
-                                navHostController,
-                                chapter.url,
-                                chaptersListViewModel,
-                                scrollState.value,
-                                chapter.title,
-                                targetUrl
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        colors = if (isRead) {
-                            ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        } else {
-                            ButtonDefaults.outlinedButtonColors()
-                        }
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            if (isRead) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                            }
-
-                            Text(
-                                text = chapter.title,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f),
-                                color = if (isRead)
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                else
-                                    MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-
-
+                    ChapterItem(
+                        chapter = chapter,
+                        targetUrl = targetUrl,
+                        historyViewModel = historyViewModel,
+                        chaptersListViewModel = chaptersListViewModel,
+                        navHostController = navHostController,
+                        scrollState = scrollState,
+                        selectedChapterUrls = selectedChapterUrls,
+                        isSelectionMode = isSelectionMode
+                    )
                 }
             }
         }
     }
 }
 
+@Composable
+fun ChapterItem(
+    chapter: Source.ChapterValue,
+    targetUrl: String,
+    historyViewModel: HistoryViewModel,
+    chaptersListViewModel: ChaptersListViewModel,
+    navHostController: NavHostController,
+    scrollState: androidx.compose.foundation.ScrollState,
+    selectedChapterUrls: MutableList<String>,
+    isSelectionMode: Boolean,
+) {
+    val isRead =
+        historyViewModel.historyWithChapters.value.any { history ->
+            history.history.mangaUrl == targetUrl && history.readChapters.any { readChapter ->
+                readChapter.chapterUrl == chapter.url
+            }
+        }
+
+    val isSelected = selectedChapterUrls.contains(chapter.url)
+
+    fun toggleSelectionForChapter() {
+        if (isSelected) {
+            selectedChapterUrls.remove(chapter.url)
+        } else {
+            selectedChapterUrls.add(chapter.url)
+        }
+    }
+
+    fun handleNormalClick() {
+        if (isSelectionMode) {
+            toggleSelectionForChapter()
+        } else {
+            onChapterClick(
+                navHostController,
+                chapter.url,
+                chaptersListViewModel,
+                scrollState.value,
+                chapter.title,
+                targetUrl
+            )
+        }
+    }
+
+    fun handleLongClick() {
+        toggleSelectionForChapter()
+    }
+
+    OutlinedButton(
+        onClick = { handleNormalClick() },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        colors = when {
+            isSelected -> ButtonDefaults.outlinedButtonColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+
+            isRead -> ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            else -> ButtonDefaults.outlinedButtonColors()
+        }
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = { handleNormalClick() },
+                    onLongClick = { handleLongClick() }
+                )
+        ) {
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = "Selected",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            } else if (isRead) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+
+            Text(
+                text = chapter.title,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+                color = when {
+                    isSelected -> MaterialTheme.colorScheme.onSecondaryContainer
+                    isRead -> MaterialTheme.colorScheme.onSurfaceVariant
+                    else -> MaterialTheme.colorScheme.onSurface
+                }
+            )
+        }
+    }
+}
 
 suspend fun fetchChapterImage(source: Source, url: String): ImageForChaptersList {
     return source.getImageForChaptersList(url)
