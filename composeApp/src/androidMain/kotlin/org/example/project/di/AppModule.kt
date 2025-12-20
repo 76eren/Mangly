@@ -6,10 +6,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import org.example.project.Extension.ExtensionManager
-import org.example.project.FileManager.FileManager
-import org.example.project.Rooms.Dao.ExtensionDao
-import org.example.project.Rooms.Database.AppDatabase
+import org.example.project.ExtensionManager
+import org.example.project.FileManager
+import org.example.project.rooms.dao.ExtensionDao
+import org.example.project.rooms.dao.HistoryDao
+import org.example.project.rooms.database.AppDatabase
 import javax.inject.Singleton
 
 @Module
@@ -26,6 +27,9 @@ object AppModule {
 
     @Provides
     fun provideExtensionDao(db: AppDatabase): ExtensionDao = db.extensionEntryDao()
+
+    @Provides
+    fun provideHistoryDao(db: AppDatabase): HistoryDao = db.historyDao()
 
     @Provides
     @Singleton

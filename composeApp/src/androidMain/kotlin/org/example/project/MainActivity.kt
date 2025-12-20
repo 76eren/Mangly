@@ -15,18 +15,17 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.manglyextension.plugins.ExtensionMetadata
 import dagger.hilt.android.AndroidEntryPoint
-import org.example.project.Composables.Shared.Navigation.BottomNavigationBar
-import org.example.project.Composables.Shared.Navigation.NavHostContainer
-import org.example.project.Extension.ExtensionManager
-import org.example.project.FileManager.FileManager
-import org.example.project.Navigation.NavigationConstants
-import org.example.project.Rooms.Entities.ExtensionEntity
-import org.example.project.Themes.AppTheme
-import org.example.project.ViewModels.ChaptersListViewModel
-import org.example.project.ViewModels.ExtensionDetailsViewModel
-import org.example.project.ViewModels.ExtensionMetadataViewModel
-import org.example.project.ViewModels.FavoritesViewModel
-import org.example.project.ViewModels.SearchViewModel
+import org.example.project.composables.shared.navigation.BottomNavigationBar
+import org.example.project.navigation.NavHostContainer
+import org.example.project.navigation.NavigationConstants
+import org.example.project.rooms.entities.ExtensionEntity
+import org.example.project.themes.AppTheme
+import org.example.project.viewmodels.ChaptersListViewModel
+import org.example.project.viewmodels.ExtensionDetailsViewModel
+import org.example.project.viewmodels.ExtensionMetadataViewModel
+import org.example.project.viewmodels.FavoritesViewModel
+import org.example.project.viewmodels.HistoryViewModel
+import org.example.project.viewmodels.SearchViewModel
 import java.io.File
 import javax.inject.Inject
 
@@ -61,6 +60,7 @@ class MainActivity : ComponentActivity() {
                     val searchViewModel: SearchViewModel = hiltViewModel()
                     val chaptersListViewModel: ChaptersListViewModel = hiltViewModel()
                     val favoritesViewModel: FavoritesViewModel = hiltViewModel()
+                    val historyViewModel: HistoryViewModel = hiltViewModel()
 
 
                     // Populate data for view models
@@ -80,11 +80,12 @@ class MainActivity : ComponentActivity() {
                             NavHostContainer(
                                 navController = navController,
                                 padding = padding,
-                                extensionDetailsViewModel,
-                                sourcesViewModel,
-                                searchViewModel,
-                                chaptersListViewModel,
-                                favoritesViewModel
+                                extensionsViewModel = extensionDetailsViewModel,
+                                extensionMetadataViewModel = sourcesViewModel,
+                                searchViewModel = searchViewModel,
+                                chaptersListViewModel = chaptersListViewModel,
+                                favoritesViewModel = favoritesViewModel,
+                                historyViewModel = historyViewModel
                             )
                         }
                     }

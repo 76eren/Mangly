@@ -3,8 +3,8 @@ package org.example.project.di
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import org.example.project.Extension.ExtensionManager
-import org.example.project.FileManager.FileManager
+import org.example.project.ExtensionManager
+import org.example.project.FileManager
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
