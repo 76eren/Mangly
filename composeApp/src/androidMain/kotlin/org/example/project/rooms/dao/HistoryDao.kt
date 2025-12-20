@@ -46,4 +46,32 @@ interface HistoryDao {
     @Transaction
     @Query("SELECT * FROM HistoryEntity ORDER BY mangaUrl ASC")
     suspend fun getAllWithReadChapters(): List<HistoryWithReadChapters>
+
+    // Ensure a HistoryEntity exists for mangaUrl and add a single chapter within one transaction
+    @Transaction
+    suspend fun ensureHistoryAndAddChapterTransactional(
+        mangaUrl: String,
+        mangaName: String,
+        extensionId: UUID,
+        chapterUrl: String,
+        readAt: Long?
+    ) {
+        val existing = getByMangaUrl(mangaUrl)
+        val history = existing ?: HistoryEntity(
+            id = UUID.randomUUID(),
+            mangaUrl = mangaUrl,
+            mangaName = mangaName,
+            extensionId = extensionId
+        ).also { newHistory ->
+            insert(newHistory)
+        }
+
+        insertReadChapter(
+            HistoryChapterEntity(
+                historyId = history.id,
+                chapterUrl = chapterUrl,
+                readAt = readAt
+            )
+        )
+    }
 }

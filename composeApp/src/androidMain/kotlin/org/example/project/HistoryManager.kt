@@ -10,30 +10,9 @@ import javax.inject.Inject
 class HistoryManager @Inject constructor(
     private val historyDao: HistoryDao
 ) {
-    suspend fun clearHistory() {
-        historyDao.clearAll()
-    }
-
-    suspend fun addHistoryEntry(historyEntity: HistoryEntity) {
-        historyDao.insert(historyEntity)
-    }
-
-    suspend fun getAllHistoryEntries(): List<HistoryEntity> {
-        return historyDao.getAll()
-    }
 
     suspend fun getAllHistoryWithReadChapters(): List<HistoryWithReadChapters> {
         return historyDao.getAllWithReadChapters()
-    }
-
-    suspend fun addChapter(historyId: UUID, chapterUrl: String, readAt: Long? = null) {
-        historyDao.insertReadChapter(
-            HistoryChapterEntity(
-                historyId = historyId,
-                chapterUrl = chapterUrl,
-                readAt = readAt
-            )
-        )
     }
 
     suspend fun getChapters(historyId: UUID): List<HistoryChapterEntity> {
@@ -53,7 +32,21 @@ class HistoryManager @Inject constructor(
             historyEntity.id,
             chapterUrl
         )
-
     }
 
+    suspend fun ensureHistoryAndAddChapter(
+        mangaUrl: String,
+        mangaName: String,
+        extensionId: UUID,
+        chapterUrl: String,
+        readAt: Long?
+    ) {
+        historyDao.ensureHistoryAndAddChapterTransactional(
+            mangaUrl = mangaUrl,
+            mangaName = mangaName,
+            extensionId = extensionId,
+            chapterUrl = chapterUrl,
+            readAt = readAt
+        )
+    }
 }

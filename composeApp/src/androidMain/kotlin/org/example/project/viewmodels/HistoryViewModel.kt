@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import org.example.project.HistoryManager
-import org.example.project.rooms.entities.HistoryEntity
 import org.example.project.rooms.entities.HistoryWithReadChapters
 import java.util.UUID
 import javax.inject.Inject
@@ -33,17 +32,13 @@ class HistoryViewModel
         chapterUrl: String
     ) {
         viewModelScope.launch {
-            val existing = historyManager.findByMangaUrl(mangaUrl)
-            val historyEntity = existing ?: HistoryEntity(
-                id = UUID.randomUUID(),
+            historyManager.ensureHistoryAndAddChapter(
                 mangaUrl = mangaUrl,
                 mangaName = mangaName,
-                extensionId = extensionId
-            ).also {
-                historyManager.addHistoryEntry(it)
-            }
-
-            historyManager.addChapter(historyEntity.id, chapterUrl, System.currentTimeMillis())
+                extensionId = extensionId,
+                chapterUrl = chapterUrl,
+                readAt = System.currentTimeMillis()
+            )
             refresh()
         }
     }
