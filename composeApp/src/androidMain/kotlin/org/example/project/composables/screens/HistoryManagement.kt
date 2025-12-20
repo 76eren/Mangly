@@ -64,7 +64,7 @@ fun HistoryManagement(
 ) {
     val historyWithChapters by historyViewModel.historyWithChapters
 
-    if (historyWithChapters.isEmpty()) {
+    if (historyWithChapters.all { it.readChapters.isEmpty() }) {
         HistoryEmptyState()
         return
     }
