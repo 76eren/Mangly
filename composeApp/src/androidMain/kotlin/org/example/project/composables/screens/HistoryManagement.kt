@@ -53,6 +53,7 @@ import java.net.URLEncoder
 import java.text.DateFormat
 import java.util.Date
 import java.util.SortedMap
+import java.util.TreeMap
 import java.util.UUID
 
 @Composable
@@ -98,11 +99,16 @@ fun HistoryManagement(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(
-                items = historyData.toList(),
-                key = { (timeKey, historyEntity) ->
+                items = historyData.entries.toList(),
+                key = { entry ->
+                    val timeKey = entry.key
+                    val historyEntity = entry.value
                     historyEntity.id.toString() + timeKey.toString()
                 }
-            ) { (timeKey, historyEntity) ->
+            ) { entry ->
+                val timeKey = entry.key
+                val historyEntity = entry.value
+
                 val sourceMetadata = sourcesById[historyEntity.extensionId]
                 val source: Source? = sourceMetadata?.source
 
@@ -274,8 +280,10 @@ private fun HistoryCoverImageLoader(
 private fun historyEntityDescriptionFromUrl(url: String): String = "Cover for $url"
 
 fun getHistoryDataNewestToOldest(historyViewModel: HistoryViewModel): SortedMap<Long, HistoryEntity> {
-    var historyEntitiesNewestToOldestReadState = sortedMapOf<Long, HistoryEntity>()
+    val historyEntitiesNewestToOldestReadState: SortedMap<Long, HistoryEntity> =
+        TreeMap(compareByDescending { it })
     val historyEntityByTime = HashMap<Long, HistoryEntity>()
+
     for (chapter: HistoryWithReadChapters in historyViewModel.historyWithChapters.value) {
         var latest = 0L
         for (readChapter: HistoryChapterEntity in chapter.readChapters) {
@@ -289,9 +297,7 @@ fun getHistoryDataNewestToOldest(historyViewModel: HistoryViewModel): SortedMap<
         }
     }
 
-    val sortedKeys = historyEntityByTime.keys.sortedDescending()
-    for (key in sortedKeys) {
-        val historyEntity = historyEntityByTime[key] ?: continue
+    for ((key, historyEntity) in historyEntityByTime) {
         historyEntitiesNewestToOldestReadState[key] = historyEntity
     }
 
