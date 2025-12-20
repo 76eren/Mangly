@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.ButtonDefaults
@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +51,7 @@ import com.example.manglyextension.plugins.Source
 import com.example.manglyextension.plugins.Source.ImageForChaptersList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.example.project.rooms.entities.FavoritesEntity
 import org.example.project.viewmodels.ChaptersListViewModel
@@ -88,12 +90,11 @@ fun ChaptersList(
     val scrollState = rememberScrollState()
 
     // Local selection state for this screen only
-    val selectedChapterUrls = remember { mutableStateListOf<String>() }
-    val isSelectionMode = selectedChapterUrls.isNotEmpty()
+    val selectedChapters = remember { mutableStateListOf<String>() }
+    val isSelectionMode = selectedChapters.isNotEmpty()
 
-    // Handle back press: exit selection mode first
     BackHandler(enabled = isSelectionMode) {
-        selectedChapterUrls.clear()
+        selectedChapters.clear()
     }
 
     DisposableEffect(Unit) {
@@ -163,6 +164,8 @@ fun ChaptersList(
         }
     }
 
+
+    val scope = rememberCoroutineScope()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -295,17 +298,42 @@ fun ChaptersList(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${selectedChapterUrls.size} selected",
+                    text = "${selectedChapters.size} selected",
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f)
                 )
+
                 IconButton(onClick = {
-                    historyViewModel.deleteChaptersForManga(targetUrl, selectedChapterUrls.toList())
-                    selectedChapterUrls.clear()
+                    scope.launch {
+                        for (chapterUrl: String in selectedChapters.toList()) {
+                            // Remove from history
+                            if (historyViewModel.isChapterInHistory(
+                                    mangaUrl = targetUrl,
+                                    chapterUrl = chapterUrl
+                                )
+                            ) {
+                                historyViewModel.deleteChapterFromHistory(targetUrl, chapterUrl)
+
+                            }
+
+                            // Add to history
+                            else {
+
+                                historyViewModel.ensureHistoryAndAddChapter(
+                                    mangaUrl = targetUrl,
+                                    mangaName = mangaName,
+                                    extensionId = UUID.fromString(metadata.source.getExtensionId()),
+                                    chapterUrl = chapterUrl
+                                )
+
+                            }
+                        }
+                        selectedChapters.clear()
+                    }
                 }) {
                     Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete selected"
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Select or unselect chapters"
                     )
                 }
             }
@@ -323,7 +351,7 @@ fun ChaptersList(
                         chaptersListViewModel = chaptersListViewModel,
                         navHostController = navHostController,
                         scrollState = scrollState,
-                        selectedChapterUrls = selectedChapterUrls,
+                        selectedChapterUrls = selectedChapters,
                         isSelectionMode = isSelectionMode
                     )
                 }

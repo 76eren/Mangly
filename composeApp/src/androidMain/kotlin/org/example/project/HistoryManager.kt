@@ -1,8 +1,8 @@
 package org.example.project
 
 import org.example.project.rooms.dao.HistoryDao
+import org.example.project.rooms.entities.HistoryChapterEntity
 import org.example.project.rooms.entities.HistoryEntity
-import org.example.project.rooms.entities.HistoryReadChapterEntity
 import org.example.project.rooms.entities.HistoryWithReadChapters
 import java.util.UUID
 import javax.inject.Inject
@@ -28,7 +28,7 @@ class HistoryManager @Inject constructor(
 
     suspend fun addChapter(historyId: UUID, chapterUrl: String, readAt: Long? = null) {
         historyDao.insertReadChapter(
-            HistoryReadChapterEntity(
+            HistoryChapterEntity(
                 historyId = historyId,
                 chapterUrl = chapterUrl,
                 readAt = readAt
@@ -36,7 +36,7 @@ class HistoryManager @Inject constructor(
         )
     }
 
-    suspend fun getChapters(historyId: UUID): List<HistoryReadChapterEntity> {
+    suspend fun getChapters(historyId: UUID): List<HistoryChapterEntity> {
         return historyDao.getReadChaptersByHistoryId(historyId)
     }
 
@@ -44,13 +44,16 @@ class HistoryManager @Inject constructor(
         return historyDao.getByMangaUrl(mangaUrl)
     }
 
-    suspend fun deleteChaptersByMangaUrlAndChapterUrls(
+    suspend fun deleteChapterByMangaUrlAndChapterUrl(
         mangaUrl: String,
-        chapterUrls: Collection<String>
+        chapterUrl: String
     ) {
-        if (chapterUrls.isEmpty()) return
-
         val historyEntity = historyDao.getByMangaUrl(mangaUrl) ?: return
-        historyDao.deleteReadChaptersByHistoryIdAndUrls(historyEntity.id, chapterUrls.toList())
+        historyDao.deleteReadChapterByHistoryIdAndChapterUrl(
+            historyEntity.id,
+            chapterUrl
+        )
+
     }
+
 }

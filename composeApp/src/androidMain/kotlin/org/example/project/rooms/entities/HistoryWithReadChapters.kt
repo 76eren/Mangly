@@ -11,5 +11,5 @@ data class HistoryWithReadChapters(
         parentColumn = "id",
         entityColumn = "historyId"
     )
-    val readChapters: List<HistoryReadChapterEntity>
+    val readChapters: List<HistoryChapterEntity>
 )

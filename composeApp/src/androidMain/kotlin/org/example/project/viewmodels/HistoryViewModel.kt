@@ -26,13 +26,6 @@ class HistoryViewModel
         }
     }
 
-    fun addNewHistoryEntity(historyEntity: HistoryEntity) {
-        viewModelScope.launch {
-            historyManager.addHistoryEntry(historyEntity)
-            refresh()
-        }
-    }
-
     fun ensureHistoryAndAddChapter(
         mangaUrl: String,
         mangaName: String,
@@ -46,17 +39,25 @@ class HistoryViewModel
                 mangaUrl = mangaUrl,
                 mangaName = mangaName,
                 extensionId = extensionId
-            ).also { historyManager.addHistoryEntry(it) }
+            ).also {
+                historyManager.addHistoryEntry(it)
+            }
 
             historyManager.addChapter(historyEntity.id, chapterUrl, System.currentTimeMillis())
             refresh()
         }
     }
 
-    fun deleteChaptersForManga(mangaUrl: String, chapterUrls: Collection<String>) {
+    fun deleteChapterFromHistory(mangaUrl: String, chapterUrl: String) {
         viewModelScope.launch {
-            historyManager.deleteChaptersByMangaUrlAndChapterUrls(mangaUrl, chapterUrls)
+            historyManager.deleteChapterByMangaUrlAndChapterUrl(mangaUrl, chapterUrl)
             refresh()
         }
+    }
+
+    suspend fun isChapterInHistory(mangaUrl: String, chapterUrl: String): Boolean {
+        val historyEntity = historyManager.findByMangaUrl(mangaUrl) ?: return false
+        val readChapters = historyManager.getChapters(historyEntity.id)
+        return readChapters.any { it.chapterUrl == chapterUrl }
     }
 }

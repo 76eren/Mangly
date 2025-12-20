@@ -15,11 +15,11 @@ import org.example.project.rooms.database.migrations.Migration3To4
 import org.example.project.rooms.database.migrations.Migration4To5
 import org.example.project.rooms.entities.ExtensionEntity
 import org.example.project.rooms.entities.FavoritesEntity
+import org.example.project.rooms.entities.HistoryChapterEntity
 import org.example.project.rooms.entities.HistoryEntity
-import org.example.project.rooms.entities.HistoryReadChapterEntity
 
 @Database(
-    entities = [ExtensionEntity::class, FavoritesEntity::class, HistoryEntity::class, HistoryReadChapterEntity::class],
+    entities = [ExtensionEntity::class, FavoritesEntity::class, HistoryEntity::class, HistoryChapterEntity::class],
     version = 5,
     exportSchema = true
 )

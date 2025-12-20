@@ -18,7 +18,7 @@ import java.util.UUID
         )
     ]
 )
-data class HistoryReadChapterEntity(
+data class HistoryChapterEntity(
     val historyId: UUID,
     val chapterUrl: String,
     val readAt: Long? = null
