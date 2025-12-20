@@ -3,10 +3,14 @@ package org.example.project.composables.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -24,11 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
+import androidx.navigation.NavHostController
 import org.example.project.composables.screens.readviewer.ReaderModePrefs
 import org.example.project.themes.setAppTheme
 
 @Composable
-fun Settings() {
+fun Settings(
+    navController: NavHostController
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -47,6 +54,8 @@ fun Settings() {
         HorizontalDivider(
             modifier = Modifier.padding(top = 10.dp, bottom = 10.dp),
         )
+
+        LinkToHistoryManagementScreen(navController)
 
     }
 }
@@ -155,4 +164,49 @@ fun ReadViewerSettings() {
         color = MaterialTheme.colorScheme.onBackground,
         modifier = Modifier.padding(top = 4.dp)
     )
+}
+
+@Composable
+fun LinkToHistoryManagementScreen(
+    navHostController: NavHostController
+) {
+    ElevatedCard(
+        modifier = Modifier
+            .padding(top = 16.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
+            ) {
+                Text(
+                    text = "Manage History",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "View your reading history",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            FilledTonalButton(
+                onClick = { navHostController.navigate("history") },
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Text("Open")
+            }
+        }
+    }
 }

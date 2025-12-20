@@ -71,6 +71,7 @@ fun ChaptersList(
     historyViewModel: HistoryViewModel,
     navHostController: NavHostController
 ) {
+    // TODO: Do this some other way, because now this needs to be set before navigating to this screen
     val metadata: ExtensionMetadata? = extensionMetadataViewModel.selectedSingleSource.value
 
 

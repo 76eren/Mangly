@@ -1,4 +1,4 @@
-package org.example.project.composables.shared.navigation
+package org.example.project.navigation
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import org.example.project.composables.screens.ChaptersList
 import org.example.project.composables.screens.ExtensionDetails
 import org.example.project.composables.screens.Extensions
+import org.example.project.composables.screens.HistoryManagement
 import org.example.project.composables.screens.Home
 import org.example.project.composables.screens.Read
 import org.example.project.composables.screens.Search
@@ -69,7 +70,9 @@ fun NavHostContainer(
             composable("settings") {
                 searchViewModel.clearSearchResults()
                 chaptersListViewModel.clear()
-                Settings()
+                Settings(
+                    navController = navController
+                )
             }
 
             composable("sources") {
@@ -109,6 +112,17 @@ fun NavHostContainer(
                     chaptersListViewModel = chaptersListViewModel,
                     historyViewModel = historyViewModel
                 )
+            }
+
+            composable("history") { backStackEntry ->
+                searchViewModel.clearSearchResults()
+                chaptersListViewModel.clear()
+                HistoryManagement(
+                    historyViewModel = historyViewModel,
+                    navHostController = navController,
+                    extensionMetaDataViewModel = extensionMetadataViewModel
+                )
+
             }
 
         })

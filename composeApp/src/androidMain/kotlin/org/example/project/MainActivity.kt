@@ -16,7 +16,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.manglyextension.plugins.ExtensionMetadata
 import dagger.hilt.android.AndroidEntryPoint
 import org.example.project.composables.shared.navigation.BottomNavigationBar
-import org.example.project.composables.shared.navigation.NavHostContainer
+import org.example.project.navigation.NavHostContainer
 import org.example.project.navigation.NavigationConstants
 import org.example.project.rooms.entities.ExtensionEntity
 import org.example.project.themes.AppTheme
