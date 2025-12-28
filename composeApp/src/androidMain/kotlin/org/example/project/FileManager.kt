@@ -80,7 +80,7 @@ class FileManager @Inject constructor(
             filePath = existingEntity.filePath,
             uploadTime = System.currentTimeMillis()
         )
-        extensionDao.insert(updatedEntity)
+        extensionDao.update(updatedEntity)
         return updatedFile
     }
 
