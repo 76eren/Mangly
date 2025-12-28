@@ -39,6 +39,8 @@ fun ExtensionDetails(cardData: CardData) {
     val allUiSettings: List<Source.SettingGen>? = remember { seedSettings(cardData) }
     val prefs = remember { cardData.source.preferences as PreferenceImplementation }
 
+    var refreshVersion by remember { mutableStateOf(0) }
+
     Scaffold(
         topBar = { TopBarDeleteExtensionFromExtensionDetails(cardData.metadata) }
     ) { paddingValues ->
@@ -90,7 +92,13 @@ fun ExtensionDetails(cardData: CardData) {
             } else {
                 for (setting in allUiSettings) {
                     when (setting.uiElement) {
-                        PreferenceUi.SWITCH -> PreferenceSwitch(setting, prefs)
+                        PreferenceUi.SWITCH -> PreferenceSwitch(
+                            setting = setting,
+                            prefs = prefs,
+                            version = refreshVersion,
+                            notifyChanged = { refreshVersion++ }
+                        )
+
                         PreferenceUi.TEXTAREA -> PreferenceTextArea(setting, prefs)
                         else -> {}
                     }
@@ -105,10 +113,12 @@ fun ExtensionDetails(cardData: CardData) {
 private fun PreferenceSwitch(
     setting: Source.SettingGen,
     prefs: PreferenceImplementation,
+    version: Int,
+    notifyChanged: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val key = setting.key
-    var checked by remember(key) { mutableStateOf(prefs.getBoolean(key, false)) }
+    var checked by remember(key, version) { mutableStateOf(prefs.getBoolean(key, false)) }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -123,8 +133,29 @@ private fun PreferenceSwitch(
         Switch(
             checked = checked,
             onCheckedChange = { newValue ->
+                val disables = setting.disables ?: emptyList()
+                val enables = setting.enables ?: emptyList()
+
+                if (newValue) {
+                    for (disableKey in disables) {
+                        prefs.setBoolean(disableKey, false)
+                    }
+                    for (enableKey in enables) {
+                        prefs.setBoolean(enableKey, true)
+                    }
+                } else {
+                    for (enableKey in enables) {
+                        prefs.setBoolean(enableKey, false)
+                    }
+                    for (disableKey in disables) {
+                        prefs.setBoolean(disableKey, true)
+                    }
+                }
+
                 checked = newValue
                 prefs.setBoolean(key, newValue)
+
+                notifyChanged()
             }
         )
     }
