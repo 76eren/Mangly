@@ -7,9 +7,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -22,7 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.manglyextension.plugins.PreferenceImplementation
@@ -51,15 +54,27 @@ fun ExtensionDetails(cardData: CardData) {
                     .height(150.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
+
+                BasicText(
                     text = cardData.title,
-                    fontSize = 56.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = 16.sp,
+                        maxFontSize = 48.sp,
+                        stepSize = 1.sp
+                    )
                 )
             }
 
-            Divider(
+            HorizontalDivider(
                 color = Color.Gray,
                 thickness = 1.dp,
                 modifier = Modifier.padding(vertical = 8.dp)
