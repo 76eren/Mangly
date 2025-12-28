@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Update
 import org.example.project.rooms.entities.ExtensionEntity
 import org.example.project.rooms.relations.ExtensionWithFavorites
 import java.util.UUID
@@ -13,6 +14,9 @@ import java.util.UUID
 interface ExtensionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(zipFileEntry: ExtensionEntity)
+
+    @Update
+    suspend fun update(zipFileEntry: ExtensionEntity)
 
     @Query("SELECT * FROM ExtensionEntity")
     suspend fun getAll(): List<ExtensionEntity>
