@@ -79,45 +79,60 @@ fun TopBarNewExtension() {
                 if (name?.endsWith(".mangly") == true) {
                     val inputStream = context.contentResolver.openInputStream(it)
                     if (inputStream != null) {
+
                         coroutineScope.launch {
-                            val zipBytes = inputStream.readBytes()
-                            val newMetadata =
-                                extensionManager.extractExtensionMetadata(zipBytes, context)
-                            val existingEntity = fileManager.getExistingEntryByInputStream(
-                                context = context,
-                                inputStream = zipBytes.inputStream()
-                            )
+                            try {
+                                val zipBytes = inputStream.readBytes()
+                                val newMetadata =
+                                    extensionManager.extractExtensionMetadata(zipBytes, context)
 
-                            if (existingEntity == null) {
-                                // Create
 
-                                fileManager.saveAndInsertEntry(
+                                val existingEntity = fileManager.getExistingEntryByInputStream(
                                     context = context,
-                                    inputStream = zipBytes.inputStream(),
+                                    inputStream = zipBytes.inputStream()
                                 )
 
-                                // TODO: stop being lazy
-                                val mainActivity = context as? MainActivity
-                                val intent = mainActivity?.intent
-                                intent?.addFlags(
-                                    Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-                                )
-                                mainActivity?.finish()
-                                mainActivity?.startActivity(intent)
-                            } else {
-                                // Update
+                                if (existingEntity == null) {
+                                    // Create
+                                    fileManager.saveAndInsertEntry(
+                                        context = context,
+                                        inputStream = zipBytes.inputStream(),
+                                    )
 
-                                val oldMetadata = extensionManager.extractExtensionMetadata(
-                                    File(existingEntity.filePath).readBytes(), context
-                                )
+                                    // TODO: stop being lazy
+                                    val mainActivity = context as? MainActivity
+                                    val intent = mainActivity?.intent
+                                    intent?.addFlags(
+                                        Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                                    )
+                                    mainActivity?.finish()
+                                    mainActivity?.startActivity(intent)
+                                } else {
+                                    // Update
+                                    val oldMetadata = extensionManager.extractExtensionMetadata(
+                                        File(existingEntity.filePath).readBytes(), context
+                                    )
 
-                                oldEntityState.value = existingEntity
-                                oldMetadataState.value = oldMetadata
-                                newMetadataState.value = newMetadata
-                                newZipBytesState.value = zipBytes
-                                showUpdateDialog.value = true
+                                    oldEntityState.value = existingEntity
+                                    oldMetadataState.value = oldMetadata
+                                    newMetadataState.value = newMetadata
+                                    newZipBytesState.value = zipBytes
+                                    showUpdateDialog.value = true
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(
+                                    context,
+                                    "Unexpected error while importing the extension. ${e.message ?: ""}",
+                                    Toast.LENGTH_LONG
+                                ).show()
                             }
                         }
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Unable to open the selected file.",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 } else {
                     Toast.makeText(
@@ -255,18 +270,30 @@ fun DeleteWarningDialog(
                     TextButton(
                         onClick = {
                             coroutineScope.launch {
-                                val entityToBeDeleted =
-                                    extensionManager.getDatabaseEntryByMetadata(metadata, context)
-                                fileManager.deleteAndRemoveEntry(entityToBeDeleted, context)
+                                try {
+                                    val entityToBeDeleted =
+                                        extensionManager.getDatabaseEntryByMetadata(
+                                            metadata,
+                                            context
+                                        )
 
-                                // TODO: stop being lazy
-                                val mainActivity = context as? MainActivity
-                                val intent = mainActivity?.intent
-                                intent?.addFlags(
-                                    Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-                                )
-                                mainActivity?.finish()
-                                mainActivity?.startActivity(intent)
+                                    fileManager.deleteAndRemoveEntry(entityToBeDeleted, context)
+
+                                    // TODO: stop being lazy
+                                    val mainActivity = context as? MainActivity
+                                    val intent = mainActivity?.intent
+                                    intent?.addFlags(
+                                        Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                                    )
+                                    mainActivity?.finish()
+                                    mainActivity?.startActivity(intent)
+                                } catch (e: Exception) {
+                                    Toast.makeText(
+                                        context,
+                                        "Unexpected error while deleting the extension. ${e.message ?: ""}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
                             }
                         }
                     ) {
@@ -323,11 +350,20 @@ fun UpdateExtensionDialog(
                     TextButton(
                         onClick = {
                             coroutineScope.launch {
-                                fileManager.replaceZipFileAndUpdateEntity(
-                                    context = context,
-                                    existingEntity = oldEntity,
-                                    newZipBytes = newZipBytes
-                                )
+                                try {
+                                    fileManager.replaceZipFileAndUpdateEntity(
+                                        context = context,
+                                        existingEntity = oldEntity,
+                                        newZipBytes = newZipBytes
+                                    )
+                                } catch (e: Exception) {
+                                    Toast.makeText(
+                                        context,
+                                        "Failed to update extension. The file may be invalid or corrupted. ${e.message ?: ""}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                    return@launch
+                                }
 
                                 onDismiss()
 
