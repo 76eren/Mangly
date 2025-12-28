@@ -61,6 +61,29 @@ class FileManager @Inject constructor(
         return extensionDao.getById(id)
     }
 
+
+    /**
+     * Replace the zip file contents and update the database entry's name and upload time.
+     * id and filePath remain unchanged.
+     */
+    suspend fun replaceZipFileAndUpdateEntity(
+        context: Context,
+        existingEntity: ExtensionEntity,
+        newZipBytes: ByteArray
+    ): File {
+        val updatedFile = replaceZipFile(existingEntity, newZipBytes)
+        val newMetadata: ExtensionMetadata =
+            extensionManager.extractExtensionMetadata(newZipBytes, context)
+        val updatedEntity = ExtensionEntity(
+            id = existingEntity.id,
+            name = newMetadata.name,
+            filePath = existingEntity.filePath,
+            uploadTime = System.currentTimeMillis()
+        )
+        extensionDao.insert(updatedEntity)
+        return updatedFile
+    }
+
     /**
      * Replace the zip file contents on disk for an existing entity with new bytes.
      * Does not modify the database entry.

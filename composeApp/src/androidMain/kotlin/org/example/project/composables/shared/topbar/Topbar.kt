@@ -106,7 +106,7 @@ fun TopBarNewExtension() {
                                 mainActivity?.startActivity(intent)
                             } else {
                                 // Update
-                                
+
                                 val oldMetadata = extensionManager.extractExtensionMetadata(
                                     File(existingEntity.filePath).readBytes(), context
                                 )
@@ -323,14 +323,14 @@ fun UpdateExtensionDialog(
                     TextButton(
                         onClick = {
                             coroutineScope.launch {
-                                fileManager.replaceZipFile(
+                                fileManager.replaceZipFileAndUpdateEntity(
+                                    context = context,
                                     existingEntity = oldEntity,
                                     newZipBytes = newZipBytes
                                 )
 
                                 onDismiss()
 
-                                // TODO: stop being lazy
                                 val mainActivity = context as? MainActivity
                                 val intent = mainActivity?.intent
                                 intent?.addFlags(
