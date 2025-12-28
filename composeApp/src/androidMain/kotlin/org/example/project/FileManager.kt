@@ -14,7 +14,6 @@ class FileManager @Inject constructor(
     private val extensionDao: ExtensionDao
 ) {
 
-    // TODO: Handle extension updates and duplicates
     suspend fun saveAndInsertEntry(
         context: Context,
         inputStream: InputStream,
@@ -41,6 +40,47 @@ class FileManager @Inject constructor(
 
         extensionDao.insert(zipFileEntry)
 
+        return file
+    }
+
+    /**
+     * Returns the existing database entity if an entry with the same extensionId already exists.
+     * If not found, returns null.
+     * Takes as param an InputStream of the zip file to read metadata from.
+     */
+    suspend fun getExistingEntryByInputStream(
+        context: Context,
+        inputStream: InputStream
+    ): ExtensionEntity? {
+        val zipBytes = inputStream.readBytes()
+        val extensionMetadata: ExtensionMetadata =
+            extensionManager.extractExtensionMetadata(zipBytes, context)
+
+        val extensionId = extensionMetadata.source.getExtensionId()
+        val id = UUID.fromString(extensionId)
+        return extensionDao.getById(id)
+    }
+
+    /**
+     * Replace the zip file contents on disk for an existing entity with new bytes.
+     * Does not modify the database entry.
+     */
+    fun replaceZipFile(
+        existingEntity: ExtensionEntity,
+        newZipBytes: ByteArray
+    ): File {
+        val file = File(existingEntity.filePath)
+        file.parentFile?.let { if (!it.exists()) it.mkdirs() }
+        val tmpFile = File(file.parentFile, file.name + ".tmp")
+        tmpFile.outputStream().use { it.write(newZipBytes) }
+        if (file.exists()) {
+            if (!tmpFile.renameTo(file)) {
+                file.delete()
+                tmpFile.renameTo(file)
+            }
+        } else {
+            tmpFile.renameTo(file)
+        }
         return file
     }
 

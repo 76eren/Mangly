@@ -40,8 +40,11 @@ import androidx.compose.ui.unit.dp
 import com.example.manglyextension.plugins.ExtensionMetadata
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
+import org.example.project.FileManager
 import org.example.project.MainActivity
 import org.example.project.di.FileManagersEntryPoint
+import org.example.project.rooms.entities.ExtensionEntity
+import java.io.File
 
 @Composable
 fun TopBarNewExtension() {
@@ -51,8 +54,15 @@ fun TopBarNewExtension() {
     val entryPoint =
         EntryPointAccessors.fromApplication(appContext, FileManagersEntryPoint::class.java)
     val fileManager = entryPoint.fileManager()
+    val extensionManager = entryPoint.extensionManager()
 
     val coroutineScope = rememberCoroutineScope()
+
+    val showUpdateDialog = remember { mutableStateOf(false) }
+    val oldEntityState = remember { mutableStateOf<ExtensionEntity?>(null) }
+    val oldMetadataState = remember { mutableStateOf<ExtensionMetadata?>(null) }
+    val newMetadataState = remember { mutableStateOf<ExtensionMetadata?>(null) }
+    val newZipBytesState = remember { mutableStateOf<ByteArray?>(null) }
 
     val zipPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -70,19 +80,43 @@ fun TopBarNewExtension() {
                     val inputStream = context.contentResolver.openInputStream(it)
                     if (inputStream != null) {
                         coroutineScope.launch {
-                            fileManager.saveAndInsertEntry(
+                            val zipBytes = inputStream.readBytes()
+                            val newMetadata =
+                                extensionManager.extractExtensionMetadata(zipBytes, context)
+                            val existingEntity = fileManager.getExistingEntryByInputStream(
                                 context = context,
-                                inputStream = inputStream,
+                                inputStream = zipBytes.inputStream()
                             )
 
-                            // TODO: stop being lazy
-                            val mainActivity = context as? MainActivity
-                            val intent = mainActivity?.intent
-                            intent?.addFlags(
-                                Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-                            )
-                            mainActivity?.finish()
-                            mainActivity?.startActivity(intent)
+                            if (existingEntity == null) {
+                                // Create
+
+                                fileManager.saveAndInsertEntry(
+                                    context = context,
+                                    inputStream = zipBytes.inputStream(),
+                                )
+
+                                // TODO: stop being lazy
+                                val mainActivity = context as? MainActivity
+                                val intent = mainActivity?.intent
+                                intent?.addFlags(
+                                    Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                                )
+                                mainActivity?.finish()
+                                mainActivity?.startActivity(intent)
+                            } else {
+                                // Update
+                                
+                                val oldMetadata = extensionManager.extractExtensionMetadata(
+                                    File(existingEntity.filePath).readBytes(), context
+                                )
+
+                                oldEntityState.value = existingEntity
+                                oldMetadataState.value = oldMetadata
+                                newMetadataState.value = newMetadata
+                                newZipBytesState.value = zipBytes
+                                showUpdateDialog.value = true
+                            }
                         }
                     }
                 } else {
@@ -115,6 +149,18 @@ fun TopBarNewExtension() {
                 contentDescription = "Import extension"
             )
         }
+    }
+
+    if (showUpdateDialog.value) {
+        UpdateExtensionDialog(
+            entryPoint = entryPoint,
+            context = context,
+            oldEntity = oldEntityState.value!!,
+            oldMetadata = oldMetadataState.value!!,
+            newMetadata = newMetadataState.value!!,
+            newZipBytes = newZipBytesState.value!!,
+            onDismiss = { showUpdateDialog.value = false }
+        )
     }
 }
 
@@ -225,6 +271,77 @@ fun DeleteWarningDialog(
                         }
                     ) {
                         Text("Delete")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UpdateExtensionDialog(
+    entryPoint: FileManagersEntryPoint,
+    context: Context,
+    oldEntity: ExtensionEntity,
+    oldMetadata: ExtensionMetadata,
+    newMetadata: ExtensionMetadata,
+    newZipBytes: ByteArray,
+    onDismiss: () -> Unit
+) {
+    val fileManager: FileManager = entryPoint.fileManager()
+    val coroutineScope = rememberCoroutineScope()
+
+    BasicAlertDialog(
+        onDismissRequest = onDismiss
+    ) {
+        Surface(
+            modifier = Modifier
+                .wrapContentWidth()
+                .wrapContentHeight(),
+            shape = MaterialTheme.shapes.medium,
+            color = AlertDialogDefaults.containerColor,
+            tonalElevation = AlertDialogDefaults.TonalElevation
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Update extension: ${oldMetadata.name}?",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+
+                Row {
+                    Text("You will be going from version ${oldMetadata.version} to ${newMetadata.version}.")
+                }
+
+                Spacer(modifier = Modifier.size(16.dp))
+                Row(modifier = Modifier.align(Alignment.End)) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.size(8.dp))
+                    TextButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                fileManager.replaceZipFile(
+                                    existingEntity = oldEntity,
+                                    newZipBytes = newZipBytes
+                                )
+
+                                onDismiss()
+
+                                // TODO: stop being lazy
+                                val mainActivity = context as? MainActivity
+                                val intent = mainActivity?.intent
+                                intent?.addFlags(
+                                    Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                                )
+                                mainActivity?.finish()
+                                mainActivity?.startActivity(intent)
+                            }
+                        }
+                    ) {
+                        Text("Update")
                     }
                 }
             }
