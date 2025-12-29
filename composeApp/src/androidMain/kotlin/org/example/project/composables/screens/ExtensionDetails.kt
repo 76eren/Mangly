@@ -36,8 +36,10 @@ import org.example.project.composables.shared.topbar.TopBarDeleteExtensionFromEx
 
 @Composable
 fun ExtensionDetails(cardData: CardData) {
-    val allUiSettings = remember { seedSettings(cardData) }
+    val allUiSettings: List<Source.SettingGen>? = remember { seedSettings(cardData) }
     val prefs = remember { cardData.source.preferences as PreferenceImplementation }
+
+    var refreshVersion by remember { mutableStateOf(0) }
 
     Scaffold(
         topBar = { TopBarDeleteExtensionFromExtensionDetails(cardData.metadata) }
@@ -80,13 +82,29 @@ fun ExtensionDetails(cardData: CardData) {
                 modifier = Modifier.padding(vertical = 8.dp)
             )
 
-            for (setting in allUiSettings) {
-                when (setting.uiElement) {
-                    PreferenceUi.SWITCH -> PreferenceSwitch(setting, prefs)
-                    PreferenceUi.TEXTAREA -> PreferenceTextArea(setting, prefs)
-                    else -> {}
+            if (allUiSettings == null) {
+                Text(
+                    text = "Error loading settings for this extension.",
+                    color = Color.Red,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+                return@Column
+            } else {
+                for (setting in allUiSettings) {
+                    when (setting.uiElement) {
+                        PreferenceUi.SWITCH -> PreferenceSwitch(
+                            setting = setting,
+                            prefs = prefs,
+                            version = refreshVersion,
+                            notifyChanged = { refreshVersion++ }
+                        )
+
+                        PreferenceUi.TEXTAREA -> PreferenceTextArea(setting, prefs)
+                        else -> {}
+                    }
                 }
             }
+
         }
     }
 }
@@ -95,10 +113,12 @@ fun ExtensionDetails(cardData: CardData) {
 private fun PreferenceSwitch(
     setting: Source.SettingGen,
     prefs: PreferenceImplementation,
+    version: Int,
+    notifyChanged: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val key = setting.key
-    var checked by remember(key) { mutableStateOf(prefs.getBoolean(key, false)) }
+    var checked by remember(key, version) { mutableStateOf(prefs.getBoolean(key, false)) }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -113,8 +133,29 @@ private fun PreferenceSwitch(
         Switch(
             checked = checked,
             onCheckedChange = { newValue ->
+                val disables = setting.disables ?: emptyList()
+                val enables = setting.enables ?: emptyList()
+
+                if (newValue) {
+                    for (disableKey in disables) {
+                        prefs.setBoolean(disableKey, false)
+                    }
+                    for (enableKey in enables) {
+                        prefs.setBoolean(enableKey, true)
+                    }
+                } else {
+                    for (enableKey in enables) {
+                        prefs.setBoolean(enableKey, false)
+                    }
+                    for (disableKey in disables) {
+                        prefs.setBoolean(disableKey, true)
+                    }
+                }
+
                 checked = newValue
                 prefs.setBoolean(key, newValue)
+
+                notifyChanged()
             }
         )
     }
@@ -173,37 +214,46 @@ private fun PreferenceTextArea(
     }
 }
 
-fun seedSettings(cardData: CardData): List<Source.SettingGen> {
-    val rawSettings = cardData.source.generateSettings()
-    val preferences: PreferenceImplementation =
-        cardData.source.preferences as PreferenceImplementation
+fun seedSettings(cardData: CardData): List<Source.SettingGen>? {
+    try {
+        val rawSettings = cardData.source.generateSettings()
+        val preferences: PreferenceImplementation =
+            cardData.source.preferences as PreferenceImplementation
 
-    // If the UI settings aren't present yet, we initialize them
-    for (setting in rawSettings) {
-        if (!preferences.settings.contains(setting.key)) {
-            when (val settingUnknownType = setting.defaultValue) {
-                is Boolean -> preferences.setBoolean(
-                    key = setting.key,
-                    value = settingUnknownType,
-                    uiElement = setting.uiElement
-                )
+        // If the UI settings aren't present yet, we initialize them
+        for (setting in rawSettings) {
+            if (!preferences.settings.contains(setting.key)) {
+                when (val settingUnknownType = setting.defaultValue) {
+                    is Boolean -> preferences.setBoolean(
+                        key = setting.key,
+                        value = settingUnknownType,
+                        uiElement = setting.uiElement
+                    )
 
-                is String -> preferences.setString(
-                    key = setting.key,
-                    value = settingUnknownType,
-                    uiElement = setting.uiElement
-                )
+                    is String -> preferences.setString(
+                        key = setting.key,
+                        value = settingUnknownType,
+                        uiElement = setting.uiElement
+                    )
 
-                is Int -> preferences.setInt(
-                    key = setting.key,
-                    value = settingUnknownType,
-                    uiElement = setting.uiElement
-                )
+                    is Int -> preferences.setInt(
+                        key = setting.key,
+                        value = settingUnknownType,
+                        uiElement = setting.uiElement
+                    )
 
-                else -> throw IllegalArgumentException("Unsupported type for setting: ${settingUnknownType::class.java}")
+                    else -> throw IllegalArgumentException("Unsupported type for setting: ${settingUnknownType::class.java}")
+                }
             }
         }
+
+        return rawSettings
+    } catch (e: NoSuchMethodError) {
+        // Capture ABI/linkage issues between app and plugin versions.
+        return null
+    } catch (t: Throwable) {
+        // Catch all throwables (including Errors) to keep UI stable.
+        return null
     }
 
-    return rawSettings
 }

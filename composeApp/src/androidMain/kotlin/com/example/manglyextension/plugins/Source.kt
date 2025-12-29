@@ -32,8 +32,12 @@ abstract class Source(val prefs: IPreferences?) {
         var key: String, // The key used to identify the setting
         var description: String, // The text that will show up as the description for the setting
         var defaultValue: Any,
+
+        // Optional fields
+        var disables: List<String>? = null, // List of other setting keys that this setting disables when enabled
+        var enables: List<String>? = null, // List of other setting keys that this setting enables when enabled
         var content: String? = null, // Additional content or information related to the setting IF needed, not all setting types support/need this
-        var uiElement: PreferenceUi? = null
+        var uiElement: PreferenceUi? = null // If the UI element is empty it won't be displayed but still be used internally to storage data in the shared preferences
     )
 
     abstract fun generateSettings(): List<SettingGen>
