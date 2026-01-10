@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.navigation.NavHostController
 import org.example.project.composables.screens.readviewer.ReaderModePrefs
+import org.example.project.composables.screens.readviewer.ReaderModeType
 import org.example.project.themes.setAppTheme
 
 @Composable
@@ -141,29 +142,23 @@ fun ReadViewerSettings() {
         modifier = Modifier.padding(top = 24.dp)
     )
 
-    // For now we only have Webtoon, but this structure allows adding more
-    val optionValue = ReaderModePrefs.DEFAULT_READER_MODE_VALUE
-    val optionLabel = "Webtoon"
+    val readerModeOptions = ReaderModeType.entries
 
     SingleChoiceSegmentedButtonRow {
-        SegmentedButton(
-            selected = selectedMode == optionValue,
-            onClick = {
-                selectedMode = optionValue
-                prefs.edit { putString(ReaderModePrefs.KEY_READER_MODE, optionValue) }
-            },
-            shape = SegmentedButtonDefaults.itemShape(0, 1)
-        ) {
-            Text(optionLabel)
+        readerModeOptions.forEachIndexed { index, modeType ->
+            SegmentedButton(
+                selected = selectedMode == modeType.prefValue,
+                onClick = {
+                    selectedMode = modeType.prefValue
+                    prefs.edit { putString(ReaderModePrefs.KEY_READER_MODE, modeType.prefValue) }
+                },
+                shape = SegmentedButtonDefaults.itemShape(index, readerModeOptions.size)
+            ) {
+                Text(modeType.displayName)
+            }
         }
     }
 
-    Text(
-        text = "Currently only Webtoon mode is available.",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onBackground,
-        modifier = Modifier.padding(top = 4.dp)
-    )
 }
 
 @Composable

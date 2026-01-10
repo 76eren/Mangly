@@ -3,6 +3,7 @@ package org.example.project.composables.screens.readviewer
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.manglyextension.plugins.Source
+import org.example.project.composables.screens.readviewer.paged.PagedReaderMode
 import org.example.project.composables.screens.readviewer.webtoon.WebtoonReaderMode
 import org.example.project.viewmodels.ChaptersListViewModel
 
@@ -27,20 +28,22 @@ object ReaderModePrefs {
     const val DEFAULT_READER_MODE_VALUE: String = "webtoon"
 }
 
-enum class ReaderModeType(val prefValue: String) {
-    WEBTOON("webtoon");
+enum class ReaderModeType(val prefValue: String, val displayName: String) {
+    WEBTOON("webtoon", "Webtoon"),
+    PAGED("paged", "Paged");
 }
 
 fun getReaderModeTypeFromPref(value: String?): ReaderModeType {
-    return if (value == ReaderModeType.WEBTOON.prefValue) {
-        ReaderModeType.WEBTOON
-    } else {
-        ReaderModeType.WEBTOON
+    return when (value) {
+        ReaderModeType.WEBTOON.prefValue -> ReaderModeType.WEBTOON
+        ReaderModeType.PAGED.prefValue -> ReaderModeType.PAGED
+        else -> ReaderModeType.WEBTOON
     }
 }
 
 fun createReaderMode(type: ReaderModeType): ReaderMode {
     return when (type) {
         ReaderModeType.WEBTOON -> WebtoonReaderMode
+        ReaderModeType.PAGED -> PagedReaderMode
     }
 }
