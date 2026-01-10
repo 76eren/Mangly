@@ -263,9 +263,12 @@ private fun HistoryCoverImageLoader(
             }
         }.build()
 
+        val cacheKey = "history_cover_${mangaUrl.hashCode()}"
         val request = ImageRequest.Builder(context)
             .data(imageUrl)
             .httpHeaders(networkHeaders)
+            .memoryCacheKey(cacheKey)
+            .diskCacheKey(cacheKey)
             .crossfade(true)
             .build()
 

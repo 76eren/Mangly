@@ -171,10 +171,13 @@ private fun FavoriteImage(
         }.build()
     }
 
-    val imageRequest = remember(imageUrl, networkHeaders) {
+    val cacheKey = "favorite_cover_${favorite.mangaUrl.hashCode()}"
+    val imageRequest = remember(imageUrl, networkHeaders, cacheKey) {
         ImageRequest.Builder(context)
             .data(imageUrl)
             .apply { if (headers.isNotEmpty()) httpHeaders(networkHeaders) }
+            .memoryCacheKey(cacheKey)
+            .diskCacheKey(cacheKey)
             .crossfade(true)
             .build()
     }
