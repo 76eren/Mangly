@@ -13,9 +13,9 @@ interface ReaderMode {
     fun Content(
         images: List<String>,
         headers: List<Source.Header>,
-        modifier: Modifier = Modifier,
-        onPreviousChapter: () -> Unit = {},
-        onNextChapter: () -> Unit = {},
+        modifier: Modifier,
+        onPreviousChapter: () -> Unit,
+        onNextChapter: () -> Unit,
         chaptersListViewModel: ChaptersListViewModel
     )
 }
