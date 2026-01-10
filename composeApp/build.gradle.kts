@@ -22,7 +22,12 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
-            implementation("androidx.recyclerview:recyclerview:1.3.2")
+            implementation(libs.androidx.recyclerview)
+
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.okhttp)
+            implementation(libs.paging.compose)
+            implementation(libs.androidx.paging.runtime.ktx)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -34,7 +39,8 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtimeCompose)
 
-            implementation("androidx.navigation:navigation-compose:2.9.0")
+            implementation(libs.androidx.navigation.compose)
+            implementation(libs.coil.network.okhttp)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -76,21 +82,17 @@ ksp {
 
 dependencies {
     // Use target-specific KSP configuration for Android in KMP modules
-    add("kspAndroid", "androidx.room:room-compiler:2.7.1")
+    add("kspAndroid", "androidx.room:room-compiler:2.8.4")
     implementation(libs.androidx.room.common.jvm)
     implementation(libs.androidx.room.runtime.android)
-    implementation("androidx.room:room-ktx:2.7.1")
+    implementation(libs.androidx.room.ktx)
 
-    implementation("com.google.dagger:hilt-android:2.57.1")
+    implementation(libs.hilt.android)
     add("kspAndroid", "com.google.dagger:hilt-compiler:2.57.1")
-    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    implementation(libs.androidx.hilt.navigation.compose)
 
-    implementation("com.google.code.gson:gson:2.11.0")
-    implementation("com.caverock:androidsvg-aar:1.4")
+    implementation(libs.gson)
+    implementation(libs.androidsvg.aar)
 
-    implementation("org.jsoup:jsoup:1.21.1")
-    implementation("io.coil-kt.coil3:coil-compose:3.2.0")
-    implementation("io.coil-kt.coil3:coil-network-okhttp:3.2.0")
-
-    debugImplementation(compose.uiTooling)
+    implementation(libs.jsoup)
 }

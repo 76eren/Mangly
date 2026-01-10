@@ -185,9 +185,12 @@ fun ChaptersList(
             }
         }.build()
 
+        val cacheKey = "chapters_cover_${targetUrl.hashCode()}"
         val imageRequest = ImageRequest.Builder(LocalContext.current)
             .data(image?.imageUrl)
             .httpHeaders(networkHeaders)
+            .memoryCacheKey(cacheKey)
+            .diskCacheKey(cacheKey)
             .crossfade(true)
             .build()
 

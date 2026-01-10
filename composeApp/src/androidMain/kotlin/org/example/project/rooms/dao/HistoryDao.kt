@@ -30,7 +30,7 @@ interface HistoryDao {
     suspend fun getAll(): List<HistoryEntity>
 
     // HistoryReadChapterEntity operations
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE) // When reading a chapter you have already read, update the readAt timestamp
     suspend fun insertReadChapter(readChapter: HistoryChapterEntity)
 
     @Query("SELECT * FROM HistoryReadChapterEntity WHERE historyId = :historyId")

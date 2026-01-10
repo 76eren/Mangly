@@ -2,6 +2,7 @@ package org.example.project.composables.screens
 
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -81,16 +82,18 @@ fun Read(
                 val currentIndex = chapters.indexOfFirst { it.url == url }
                 if (currentIndex >= 0 && currentIndex + 1 < chapters.size) {
                     url = chapters[currentIndex + 1].url
-                }
-                chaptersListViewModel.setSelectedChapterNumber(chapters[currentIndex + 1].title)
-                Log.d("lol", "onNextChapter: $url")
+                    chaptersListViewModel.setSelectedChapterNumber(chapters[currentIndex + 1].title)
+                    Log.d("lol", "onNextChapter: $url")
 
-                historyViewModel.ensureHistoryAndAddChapter(
-                    mangaUrl = chaptersListViewModel.getSelectedMangaUrl(),
-                    mangaName = chaptersListViewModel.getName(),
-                    extensionId = UUID.fromString(metadata.source.getExtensionId()),
-                    chapterUrl = url
-                )
+                    historyViewModel.ensureHistoryAndAddChapter(
+                        mangaUrl = chaptersListViewModel.getSelectedMangaUrl(),
+                        mangaName = chaptersListViewModel.getName(),
+                        extensionId = UUID.fromString(metadata.source.getExtensionId()),
+                        chapterUrl = url
+                    )
+                } else {
+                    Toast.makeText(context, "No next chapter available", Toast.LENGTH_SHORT).show()
+                }
             },
             onPreviousChapter = {
                 val chapters = chaptersListViewModel.getChapters()
@@ -98,16 +101,18 @@ fun Read(
                 if (currentIndex > 0) {
                     url = chapters[currentIndex - 1].url
                     chaptersListViewModel.setSelectedChapterNumber(chapters[currentIndex - 1].title)
+                    Log.d("lol", "onPreviousChapter: $url")
+
+                    historyViewModel.ensureHistoryAndAddChapter(
+                        mangaUrl = chaptersListViewModel.getSelectedMangaUrl(),
+                        mangaName = chaptersListViewModel.getName(),
+                        extensionId = UUID.fromString(metadata.source.getExtensionId()),
+                        chapterUrl = url
+                    )
+                } else {
+                    Toast.makeText(context, "No previous chapter available", Toast.LENGTH_SHORT)
+                        .show()
                 }
-                Log.d("lol", "onPreviousChapter: $url")
-
-                historyViewModel.ensureHistoryAndAddChapter(
-                    mangaUrl = chaptersListViewModel.getSelectedMangaUrl(),
-                    mangaName = chaptersListViewModel.getName(),
-                    extensionId = UUID.fromString(metadata.source.getExtensionId()),
-                    chapterUrl = url
-                )
-
             },
             chaptersListViewModel = chaptersListViewModel
         )
