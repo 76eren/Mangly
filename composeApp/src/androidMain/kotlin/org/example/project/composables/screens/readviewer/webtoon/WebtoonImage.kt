@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
@@ -61,7 +60,7 @@ fun WebtoonImageLoading(index: Int) {
         modifier = Modifier
             .fillMaxWidth()
             .height(400.dp)
-            .background(Color.DarkGray),
+            .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -69,13 +68,13 @@ fun WebtoonImageLoading(index: Int) {
             verticalArrangement = Arrangement.Center
         ) {
             CircularProgressIndicator(
-                color = Color.White,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(32.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Loading page ${index + 1}...",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -88,7 +87,7 @@ fun WebtoonImageError(index: Int) {
         modifier = Modifier
             .fillMaxWidth()
             .height(200.dp)
-            .background(Color.DarkGray),
+            .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -97,12 +96,12 @@ fun WebtoonImageError(index: Int) {
         ) {
             Text(
                 text = "Failed to load image",
-                color = Color.Red,
+                color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
                 text = "Page ${index + 1}",
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall
             )
         }
