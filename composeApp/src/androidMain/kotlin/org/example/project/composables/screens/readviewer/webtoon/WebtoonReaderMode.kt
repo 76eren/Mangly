@@ -60,6 +60,7 @@ object WebtoonReaderMode : ReaderMode {
         val pager = remember(images) {
             Pager(
                 config = PagingConfig(
+                    // TODO: Currently these are hardcoded, I find these to be fine values for webtoon reader style however maybe make this customizable from the settings?
                     pageSize = 5,
                     prefetchDistance = 3,
                     enablePlaceholders = true,
