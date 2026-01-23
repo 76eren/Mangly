@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -20,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -28,7 +30,12 @@ import androidx.compose.ui.unit.dp
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.compose.collectAsLazyPagingItems
+import coil3.ImageLoader
 import coil3.network.NetworkHeaders
+import coil3.network.httpHeaders
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.example.manglyextension.plugins.Source
 import org.example.project.composables.screens.readviewer.ReaderMode
 import org.example.project.viewmodels.ChaptersListViewModel
@@ -56,10 +63,16 @@ object WebtoonReaderMode : ReaderMode {
             }.build()
         }
 
+        PrefetchAroundViewport(
+            lazyListState = lazyListState,
+            images = images,
+            networkHeaders = networkHeaders
+        )
+
         val pager = remember(images) {
             Pager(
                 config = PagingConfig(
-                    // TODO: Currently these are hardcoded, I find these to be fine values for webtoon reader style however maybe make this customizable from the settings?
+                    // TODO: this doesn't actually cache the images but instead "caches" the urls in memory, this has very little effect and might as well be removed
                     pageSize = 5,
                     prefetchDistance = 3,
                     enablePlaceholders = true,
@@ -179,5 +192,41 @@ object WebtoonReaderMode : ReaderMode {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun PrefetchAroundViewport(
+    lazyListState: LazyListState,
+    images: List<String>,
+    networkHeaders: NetworkHeaders
+) {
+    val context = LocalContext.current
+    val imageLoader = ImageLoader(context)
+
+    LaunchedEffect(images, networkHeaders) {
+        snapshotFlow { lazyListState.firstVisibleItemIndex }
+            .collect { firstVisible ->
+
+                // +1 because item 0 is header
+                val currentImageIndex = (firstVisible - 1).coerceAtLeast(0)
+
+                val prefetchCount = 6
+                val start = (currentImageIndex).coerceAtLeast(0)
+                val endExclusive = (currentImageIndex + prefetchCount).coerceAtMost(images.size)
+
+                for (i in start until endExclusive) {
+                    val url = images[i]
+                    val req = ImageRequest.Builder(context)
+                        .data(url)
+                        .httpHeaders(networkHeaders)
+                        .crossfade(false)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
+                        .diskCachePolicy(CachePolicy.ENABLED)
+                        .build()
+
+                    imageLoader.enqueue(req)
+                }
+            }
     }
 }

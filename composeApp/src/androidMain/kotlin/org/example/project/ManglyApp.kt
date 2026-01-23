@@ -8,7 +8,6 @@ import coil3.disk.DiskCache
 import coil3.disk.directory
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
-import coil3.request.crossfade
 import dagger.hilt.android.HiltAndroidApp
 import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
@@ -45,7 +44,6 @@ class ManglyApp : Application(), SingletonImageLoader.Factory {
                     .maxSizePercent(0.05)
                     .build()
             }
-            .crossfade(true)
             .build()
     }
 }
