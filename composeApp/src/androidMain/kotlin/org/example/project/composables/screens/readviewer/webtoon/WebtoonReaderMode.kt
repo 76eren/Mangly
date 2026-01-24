@@ -119,90 +119,91 @@ object WebtoonReaderMode : ReaderMode {
                 .background(MaterialTheme.colorScheme.background)
                 .pointerInput(Unit) {
                     detectTapGestures(
-                        onTap = {
-                            showControls = !showControls
-                        }
+                        onTap = { showControls = !showControls }
                     )
                 }
         ) {
-            LazyColumn(
-                state = lazyListState,
+            ZoomableReaderContainer(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Header with chapter title
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = chaptersListViewModel.getSelectedChapterNumber(),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                }
-
-                // Actual images
-                items(
-                    count = lazyPagingItems.itemCount,
-                    key = { index -> "image_$index" }
-                ) { index ->
-                    val imageUrl = lazyPagingItems[index]
-
-                    if (imageUrl != null) {
-                        WebtoonImage(
-                            imageUrl = imageUrl,
-                            networkHeaders = networkHeaders,
-                            context = context,
-                            index = index,
-                            totalImages = images.size
-                        )
-                    } else {
-                        // Placeholder while loading
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // Header with chapter title
+                    item {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(400.dp)
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                .padding(16.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
+                            Text(
+                                text = chaptersListViewModel.getSelectedChapterNumber(),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                         }
                     }
+
+                    items(
+                        count = lazyPagingItems.itemCount,
+                        key = { index -> "image_$index" }
+                    ) { index ->
+                        val imageUrl = lazyPagingItems[index]
+
+                        if (imageUrl != null) {
+                            WebtoonImage(
+                                imageUrl = imageUrl,
+                                networkHeaders = networkHeaders,
+                                context = context,
+                                index = index,
+                                totalImages = images.size
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(400.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // Footer with navigation
+                    item {
+                        ChapterNavigationFooter(
+                            onPreviousChapter = onPreviousChapter,
+                            onNextChapter = onNextChapter,
+                            chaptersListViewModel = chaptersListViewModel
+                        )
+                    }
                 }
 
-                // Footer with navigations
-                item {
-                    ChapterNavigationFooter(
+                // Overlay controls (now also zoomed with everything else)
+                if (showControls) {
+                    WebtoonTopControls(
+                        currentPage = currentPage,
+                        totalPages = images.size,
+                        chapterTitle = chaptersListViewModel.getSelectedChapterNumber(),
                         onPreviousChapter = onPreviousChapter,
+                        modifier = Modifier.align(Alignment.TopCenter)
+                    )
+
+                    WebtoonBottomControls(
                         onNextChapter = onNextChapter,
-                        chaptersListViewModel = chaptersListViewModel
+                        modifier = Modifier.align(Alignment.BottomCenter)
                     )
                 }
             }
-
-            // Overlay controls when visible
-            if (showControls) {
-                WebtoonTopControls(
-                    currentPage = currentPage,
-                    totalPages = images.size,
-                    chapterTitle = chaptersListViewModel.getSelectedChapterNumber(),
-                    onPreviousChapter = onPreviousChapter,
-                    modifier = Modifier.align(Alignment.TopCenter)
-                )
-
-                WebtoonBottomControls(
-                    onNextChapter = onNextChapter,
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                )
-            }
         }
+
     }
 }
 
