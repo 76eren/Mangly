@@ -23,9 +23,13 @@ interface ReaderMode {
 
 // Preference keys and reader-mode mapping used by Settings and Read
 object ReaderModePrefs {
-    const val PREFS_NAME: String = "mangly_settings"
     const val KEY_READER_MODE: String = "readmode"
     const val DEFAULT_READER_MODE_VALUE: String = "webtoon"
+
+    // Settings that are shared between reading modes can be added here
+    const val IMAGE_PRELOAD_AMOUNT: String =
+        "read_image_preload_amount" // Currently this is only used by webtoon mode, but I plan to re-use this for the other reading modes in the future
+
 }
 
 enum class ReaderModeType(val prefValue: String, val displayName: String) {

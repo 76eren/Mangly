@@ -1,5 +1,7 @@
 package org.example.project.composables.screens.readviewer.webtoon
 
+import android.content.Context
+import android.content.SharedPreferences
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -20,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -28,9 +32,16 @@ import androidx.compose.ui.unit.dp
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.compose.collectAsLazyPagingItems
+import coil3.ImageLoader
 import coil3.network.NetworkHeaders
+import coil3.network.httpHeaders
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.example.manglyextension.plugins.Source
+import org.example.project.Constants
 import org.example.project.composables.screens.readviewer.ReaderMode
+import org.example.project.composables.screens.readviewer.ReaderModePrefs
 import org.example.project.viewmodels.ChaptersListViewModel
 
 object WebtoonReaderMode : ReaderMode {
@@ -46,6 +57,12 @@ object WebtoonReaderMode : ReaderMode {
         chaptersListViewModel: ChaptersListViewModel
     ) {
         val context = LocalContext.current
+
+        val sharedPreferences: SharedPreferences = context.getSharedPreferences(
+            Constants.READING_SETTING_KEY,
+            Context.MODE_PRIVATE
+        )
+
         val lazyListState = rememberLazyListState()
 
         val networkHeaders = remember(headers) {
@@ -56,10 +73,17 @@ object WebtoonReaderMode : ReaderMode {
             }.build()
         }
 
+        PrefetchAroundViewport(
+            lazyListState = lazyListState,
+            images = images,
+            networkHeaders = networkHeaders,
+            sharedPreferences = sharedPreferences
+        )
+
         val pager = remember(images) {
             Pager(
                 config = PagingConfig(
-                    // TODO: Currently these are hardcoded, I find these to be fine values for webtoon reader style however maybe make this customizable from the settings?
+                    // TODO: this doesn't actually cache the images but instead "preloads" the urls in memory, this has very little effect and might as well be removed
                     pageSize = 5,
                     prefetchDistance = 3,
                     enablePlaceholders = true,
@@ -95,89 +119,131 @@ object WebtoonReaderMode : ReaderMode {
                 .background(MaterialTheme.colorScheme.background)
                 .pointerInput(Unit) {
                     detectTapGestures(
-                        onTap = {
-                            showControls = !showControls
-                        }
+                        onTap = { showControls = !showControls }
                     )
                 }
         ) {
-            LazyColumn(
-                state = lazyListState,
+            ZoomableReaderContainer(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Header with chapter title
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = chaptersListViewModel.getSelectedChapterNumber(),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                }
-
-                // Actual images
-                items(
-                    count = lazyPagingItems.itemCount,
-                    key = { index -> "image_$index" }
-                ) { index ->
-                    val imageUrl = lazyPagingItems[index]
-
-                    if (imageUrl != null) {
-                        WebtoonImage(
-                            imageUrl = imageUrl,
-                            networkHeaders = networkHeaders,
-                            context = context,
-                            index = index,
-                            totalImages = images.size
-                        )
-                    } else {
-                        // Placeholder while loading
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // Header with chapter title
+                    item {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(400.dp)
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                .padding(16.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
+                            Text(
+                                text = chaptersListViewModel.getSelectedChapterNumber(),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                         }
                     }
+
+                    items(
+                        count = lazyPagingItems.itemCount,
+                        key = { index -> "image_$index" }
+                    ) { index ->
+                        val imageUrl = lazyPagingItems[index]
+
+                        if (imageUrl != null) {
+                            WebtoonImage(
+                                imageUrl = imageUrl,
+                                networkHeaders = networkHeaders,
+                                context = context,
+                                index = index,
+                                totalImages = images.size
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(400.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // Footer with navigation
+                    item {
+                        ChapterNavigationFooter(
+                            onPreviousChapter = onPreviousChapter,
+                            onNextChapter = onNextChapter,
+                            chaptersListViewModel = chaptersListViewModel
+                        )
+                    }
                 }
 
-                // Footer with navigations
-                item {
-                    ChapterNavigationFooter(
+                // Overlay controls (now also zoomed with everything else)
+                if (showControls) {
+                    WebtoonTopControls(
+                        currentPage = currentPage,
+                        totalPages = images.size,
+                        chapterTitle = chaptersListViewModel.getSelectedChapterNumber(),
                         onPreviousChapter = onPreviousChapter,
+                        modifier = Modifier.align(Alignment.TopCenter)
+                    )
+
+                    WebtoonBottomControls(
                         onNextChapter = onNextChapter,
-                        chaptersListViewModel = chaptersListViewModel
+                        modifier = Modifier.align(Alignment.BottomCenter)
                     )
                 }
             }
-
-            // Overlay controls when visible
-            if (showControls) {
-                WebtoonTopControls(
-                    currentPage = currentPage,
-                    totalPages = images.size,
-                    chapterTitle = chaptersListViewModel.getSelectedChapterNumber(),
-                    onPreviousChapter = onPreviousChapter,
-                    modifier = Modifier.align(Alignment.TopCenter)
-                )
-
-                WebtoonBottomControls(
-                    onNextChapter = onNextChapter,
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                )
-            }
         }
+
+    }
+}
+
+@Composable
+private fun PrefetchAroundViewport(
+    lazyListState: LazyListState,
+    images: List<String>,
+    networkHeaders: NetworkHeaders,
+    sharedPreferences: SharedPreferences
+) {
+    val context = LocalContext.current
+    val imageLoader = ImageLoader(context)
+
+    val preloadAmount = sharedPreferences.getInt(
+        ReaderModePrefs.IMAGE_PRELOAD_AMOUNT,
+        2
+    )
+
+    LaunchedEffect(images, networkHeaders) {
+        snapshotFlow { lazyListState.firstVisibleItemIndex }
+            .collect { firstVisible ->
+
+                // +1 because item 0 is header
+                val currentImageIndex = (firstVisible - 1).coerceAtLeast(0)
+
+                val start = (currentImageIndex).coerceAtLeast(0)
+                val endExclusive = (currentImageIndex + preloadAmount).coerceAtMost(images.size)
+
+                for (i in start until endExclusive) {
+                    val url = images[i]
+                    val req = ImageRequest.Builder(context)
+                        .data(url)
+                        .httpHeaders(networkHeaders)
+                        .crossfade(false)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
+                        .diskCachePolicy(CachePolicy.ENABLED)
+                        .build()
+
+                    imageLoader.enqueue(req)
+                }
+            }
     }
 }

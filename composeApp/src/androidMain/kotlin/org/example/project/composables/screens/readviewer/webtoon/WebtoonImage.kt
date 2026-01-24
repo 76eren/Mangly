@@ -36,7 +36,7 @@ fun WebtoonImage(
         ImageRequest.Builder(context)
             .data(imageUrl)
             .httpHeaders(networkHeaders)
-            .crossfade(true)
+            .crossfade(false)
             .build()
     }
 

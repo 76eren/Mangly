@@ -1,11 +1,15 @@
 package org.example.project.composables.screens
 
+import android.content.Context
+import android.content.SharedPreferences
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
@@ -17,11 +21,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.navigation.NavHostController
+import org.example.project.Constants
 import org.example.project.composables.screens.readviewer.ReaderModePrefs
 import org.example.project.composables.screens.readviewer.ReaderModeType
 import org.example.project.themes.setAppTheme
@@ -66,8 +73,8 @@ fun ThemeSettings() {
     val context = LocalContext.current
     val prefs = remember {
         context.getSharedPreferences(
-            "mangly_settings",
-            android.content.Context.MODE_PRIVATE
+            Constants.THEME_SETTING_KEY,
+            Context.MODE_PRIVATE
         )
     }
 
@@ -121,8 +128,8 @@ fun ReadViewerSettings() {
     val context = LocalContext.current
     val prefs = remember {
         context.getSharedPreferences(
-            ReaderModePrefs.PREFS_NAME,
-            android.content.Context.MODE_PRIVATE
+            Constants.READING_SETTING_KEY,
+            Context.MODE_PRIVATE
         )
     }
 
@@ -159,6 +166,60 @@ fun ReadViewerSettings() {
         }
     }
 
+    if (selectedMode == ReaderModeType.WEBTOON.prefValue) {
+        ReadImagePreloadSetting(sharedPreferences = prefs)
+    }
+}
+
+@Composable
+fun ReadImagePreloadSetting(sharedPreferences: SharedPreferences) {
+    val minAmount = 0
+    val maxAmount = 7
+    val settingKey = ReaderModePrefs.IMAGE_PRELOAD_AMOUNT
+
+    var preloadAmount by rememberSaveable {
+        mutableStateOf(sharedPreferences.getInt(settingKey, 2))
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Image preload",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = "Controls how many images are loaded ahead while reading. " +
+                    "Higher values use more memory but reduce loading delays.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Preload: $preloadAmount image${if (preloadAmount == 1) "" else "s"}",
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        Slider(
+            value = preloadAmount.toFloat(),
+            onValueChange = { preloadAmount = it.toInt() },
+            onValueChangeFinished = {
+                sharedPreferences.edit {
+                    putInt(settingKey, preloadAmount)
+                }
+            },
+            valueRange = minAmount.toFloat()..maxAmount.toFloat(),
+            steps = maxAmount - minAmount - 1
+        )
+    }
 }
 
 @Composable
