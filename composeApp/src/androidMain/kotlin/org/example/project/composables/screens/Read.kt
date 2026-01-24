@@ -20,6 +20,7 @@ import com.example.manglyextension.plugins.ExtensionMetadata
 import com.example.manglyextension.plugins.Source
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.example.project.Constants
 import org.example.project.composables.screens.readviewer.ReaderMode
 import org.example.project.composables.screens.readviewer.ReaderModePrefs
 import org.example.project.composables.screens.readviewer.ReaderModeType
@@ -52,7 +53,7 @@ fun Read(
     val context = LocalContext.current
     val prefs = remember {
         context.getSharedPreferences(
-            ReaderModePrefs.PREFS_NAME,
+            Constants.READING_SETTING_KEY,
             Context.MODE_PRIVATE
         )
     }

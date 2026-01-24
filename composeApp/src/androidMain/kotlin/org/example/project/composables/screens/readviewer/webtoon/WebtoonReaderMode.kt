@@ -1,5 +1,7 @@
 package org.example.project.composables.screens.readviewer.webtoon
 
+import android.content.Context
+import android.content.SharedPreferences
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -37,7 +39,9 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.example.manglyextension.plugins.Source
+import org.example.project.Constants
 import org.example.project.composables.screens.readviewer.ReaderMode
+import org.example.project.composables.screens.readviewer.ReaderModePrefs
 import org.example.project.viewmodels.ChaptersListViewModel
 
 object WebtoonReaderMode : ReaderMode {
@@ -53,6 +57,12 @@ object WebtoonReaderMode : ReaderMode {
         chaptersListViewModel: ChaptersListViewModel
     ) {
         val context = LocalContext.current
+
+        val sharedPreferences: SharedPreferences = context.getSharedPreferences(
+            Constants.READING_SETTING_KEY,
+            Context.MODE_PRIVATE
+        )
+
         val lazyListState = rememberLazyListState()
 
         val networkHeaders = remember(headers) {
@@ -66,13 +76,14 @@ object WebtoonReaderMode : ReaderMode {
         PrefetchAroundViewport(
             lazyListState = lazyListState,
             images = images,
-            networkHeaders = networkHeaders
+            networkHeaders = networkHeaders,
+            sharedPreferences = sharedPreferences
         )
 
         val pager = remember(images) {
             Pager(
                 config = PagingConfig(
-                    // TODO: this doesn't actually cache the images but instead "caches" the urls in memory, this has very little effect and might as well be removed
+                    // TODO: this doesn't actually cache the images but instead "preloads" the urls in memory, this has very little effect and might as well be removed
                     pageSize = 5,
                     prefetchDistance = 3,
                     enablePlaceholders = true,
@@ -199,10 +210,16 @@ object WebtoonReaderMode : ReaderMode {
 private fun PrefetchAroundViewport(
     lazyListState: LazyListState,
     images: List<String>,
-    networkHeaders: NetworkHeaders
+    networkHeaders: NetworkHeaders,
+    sharedPreferences: SharedPreferences
 ) {
     val context = LocalContext.current
     val imageLoader = ImageLoader(context)
+
+    val preloadAmount = sharedPreferences.getInt(
+        ReaderModePrefs.IMAGE_PRELOAD_AMOUNT,
+        2
+    )
 
     LaunchedEffect(images, networkHeaders) {
         snapshotFlow { lazyListState.firstVisibleItemIndex }
@@ -211,9 +228,8 @@ private fun PrefetchAroundViewport(
                 // +1 because item 0 is header
                 val currentImageIndex = (firstVisible - 1).coerceAtLeast(0)
 
-                val prefetchCount = 6
                 val start = (currentImageIndex).coerceAtLeast(0)
-                val endExclusive = (currentImageIndex + prefetchCount).coerceAtMost(images.size)
+                val endExclusive = (currentImageIndex + preloadAmount).coerceAtMost(images.size)
 
                 for (i in start until endExclusive) {
                     val url = images[i]
