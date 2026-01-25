@@ -93,11 +93,4 @@ dependencies {
 
     implementation(libs.gson)
     implementation(libs.androidsvg.aar)
-
-    implementation(libs.jsoup)
-
-    implementation(libs.jackson.annotations)
-    implementation(libs.jackson.module.kotlin)
-    implementation(libs.jackson.databind)
-    implementation(libs.okhttp)
 }
