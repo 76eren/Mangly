@@ -22,7 +22,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import org.example.project.composables.screens.CardData
 
-
+// Todo: this has only one usage get rid of it or make it more generic
 @Composable
 fun CardTypeOne(cardData: CardData, onClick: () -> Unit) {
     Card(

@@ -34,7 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
@@ -44,6 +44,8 @@ import com.example.manglyextension.plugins.Source
 import com.example.manglyextension.plugins.Source.ImageForChaptersList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.example.project.composables.shared.image.ImageLoadingComposable
+import org.example.project.composables.shared.image.ImageLoadingErrorComposable
 import org.example.project.rooms.entities.HistoryChapterEntity
 import org.example.project.rooms.entities.HistoryEntity
 import org.example.project.rooms.entities.HistoryWithReadChapters
@@ -245,40 +247,35 @@ private fun HistoryCoverImageLoader(
         headers = image?.headers ?: emptyList()
     }
 
-    if (imageUrl.isNullOrEmpty()) {
-        Box(
-            modifier = modifier,
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "No image",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+
+    val networkHeaders = NetworkHeaders.Builder().apply {
+        headers.forEach { header ->
+            this[header.name] = header.value
         }
-    } else {
-        val networkHeaders = NetworkHeaders.Builder().apply {
-            headers.forEach { header ->
-                this[header.name] = header.value
-            }
-        }.build()
+    }.build()
 
-        val cacheKey = "history_cover_${mangaUrl.hashCode()}"
-        val request = ImageRequest.Builder(context)
-            .data(imageUrl)
-            .httpHeaders(networkHeaders)
-            .memoryCacheKey(cacheKey)
-            .diskCacheKey(cacheKey)
-            .crossfade(true)
-            .build()
+    val cacheKey = "history_cover_${mangaUrl.hashCode()}"
+    val request = ImageRequest.Builder(context)
+        .data(imageUrl)
+        .httpHeaders(networkHeaders)
+        .memoryCacheKey(cacheKey)
+        .diskCacheKey(cacheKey)
+        .crossfade(true)
+        .build()
 
-        AsyncImage(
-            model = request,
-            contentDescription = historyEntityDescriptionFromUrl(mangaUrl),
-            modifier = modifier,
-            contentScale = ContentScale.Crop
-        )
-    }
+    SubcomposeAsyncImage(
+        model = request,
+        contentDescription = historyEntityDescriptionFromUrl(mangaUrl),
+        modifier = modifier,
+        contentScale = ContentScale.Crop,
+        loading = {
+            ImageLoadingComposable()
+        },
+        error = {
+            ImageLoadingErrorComposable()
+        }
+    )
+
 }
 
 private fun historyEntityDescriptionFromUrl(url: String): String = "Cover for $url"
