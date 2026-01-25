@@ -63,8 +63,13 @@ suspend fun querySearchFromSource(
 
     withContext(Dispatchers.IO) {
         for (metadata in extensionMetadataViewModel.getAllSources()) {
-            val searchResult = metadata.source.search(query)
-            results[metadata] = searchResult
+            try {
+                val searchResult = metadata.source.search(query)
+                results[metadata] = searchResult
+            } catch (e: Exception) {
+                // This can trigger if the source itself does not have proper error handling
+                results[metadata] = emptyList()
+            }
         }
     }
 
@@ -161,22 +166,30 @@ fun SimpleSearchBar(
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
 
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(results) { result ->
-                                SearchResultCard(
-                                    searchResult = result,
-                                    onClick = {
-                                        onItemClick(
-                                            result.url,
-                                            navHostController,
-                                            extensionMetadataViewModel,
-                                            extensionMetadata
-                                        )
-                                    }
-                                )
+                        if (results.isEmpty()) {
+                            Text(
+                                text = "No results found or an error occurred.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        } else {
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(results) { result ->
+                                    SearchResultCard(
+                                        searchResult = result,
+                                        onClick = {
+                                            onItemClick(
+                                                result.url,
+                                                navHostController,
+                                                extensionMetadataViewModel,
+                                                extensionMetadata
+                                            )
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
