@@ -31,7 +31,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
@@ -40,6 +40,8 @@ import com.example.manglyextension.plugins.ExtensionMetadata
 import com.example.manglyextension.plugins.Source
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.example.project.composables.shared.image.ImageLoadingComposable
+import org.example.project.composables.shared.image.ImageLoadingErrorComposable
 import org.example.project.rooms.entities.FavoritesEntity
 import org.example.project.viewmodels.ExtensionMetadataViewModel
 import org.example.project.viewmodels.FavoritesViewModel
@@ -191,11 +193,18 @@ private fun FavoriteImage(
             Text(text = "Loading…", style = MaterialTheme.typography.bodySmall)
         }
     } else {
-        AsyncImage(
+        SubcomposeAsyncImage(
             model = imageRequest,
             contentDescription = favorite.mangaTitle,
             modifier = modifier,
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Crop,
+            error = {
+                ImageLoadingErrorComposable()
+            },
+            loading = {
+                ImageLoadingComposable()
+            }
+
         )
     }
 }

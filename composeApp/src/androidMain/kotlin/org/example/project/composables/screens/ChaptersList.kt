@@ -1,7 +1,6 @@
 package org.example.project.composables.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
@@ -41,7 +40,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import coil3.compose.rememberAsyncImagePainter
+import coil3.compose.SubcomposeAsyncImage
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
@@ -53,6 +52,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.example.project.composables.shared.image.ImageLoadingComposable
+import org.example.project.composables.shared.image.ImageLoadingErrorComposable
 import org.example.project.rooms.entities.FavoritesEntity
 import org.example.project.viewmodels.ChaptersListViewModel
 import org.example.project.viewmodels.ExtensionMetadataViewModel
@@ -237,17 +238,21 @@ fun ChaptersList(
         }
 
         image?.let {
-            Image(
-                painter = rememberAsyncImagePainter(imageRequest),
+            SubcomposeAsyncImage(
+                model = imageRequest,
                 contentDescription = "Comic Cover",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .width(220.dp)
                     .height(320.dp)
-                    .padding(bottom = 16.dp)
+                    .padding(bottom = 16.dp),
+                loading = { ImageLoadingComposable() },
+                error = { ImageLoadingErrorComposable() }
             )
         }
+
+
 
         if (summary.isNotBlank()) {
             Column(
