@@ -93,4 +93,6 @@ dependencies {
 
     implementation(libs.gson)
     implementation(libs.androidsvg.aar)
+    implementation(libs.kotlin.reflect)
+
 }
