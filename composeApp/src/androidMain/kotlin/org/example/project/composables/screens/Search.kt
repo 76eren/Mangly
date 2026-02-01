@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.verticalScroll
@@ -24,6 +25,7 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -174,7 +176,16 @@ fun SimpleSearchBar(
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
                         } else {
+                            val listState = rememberLazyListState()
+
+                            LaunchedEffect(searchTriggered) {
+                                if (searchTriggered) {
+                                    listState.scrollToItem(0)
+                                }
+                            }
+
                             LazyRow(
+                                state = listState,
                                 contentPadding = PaddingValues(horizontal = 8.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
