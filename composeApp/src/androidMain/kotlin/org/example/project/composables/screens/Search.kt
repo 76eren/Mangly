@@ -82,10 +82,11 @@ fun Search(
     navHostController: NavHostController,
     searchViewModel: SearchViewModel
 ) {
-    val textFieldState = remember { TextFieldState() }
     val scope = CoroutineScope(Dispatchers.IO)
 
+    var textFieldState = remember { TextFieldState(searchViewModel.searchQuery) }
     var searchResults by searchViewModel::searchResults
+
 
     Column(
         modifier = Modifier
@@ -100,7 +101,7 @@ fun Search(
                 scope.launch {
                     val results = querySearchFromSource(query, extensionMetadataViewModel)
                     searchResults = results
-                    searchViewModel.updateSearchResults(results)
+                    searchViewModel.updateSearchViewModel(results, query)
                 }
             },
             searchResults = searchResults,
