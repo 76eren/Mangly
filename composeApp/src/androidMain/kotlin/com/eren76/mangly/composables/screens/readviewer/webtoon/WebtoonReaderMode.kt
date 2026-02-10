@@ -110,6 +110,7 @@ object WebtoonReaderMode : ReaderMode {
 
         // Reset scroll position when images change (new chapter)
         LaunchedEffect(images) {
+            ImageHeightCache.clear()
             lazyListState.scrollToItem(0)
         }
 
