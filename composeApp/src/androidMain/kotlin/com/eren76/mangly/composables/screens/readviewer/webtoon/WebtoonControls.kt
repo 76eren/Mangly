@@ -2,6 +2,7 @@ package com.eren76.mangly.composables.screens.readviewer.webtoon
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -13,8 +14,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -69,8 +75,13 @@ fun WebtoonTopControls(
 @Composable
 fun WebtoonBottomControls(
     onNextChapter: () -> Unit,
+    currentPage: Int,
+    totalPages: Int,
+    onGoToPage: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var sliderValue by remember(currentPage) { mutableFloatStateOf(currentPage.toFloat()) }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -78,6 +89,40 @@ fun WebtoonBottomControls(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        if (totalPages > 1) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "1",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Slider(
+                    value = sliderValue,
+                    onValueChange = { sliderValue = it },
+                    onValueChangeFinished = {
+                        onGoToPage(sliderValue.toInt())
+                    },
+                    valueRange = 1f..totalPages.toFloat(),
+                    steps = if (totalPages > 2) totalPages - 2 else 0,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp)
+                )
+
+                Text(
+                    text = totalPages.toString(),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
         Button(
             onClick = onNextChapter,
             modifier = Modifier.fillMaxWidth()
