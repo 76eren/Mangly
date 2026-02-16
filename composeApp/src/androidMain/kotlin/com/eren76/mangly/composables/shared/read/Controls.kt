@@ -1,4 +1,4 @@
-package com.eren76.mangly.composables.screens.readviewer.paged
+package com.eren76.mangly.composables.shared.read
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -27,9 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-
 @Composable
-fun PagedTopControls(
+fun ReadTopControls(
     currentPage: Int,
     totalPages: Int,
     chapterTitle: String,
@@ -73,9 +72,8 @@ fun PagedTopControls(
     }
 }
 
-
 @Composable
-fun PagedBottomControls(
+fun ReadBottomControls(
     onNextChapter: () -> Unit,
     currentPage: Int,
     totalPages: Int,
@@ -91,7 +89,6 @@ fun PagedBottomControls(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Page slider for quick navigation
         if (totalPages > 1) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -143,4 +140,3 @@ fun PagedBottomControls(
         }
     }
 }
-

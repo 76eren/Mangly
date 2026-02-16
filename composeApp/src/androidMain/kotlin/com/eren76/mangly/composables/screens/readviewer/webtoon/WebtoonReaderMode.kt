@@ -36,6 +36,8 @@ import coil3.request.crossfade
 import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.readviewer.ReaderMode
 import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
+import com.eren76.mangly.composables.shared.read.ReadBottomControls
+import com.eren76.mangly.composables.shared.read.ReadTopControls
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.launch
@@ -156,7 +158,7 @@ object WebtoonReaderMode : ReaderMode {
 
                 // Overlay controls (now also zoomed with everything else)
                 if (showControls) {
-                    WebtoonTopControls(
+                    ReadTopControls(
                         currentPage = currentPage,
                         totalPages = images.size,
                         chapterTitle = chaptersListViewModel.getSelectedChapterNumber(),
@@ -164,7 +166,7 @@ object WebtoonReaderMode : ReaderMode {
                         modifier = Modifier.align(Alignment.TopCenter)
                     )
 
-                    WebtoonBottomControls(
+                    ReadBottomControls(
                         onNextChapter = onNextChapter,
                         modifier = Modifier.align(Alignment.BottomCenter),
                         currentPage = currentPage,
