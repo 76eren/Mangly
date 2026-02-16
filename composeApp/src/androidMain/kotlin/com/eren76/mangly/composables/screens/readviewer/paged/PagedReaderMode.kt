@@ -25,6 +25,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil3.network.NetworkHeaders
 import com.eren76.mangly.composables.screens.readviewer.ReaderMode
+import com.eren76.mangly.composables.shared.read.ReadBottomControls
+import com.eren76.mangly.composables.shared.read.ReadTopControls
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.launch
@@ -149,7 +151,7 @@ object PagedReaderMode : ReaderMode {
             }
 
             if (showControls) {
-                PagedTopControls(
+                ReadTopControls(
                     currentPage = if (pagerState.currentPage < images.size) pagerState.currentPage + 1 else images.size,
                     totalPages = images.size,
                     chapterTitle = chaptersListViewModel.getSelectedChapterNumber(),
@@ -157,7 +159,7 @@ object PagedReaderMode : ReaderMode {
                     modifier = Modifier.align(Alignment.TopCenter)
                 )
 
-                PagedBottomControls(
+                ReadBottomControls(
                     onNextChapter = onNextChapter,
                     currentPage = pagerState.currentPage,
                     totalPages = totalPages,

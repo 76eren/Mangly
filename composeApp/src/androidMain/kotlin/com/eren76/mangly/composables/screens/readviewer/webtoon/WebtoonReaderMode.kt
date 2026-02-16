@@ -7,13 +7,10 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +19,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -29,9 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.paging.Pager
-import androidx.paging.PagingConfig
-import androidx.paging.compose.collectAsLazyPagingItems
 import coil3.ImageLoader
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
@@ -41,8 +36,11 @@ import coil3.request.crossfade
 import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.readviewer.ReaderMode
 import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
+import com.eren76.mangly.composables.shared.read.ReadBottomControls
+import com.eren76.mangly.composables.shared.read.ReadTopControls
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
 import com.eren76.manglyextension.plugins.Source
+import kotlinx.coroutines.launch
 
 object WebtoonReaderMode : ReaderMode {
     override val name: String = "Webtoon"
@@ -57,6 +55,8 @@ object WebtoonReaderMode : ReaderMode {
         chaptersListViewModel: ChaptersListViewModel
     ) {
         val context = LocalContext.current
+        val coroutineScope = rememberCoroutineScope()
+
 
         val sharedPreferences: SharedPreferences = context.getSharedPreferences(
             Constants.READING_SETTING_KEY,
@@ -80,22 +80,6 @@ object WebtoonReaderMode : ReaderMode {
             sharedPreferences = sharedPreferences
         )
 
-        val pager = remember(images) {
-            Pager(
-                config = PagingConfig(
-                    // TODO: this doesn't actually cache the images but instead "preloads" the urls in memory, this has very little effect and might as well be removed
-                    pageSize = 5,
-                    prefetchDistance = 3,
-                    enablePlaceholders = true,
-                    initialLoadSize = 8
-                ),
-                pagingSourceFactory = {
-                    WebtoonImagePagingSource(images)
-                }
-            )
-        }
-
-        val lazyPagingItems = pager.flow.collectAsLazyPagingItems()
 
         var showControls by remember { mutableStateOf(false) }
 
@@ -110,6 +94,7 @@ object WebtoonReaderMode : ReaderMode {
 
         // Reset scroll position when images change (new chapter)
         LaunchedEffect(images) {
+            ImageHeightCache.clear()
             lazyListState.scrollToItem(0)
         }
 
@@ -128,7 +113,7 @@ object WebtoonReaderMode : ReaderMode {
             ) {
                 LazyColumn(
                     state = lazyListState,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     // Header with chapter title
                     item {
@@ -147,33 +132,18 @@ object WebtoonReaderMode : ReaderMode {
                     }
 
                     items(
-                        count = lazyPagingItems.itemCount,
+                        count = images.size,
                         key = { index -> "image_$index" }
                     ) { index ->
-                        val imageUrl = lazyPagingItems[index]
+                        val imageUrl = images[index]
 
-                        if (imageUrl != null) {
-                            WebtoonImage(
-                                imageUrl = imageUrl,
-                                networkHeaders = networkHeaders,
-                                context = context,
-                                index = index,
-                                totalImages = images.size
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(400.dp)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                        }
+                        WebtoonImage(
+                            imageUrl = imageUrl,
+                            networkHeaders = networkHeaders,
+                            context = context,
+                            index = index,
+                            totalImages = images.size
+                        )
                     }
 
                     // Footer with navigation
@@ -188,7 +158,7 @@ object WebtoonReaderMode : ReaderMode {
 
                 // Overlay controls (now also zoomed with everything else)
                 if (showControls) {
-                    WebtoonTopControls(
+                    ReadTopControls(
                         currentPage = currentPage,
                         totalPages = images.size,
                         chapterTitle = chaptersListViewModel.getSelectedChapterNumber(),
@@ -196,9 +166,17 @@ object WebtoonReaderMode : ReaderMode {
                         modifier = Modifier.align(Alignment.TopCenter)
                     )
 
-                    WebtoonBottomControls(
+                    ReadBottomControls(
                         onNextChapter = onNextChapter,
-                        modifier = Modifier.align(Alignment.BottomCenter)
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                        currentPage = currentPage,
+                        totalPages = images.size,
+                        onGoToPage = { page ->
+                            coroutineScope.launch {
+                                lazyListState.scrollToItem(page)
+                            }
+                        }
+
                     )
                 }
             }
