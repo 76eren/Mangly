@@ -1,5 +1,6 @@
 package com.eren76.mangly.composables.screens
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -195,12 +196,10 @@ fun ChaptersList(
             .crossfade(true)
             .build()
 
-        var isFavorite by remember { mutableStateOf(false) }
-        for (favoriteItem in favoritesViewModel.favorites.value) {
-            if (favoriteItem.mangaUrl == targetUrl) {
-                isFavorite = true
-                break
-            }
+        val context = LocalContext.current
+
+        val isFavorite = remember(favoritesViewModel.favorites.value, targetUrl) {
+            favoritesViewModel.favorites.value.any { it.mangaUrl == targetUrl }
         }
 
         if (isFavorite) {
@@ -209,11 +208,17 @@ fun ChaptersList(
                 contentDescription = "Favorite",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable {
-                    for (favoriteItem in favoritesViewModel.favorites.value) {
-                        if (favoriteItem.mangaUrl == targetUrl) {
-                            favoritesViewModel.removeFavorite(favoriteItem.id)
-                            isFavorite = !isFavorite
-                            break
+                    scope.launch {
+                        for (favoriteItem in favoritesViewModel.favorites.value) {
+                            if (favoriteItem.mangaUrl == targetUrl) {
+                                favoritesViewModel.removeFavorite(favoriteItem.id)
+                                Toast.makeText(
+                                    context,
+                                    "Removed from favorites",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                break
+                            }
                         }
                     }
                 }
@@ -224,15 +229,21 @@ fun ChaptersList(
                 contentDescription = "Favorite",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable {
-                    val favoriteEntity = FavoritesEntity(
-                        id = UUID.randomUUID(),
-                        mangaUrl = targetUrl,
-                        mangaTitle = mangaName,
-                        created_at = System.currentTimeMillis(),
-                        extensionId = UUID.fromString(metadata.source.getExtensionId())
-                    )
-                    favoritesViewModel.addFavorite(favoriteEntity)
-                    isFavorite = !isFavorite
+                    scope.launch {
+                        val favoriteEntity = FavoritesEntity(
+                            id = UUID.randomUUID(),
+                            mangaUrl = targetUrl,
+                            mangaTitle = mangaName,
+                            created_at = System.currentTimeMillis(),
+                            extensionId = UUID.fromString(metadata.source.getExtensionId())
+                        )
+                        favoritesViewModel.addFavorite(favoriteEntity)
+                        Toast.makeText(
+                            context,
+                            "Added to favorites",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             )
         }
