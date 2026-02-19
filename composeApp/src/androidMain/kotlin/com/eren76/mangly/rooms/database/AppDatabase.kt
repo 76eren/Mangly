@@ -4,8 +4,6 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.room.TypeConverters
-import com.eren76.mangly.rooms.converters.UuidConverters
 import com.eren76.mangly.rooms.dao.ExtensionDao
 import com.eren76.mangly.rooms.dao.FavoritesDao
 import com.eren76.mangly.rooms.dao.HistoryDao
@@ -23,7 +21,6 @@ import com.eren76.mangly.rooms.entities.HistoryEntity
     version = 5,
     exportSchema = true
 )
-@TypeConverters(UuidConverters::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun extensionEntryDao(): ExtensionDao
