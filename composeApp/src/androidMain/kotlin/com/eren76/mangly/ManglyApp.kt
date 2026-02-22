@@ -35,7 +35,7 @@ class ManglyApp : Application(), SingletonImageLoader.Factory {
             }
             .memoryCache {
                 MemoryCache.Builder()
-                    .maxSizePercent(context, percent = 0.35)
+                    .maxSizePercent(context, percent = 0.50)
                     .build()
             }
             .diskCache {
