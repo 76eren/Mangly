@@ -118,6 +118,7 @@ fun HistoryManagement(
                     historyEntity = historyEntity,
                     lastReadAt = timeKey,
                     source = source,
+                    historyViewModel = historyViewModel,
                     onClick = {
                         val encodedUrl = URLEncoder.encode(
                             historyEntity.mangaUrl,
@@ -158,6 +159,7 @@ private fun HistoryRow(
     historyEntity: HistoryEntity,
     lastReadAt: Long,
     source: Source?,
+    historyViewModel: HistoryViewModel,
     onClick: () -> Unit
 ) {
     Card(
@@ -176,6 +178,7 @@ private fun HistoryRow(
             HistoryCoverImage(
                 mangaUrl = historyEntity.mangaUrl,
                 source = source,
+                historyViewModel = historyViewModel,
                 modifier = Modifier
                     .size(110.dp)
             )
@@ -206,6 +209,7 @@ private fun HistoryRow(
 private fun HistoryCoverImage(
     mangaUrl: String,
     source: Source?,
+    historyViewModel: HistoryViewModel,
     modifier: Modifier = Modifier
 ) {
     if (source == null) {
@@ -221,6 +225,7 @@ private fun HistoryCoverImage(
     HistoryCoverImageLoader(
         mangaUrl = mangaUrl,
         source = source,
+        historyViewModel = historyViewModel,
         modifier = modifier
     )
 }
@@ -229,22 +234,39 @@ private fun HistoryCoverImage(
 private fun HistoryCoverImageLoader(
     mangaUrl: String,
     source: Source,
+    historyViewModel: HistoryViewModel,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
 
-    var imageUrl by remember(source, mangaUrl) { mutableStateOf<String?>(null) }
-    var headers by remember(source, mangaUrl) { mutableStateOf<List<Source.Header>>(emptyList()) }
+    // State to trigger recomposition after fetch completes
+    var fetchCompleted by remember(mangaUrl) { mutableStateOf(false) }
 
-    LaunchedEffect(source, mangaUrl) {
+    // Read from cache, will be null initially populated after fetch
+    val cachedData = historyViewModel.getCachedImageData(mangaUrl)
+    val imageUrl = cachedData?.imageUrl
+    val headers = cachedData?.headers ?: emptyList()
+
+    LaunchedEffect(mangaUrl) {
+        if (cachedData != null) {
+            return@LaunchedEffect
+        }
+
         val image: ImageForChaptersList? = runCatching {
             withContext(Dispatchers.IO) {
                 source.getImageForChaptersList(mangaUrl)
             }
         }.getOrNull()
 
-        imageUrl = image?.imageUrl
-        headers = image?.headers ?: emptyList()
+        image?.let {
+            historyViewModel.addImageDataToCache(
+                mangaUrl = mangaUrl,
+                imageUrl = it.imageUrl,
+                headers = it.headers
+            )
+            // Trigger recomposition to read the newly cached data
+            fetchCompleted = true
+        }
     }
 
 
