@@ -196,10 +196,19 @@ private fun FavoriteImage(
         }.build()
     }
 
-    val imageRequest = remember(imageUrl, networkHeaders) {
+    // Use a stable cache key based on the image URL for consistent disk caching
+    val cacheKey = remember(imageUrl) { imageUrl?.let { "favorite_cover_${it.hashCode()}" } }
+
+    val imageRequest = remember(imageUrl, networkHeaders, cacheKey) {
         ImageRequest.Builder(context)
             .data(imageUrl)
-            .apply { if (headers.isNotEmpty()) httpHeaders(networkHeaders) }
+            .apply {
+                if (headers.isNotEmpty()) httpHeaders(networkHeaders)
+                cacheKey?.let {
+                    memoryCacheKey(it)
+                    diskCacheKey(it)
+                }
+            }
             .crossfade(false)
             .build()
     }
