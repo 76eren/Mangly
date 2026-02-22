@@ -18,9 +18,7 @@ import javax.inject.Inject
 class FavoritesViewModel
 @Inject constructor(private val favoritesManager: FavoritesManager) : ViewModel() {
     val favorites = mutableStateOf<List<FavoritesEntity>>(emptyList())
-
     val imageCache = mutableStateMapOf<UUID, CachedImageData>()
-    private var preFetchTriggered = false
 
     init {
         viewModelScope.launch {
@@ -53,9 +51,6 @@ class FavoritesViewModel
     }
 
     fun preFetchAllImages(sources: List<ExtensionMetadata>) {
-        if (preFetchTriggered) return
-        preFetchTriggered = true
-
         val sourcesById = sources.associateBy { UUID.fromString(it.source.getExtensionId()) }
 
         viewModelScope.launch(Dispatchers.IO) {
@@ -83,9 +78,6 @@ class FavoritesViewModel
         }
     }
 
-    fun resetPreFetch() {
-        preFetchTriggered = false
-    }
 }
 
 data class CachedImageData(

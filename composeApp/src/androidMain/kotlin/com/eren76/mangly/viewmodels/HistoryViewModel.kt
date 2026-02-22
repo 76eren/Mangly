@@ -19,10 +19,8 @@ import javax.inject.Inject
 class HistoryViewModel
 @Inject constructor(private val historyManager: HistoryManager) : ViewModel() {
     val historyWithChapters = mutableStateOf<List<HistoryWithReadChapters>>(emptyList())
-
     private val imageCache = ConcurrentHashMap<String, HistoryCachedImageData>()
 
-    private var preFetchTriggered = false
 
     init {
         refresh()
@@ -75,9 +73,6 @@ class HistoryViewModel
 
 
     fun preFetchAllImages(sources: List<ExtensionMetadata>) {
-        if (preFetchTriggered) return
-        preFetchTriggered = true
-
         val sourcesById = sources.associateBy { UUID.fromString(it.source.getExtensionId()) }
 
         viewModelScope.launch(Dispatchers.IO) {
@@ -107,10 +102,7 @@ class HistoryViewModel
             }
         }
     }
-
-    fun resetPreFetch() {
-        preFetchTriggered = false
-    }
+    
 }
 
 data class HistoryCachedImageData(
