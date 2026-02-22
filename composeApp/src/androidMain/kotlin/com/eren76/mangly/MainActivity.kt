@@ -67,6 +67,10 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(Unit) {
                         val metadataList = fetchSources(applicationContext)
                         sourcesViewModel.setSources(metadataList)
+
+                        // Trigger prefetch for image caching immediately
+                        favoritesViewModel.preFetchAllImages(metadataList)
+                        historyViewModel.preFetchAllImages(metadataList)
                     }
 
                     Surface(color = MaterialTheme.colorScheme.background) {
