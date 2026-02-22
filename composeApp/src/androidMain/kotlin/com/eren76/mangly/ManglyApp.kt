@@ -42,7 +42,7 @@ class ManglyApp : Application(), SingletonImageLoader.Factory {
             .diskCache {
                 DiskCache.Builder()
                     .directory(cacheDir.resolve("image_cache"))
-                    .maxSizePercent(0.45)
+                    .maxSizePercent(0.40)
                     .build()
             }
             .networkCachePolicy(CachePolicy.ENABLED)

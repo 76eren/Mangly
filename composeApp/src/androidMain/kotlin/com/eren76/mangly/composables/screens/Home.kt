@@ -196,7 +196,6 @@ private fun FavoriteImage(
         }.build()
     }
 
-    // Use a stable cache key based on the image URL for consistent disk caching
     val cacheKey = remember(imageUrl) { imageUrl?.let { "favorite_cover_${it.hashCode()}" } }
 
     val imageRequest = remember(imageUrl, networkHeaders, cacheKey) {
