@@ -88,9 +88,10 @@ fun Home(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(sortedFavorites) { favorite ->
+                items(sortedFavorites) { favorite: FavoritesEntity ->
                     FavoriteCard(
                         favorite = favorite,
+                        favoritesViewModel = favoritesViewModel,
                         extensionMetadataViewModel = extensionMetadataViewModel,
                         onClick = {
                             onFavoriteClick(
@@ -109,6 +110,7 @@ fun Home(
 @Composable
 private fun FavoriteCard(
     favorite: FavoritesEntity,
+    favoritesViewModel: FavoritesViewModel,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
     onClick: () -> Unit
 ) {
@@ -122,6 +124,7 @@ private fun FavoriteCard(
         Column {
             FavoriteImage(
                 favorite = favorite,
+                favoritesViewModel = favoritesViewModel,
                 extensionMetadataViewModel = extensionMetadataViewModel,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -143,15 +146,26 @@ private fun FavoriteCard(
 @Composable
 private fun FavoriteImage(
     favorite: FavoritesEntity,
+    favoritesViewModel: FavoritesViewModel,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
 
-    var imageUrl by remember { mutableStateOf<String?>(null) }
-    var headers by remember { mutableStateOf<List<Source.Header>>(emptyList()) }
+    // This state is used to trigger recomposition after fetching and caching the image data
+    var fetchCompleted by remember(favorite.id) { mutableStateOf(false) }
 
-    LaunchedEffect(favorite) {
+    // Read from cache, will be null initially populated after fetch
+    val cachedData = favoritesViewModel.getCachedImageData(favorite.id)
+    val imageUrl = cachedData?.imageUrl
+    val headers = cachedData?.headers ?: emptyList()
+
+    LaunchedEffect(favorite.id) {
+
+        if (cachedData != null) {
+            return@LaunchedEffect
+        }
+
         val targetMetadata: ExtensionMetadata? = extensionMetadataViewModel
             .getAllSources()
             .find { it.source.getExtensionId() == favorite.extensionId.toString() }
@@ -160,8 +174,17 @@ private fun FavoriteImage(
             val image: Source.ImageForChaptersList? = runCatching {
                 withContext(Dispatchers.IO) { metadata.source.getImageForChaptersList(favorite.mangaUrl) }
             }.getOrNull()
-            imageUrl = image?.imageUrl
-            headers = image?.headers ?: emptyList()
+
+            image?.let {
+                favoritesViewModel.addImageDataToCache(
+                    favoriteId = favorite.id,
+                    imageUrl = it.imageUrl,
+                    headers = it.headers
+                )
+
+                // Triggers recomposition to read the newly cached data
+                fetchCompleted = true
+            }
         }
     }
 
@@ -173,14 +196,19 @@ private fun FavoriteImage(
         }.build()
     }
 
-    val cacheKey = "favorite_cover_${favorite.mangaUrl.hashCode()}"
+    val cacheKey = remember(imageUrl) { imageUrl?.let { "favorite_cover_${it.hashCode()}" } }
+
     val imageRequest = remember(imageUrl, networkHeaders, cacheKey) {
         ImageRequest.Builder(context)
             .data(imageUrl)
-            .apply { if (headers.isNotEmpty()) httpHeaders(networkHeaders) }
-            .memoryCacheKey(cacheKey)
-            .diskCacheKey(cacheKey)
-            .crossfade(true)
+            .apply {
+                if (headers.isNotEmpty()) httpHeaders(networkHeaders)
+                cacheKey?.let {
+                    memoryCacheKey(it)
+                    diskCacheKey(it)
+                }
+            }
+            .crossfade(false)
             .build()
     }
 
