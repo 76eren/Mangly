@@ -11,6 +11,7 @@ import com.eren76.mangly.rooms.database.migrations.Migration1To2
 import com.eren76.mangly.rooms.database.migrations.Migration2To3
 import com.eren76.mangly.rooms.database.migrations.Migration3To4
 import com.eren76.mangly.rooms.database.migrations.Migration4To5
+import com.eren76.mangly.rooms.database.migrations.Migration5To6
 import com.eren76.mangly.rooms.entities.ExtensionEntity
 import com.eren76.mangly.rooms.entities.FavoritesEntity
 import com.eren76.mangly.rooms.entities.HistoryChapterEntity
@@ -18,7 +19,7 @@ import com.eren76.mangly.rooms.entities.HistoryEntity
 
 @Database(
     entities = [ExtensionEntity::class, FavoritesEntity::class, HistoryEntity::class, HistoryChapterEntity::class],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -38,7 +39,13 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "app_database"
                 )
-                    .addMigrations(Migration1To2, Migration2To3, Migration3To4, Migration4To5)
+                    .addMigrations(
+                        Migration1To2,
+                        Migration2To3,
+                        Migration3To4,
+                        Migration4To5,
+                        Migration5To6
+                    )
                     .build()
                     .also { INSTANCE = it }
             }

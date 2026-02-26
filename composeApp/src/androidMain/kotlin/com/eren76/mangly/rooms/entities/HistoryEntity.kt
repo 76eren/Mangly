@@ -26,6 +26,8 @@ data class HistoryEntity(
     @PrimaryKey val id: UUID,
     val mangaUrl: String,
     val mangaName: String,
+    val coverImageFilename: String? = null,
+
     // Reference to the owning extension
     val extensionId: UUID
 )

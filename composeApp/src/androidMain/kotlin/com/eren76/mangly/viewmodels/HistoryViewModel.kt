@@ -102,7 +102,7 @@ class HistoryViewModel
             }
         }
     }
-    
+
 }
 
 data class HistoryCachedImageData(

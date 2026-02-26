@@ -24,6 +24,7 @@ data class FavoritesEntity(
     val mangaUrl: String,
     val mangaTitle: String,
     val created_at: Long,
+    val coverImageFilename: String? = null,
 
     // Reference to the owning extension
     val extensionId: UUID

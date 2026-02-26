@@ -14,6 +14,17 @@ class FileManager @Inject constructor(
     private val extensionDao: ExtensionDao
 ) {
 
+    suspend fun saveToStorage(context: Context, file: File) {
+        val destinationFile = File(context.filesDir, file.name)
+        file.copyTo(destinationFile, overwrite = true)
+    }
+
+    suspend fun getFileByFilename(context: Context, fileName: String): File? {
+        val file = File(context.filesDir, fileName)
+        return if (file.exists()) file else null
+    }
+
+    // TOOD: This is not SRP
     suspend fun saveAndInsertEntry(
         context: Context,
         inputStream: InputStream,
