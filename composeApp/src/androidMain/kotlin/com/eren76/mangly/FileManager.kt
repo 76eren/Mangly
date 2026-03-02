@@ -13,14 +13,27 @@ class FileManager @Inject constructor(
     private val extensionManager: ExtensionManager,
     private val extensionDao: ExtensionDao
 ) {
+    
+    fun saveBytesToStorage(
+        context: Context,
+        relativeDir: String,
+        fileName: String,
+        bytes: ByteArray,
+        overwrite: Boolean = true
+    ): File {
+        val dir = File(context.filesDir, relativeDir)
+        if (!dir.exists()) dir.mkdirs()
 
-    suspend fun saveToStorage(context: Context, file: File) {
-        val destinationFile = File(context.filesDir, file.name)
-        file.copyTo(destinationFile, overwrite = true)
+        val destinationFile = File(dir, fileName)
+        if (destinationFile.exists() && !overwrite) return destinationFile
+
+        destinationFile.outputStream().use { it.write(bytes) }
+        return destinationFile
     }
 
-    suspend fun getFileByFilename(context: Context, fileName: String): File? {
-        val file = File(context.filesDir, fileName)
+
+    fun getFileInDir(context: Context, relativeDir: String, fileName: String): File? {
+        val file = File(File(context.filesDir, relativeDir), fileName)
         return if (file.exists()) file else null
     }
 

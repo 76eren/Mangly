@@ -69,7 +69,6 @@ class MainActivity : ComponentActivity() {
                         sourcesViewModel.setSources(metadataList)
 
                         // Trigger prefetch for image caching immediately
-                        favoritesViewModel.preFetchAllImages(metadataList)
                         historyViewModel.preFetchAllImages(metadataList)
                     }
 

@@ -23,5 +23,7 @@ interface FavoritesDao {
 
     @Query("SELECT * FROM FavoritesEntity WHERE mangaUrl = :url")
     suspend fun getByUrl(url: String): List<FavoritesEntity>
-}
 
+    @Query("UPDATE FavoritesEntity SET coverImageFilename = :filename WHERE id = :id")
+    suspend fun updateCoverFilename(id: UUID, filename: String?)
+}
