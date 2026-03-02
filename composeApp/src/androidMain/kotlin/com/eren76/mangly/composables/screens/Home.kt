@@ -32,10 +32,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.SubcomposeAsyncImage
-import coil3.network.NetworkHeaders
-import coil3.network.httpHeaders
-import coil3.request.ImageRequest
-import coil3.request.crossfade
+import com.eren76.mangly.composables.shared.image.CoverCache
+import com.eren76.mangly.composables.shared.image.CoverImageRequests
 import com.eren76.mangly.composables.shared.image.ImageLoadingComposable
 import com.eren76.mangly.composables.shared.image.ImageLoadingErrorComposable
 import com.eren76.mangly.rooms.entities.FavoritesEntity
@@ -45,6 +43,7 @@ import com.eren76.manglyextension.plugins.ExtensionMetadata
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -91,8 +90,8 @@ fun Home(
                 items(sortedFavorites) { favorite: FavoritesEntity ->
                     FavoriteCard(
                         favorite = favorite,
-                        favoritesViewModel = favoritesViewModel,
                         extensionMetadataViewModel = extensionMetadataViewModel,
+                        favoritesViewModel = favoritesViewModel,
                         onClick = {
                             onFavoriteClick(
                                 favorite = favorite,
@@ -110,8 +109,8 @@ fun Home(
 @Composable
 private fun FavoriteCard(
     favorite: FavoritesEntity,
-    favoritesViewModel: FavoritesViewModel,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
+    favoritesViewModel: FavoritesViewModel,
     onClick: () -> Unit
 ) {
     Card(
@@ -124,8 +123,8 @@ private fun FavoriteCard(
         Column {
             FavoriteImage(
                 favorite = favorite,
-                favoritesViewModel = favoritesViewModel,
                 extensionMetadataViewModel = extensionMetadataViewModel,
+                favoritesViewModel = favoritesViewModel,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(140.dp)
@@ -143,97 +142,138 @@ private fun FavoriteCard(
     }
 }
 
+
 @Composable
 private fun FavoriteImage(
     favorite: FavoritesEntity,
-    favoritesViewModel: FavoritesViewModel,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
+    favoritesViewModel: FavoritesViewModel,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
 
-    // This state is used to trigger recomposition after fetching and caching the image data
-    var fetchCompleted by remember(favorite.id) { mutableStateOf(false) }
+    var localCoverFile by remember(favorite.id, favorite.coverImageFilename) {
+        mutableStateOf<File?>(null)
+    }
 
-    // Read from cache, will be null initially populated after fetch
-    val cachedData = favoritesViewModel.getCachedImageData(favorite.id)
-    val imageUrl = cachedData?.imageUrl
-    val headers = cachedData?.headers ?: emptyList()
+    LaunchedEffect(favorite.id, favorite.coverImageFilename) {
+        localCoverFile = favorite.coverImageFilename?.let { filename ->
+            favoritesViewModel.getCoverFile(filename = filename, context = context)
+        }
+    }
 
-    LaunchedEffect(favorite.id) {
+    var imageForList by remember(favorite.id, favorite.mangaUrl) {
+        mutableStateOf<Source.ImageForChaptersList?>(null)
+    }
 
-        if (cachedData != null) {
+    var loadFailed by remember(favorite.id, favorite.mangaUrl) { mutableStateOf(false) }
+
+    LaunchedEffect(favorite.id, favorite.mangaUrl, localCoverFile) {
+        if (localCoverFile != null) return@LaunchedEffect
+
+        loadFailed = false
+        imageForList = null
+
+        val metadata = findMetadataForFavorite(extensionMetadataViewModel, favorite)
+        if (metadata == null) {
+            loadFailed = true
             return@LaunchedEffect
         }
 
-        val targetMetadata: ExtensionMetadata? = extensionMetadataViewModel
-            .getAllSources()
-            .find { it.source.getExtensionId() == favorite.extensionId.toString() }
-
-        targetMetadata?.let { metadata ->
-            val image: Source.ImageForChaptersList? = runCatching {
-                withContext(Dispatchers.IO) { metadata.source.getImageForChaptersList(favorite.mangaUrl) }
-            }.getOrNull()
-
-            image?.let {
-                favoritesViewModel.addImageDataToCache(
-                    favoriteId = favorite.id,
-                    imageUrl = it.imageUrl,
-                    headers = it.headers
-                )
-
-                // Triggers recomposition to read the newly cached data
-                fetchCompleted = true
-            }
+        val coverInfo = runCatching { getCoverImageInfoForFavorite(metadata, favorite) }.getOrNull()
+        if (coverInfo == null || coverInfo.imageUrl.isBlank()) {
+            loadFailed = true
+            return@LaunchedEffect
         }
-    }
 
-    val networkHeaders = remember(headers) {
-        NetworkHeaders.Builder().apply {
-            for (header in headers) {
-                this[header.name] = header.value
-            }
-        }.build()
-    }
+        imageForList = coverInfo
 
-    val cacheKey = remember(imageUrl) { imageUrl?.let { "favorite_cover_${it.hashCode()}" } }
+        val downloaded = runCatching {
+            CoverCache.downloadImage(coverInfo.imageUrl, coverInfo.headers)
+        }.getOrNull()
 
-    val imageRequest = remember(imageUrl, networkHeaders, cacheKey) {
-        ImageRequest.Builder(context)
-            .data(imageUrl)
-            .apply {
-                if (headers.isNotEmpty()) httpHeaders(networkHeaders)
-                cacheKey?.let {
-                    memoryCacheKey(it)
-                    diskCacheKey(it)
-                }
-            }
-            .crossfade(false)
-            .build()
-    }
-
-    if (imageUrl == null) {
-        // Placeholder while loading
-        Box(
-            modifier = modifier.background(Color.LightGray),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = "Loading…", style = MaterialTheme.typography.bodySmall)
+        if (downloaded == null || downloaded.bytes.isEmpty()) {
+            loadFailed = true
+            return@LaunchedEffect
         }
-    } else {
-        SubcomposeAsyncImage(
-            model = imageRequest,
-            contentDescription = favorite.mangaTitle,
-            modifier = modifier,
-            contentScale = ContentScale.Crop,
-            error = {
+
+        val ext = CoverCache.inferImageExtension(
+            contentType = downloaded.contentType,
+            finalUrl = downloaded.finalUrl,
+            originalUrl = coverInfo.imageUrl
+        )
+
+        val filename = "${favorite.id}.$ext"
+
+        val savedFile = withContext(Dispatchers.IO) {
+            favoritesViewModel.saveCoverBytes(
+                filename = filename,
+                bytes = downloaded.bytes,
+                context = context
+            )
+        }
+
+        favoritesViewModel.updateFavoriteCoverFilename(
+            favoriteId = favorite.id,
+            filename = filename
+        )
+        localCoverFile = savedFile
+    }
+
+    val networkHeaders = remember(imageForList?.headers) {
+        CoverCache.buildNetworkHeaders(imageForList?.headers ?: emptyList())
+    }
+
+    val localRequest = remember(localCoverFile) {
+        CoverImageRequests.local(context = context, file = localCoverFile)
+    }
+
+    val remoteRequest = remember(imageForList?.imageUrl, networkHeaders) {
+        CoverImageRequests.remote(
+            context = context,
+            imageForList = imageForList,
+            networkHeaders = networkHeaders,
+            crossfade = false
+        )
+    }
+
+    when {
+        loadFailed -> {
+            Box(modifier = modifier, contentAlignment = Alignment.Center) {
                 ImageLoadingErrorComposable()
-            },
-            loading = {
+            }
+        }
+
+        localRequest != null -> {
+            SubcomposeAsyncImage(
+                model = localRequest,
+                contentDescription = favorite.mangaTitle,
+                modifier = modifier,
+                contentScale = ContentScale.Crop,
+                error = { ImageLoadingErrorComposable() },
+                loading = { ImageLoadingComposable() }
+            )
+        }
+
+        imageForList?.imageUrl == null -> {
+            Box(
+                modifier = modifier.background(Color.LightGray),
+                contentAlignment = Alignment.Center
+            ) {
                 ImageLoadingComposable()
             }
+        }
 
-        )
+        else -> {
+            SubcomposeAsyncImage(
+                model = remoteRequest,
+                contentDescription = favorite.mangaTitle,
+                modifier = modifier,
+                contentScale = ContentScale.Crop,
+                error = { ImageLoadingErrorComposable() },
+                loading = { ImageLoadingComposable() }
+            )
+        }
     }
 }
 
@@ -251,5 +291,23 @@ private fun onFavoriteClick(
         extensionMetadataViewModel.setSelectedSource(targetMetadata)
         val encodedUrl = URLEncoder.encode(favorite.mangaUrl, StandardCharsets.UTF_8.toString())
         navController.navigate("chapters/${encodedUrl}")
+    }
+}
+
+private fun findMetadataForFavorite(
+    extensionMetadataViewModel: ExtensionMetadataViewModel,
+    favorite: FavoritesEntity
+): ExtensionMetadata? {
+    return extensionMetadataViewModel
+        .getAllSources()
+        .find { it.source.getExtensionId() == favorite.extensionId.toString() }
+}
+
+private suspend fun getCoverImageInfoForFavorite(
+    metadata: ExtensionMetadata,
+    favorite: FavoritesEntity
+): Source.ImageForChaptersList? {
+    return withContext(Dispatchers.IO) {
+        metadata.source.getImageForChaptersList(favorite.mangaUrl)
     }
 }

@@ -1,24 +1,27 @@
 package com.eren76.mangly.viewmodels
 
-import androidx.compose.runtime.mutableStateMapOf
+import android.content.Context
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eren76.mangly.FavoritesManager
+import com.eren76.mangly.FileManager
 import com.eren76.mangly.rooms.entities.FavoritesEntity
-import com.eren76.manglyextension.plugins.ExtensionMetadata
-import com.eren76.manglyextension.plugins.Source
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class FavoritesViewModel
-@Inject constructor(private val favoritesManager: FavoritesManager) : ViewModel() {
+@Inject constructor(
+    private val favoritesManager: FavoritesManager,
+    private val fileManager: FileManager
+) : ViewModel() {
     val favorites = mutableStateOf<List<FavoritesEntity>>(emptyList())
-    val imageCache = mutableStateMapOf<UUID, CachedImageData>()
+
+    private val coverDir = "favorite_covers"
 
     init {
         viewModelScope.launch {
@@ -33,54 +36,45 @@ class FavoritesViewModel
         }
     }
 
-    fun removeFavorite(id: UUID) {
+    fun removeFavorite(id: UUID, context: Context) {
         viewModelScope.launch {
+            val toDelete = favorites.value.firstOrNull { it.id == id }
+            toDelete?.coverImageFilename?.let { filename ->
+                fileManager.deleteFileInDir(
+                    context = context,
+                    relativeDir = coverDir,
+                    fileName = filename
+                )
+            }
+
             favoritesManager.removeFavoriteFromDb(id)
             favorites.value = favoritesManager.getAllFavoritesFromDb()
-            // Also remove from image cache
-            imageCache.remove(id)
+
         }
     }
 
-    fun getCachedImageData(favoriteId: UUID): CachedImageData? {
-        return imageCache[favoriteId]
+    fun getCoverFile(filename: String, context: Context): File? {
+        return fileManager.getFileInDir(
+            context = context,
+            relativeDir = coverDir,
+            fileName = filename
+        )
     }
 
-    fun addImageDataToCache(favoriteId: UUID, imageUrl: String, headers: List<Source.Header>) {
-        imageCache[favoriteId] = CachedImageData(imageUrl, headers)
+    fun saveCoverBytes(filename: String, bytes: ByteArray, context: Context): File {
+        return fileManager.saveBytesToStorage(
+            context = context,
+            relativeDir = coverDir,
+            fileName = filename,
+            bytes = bytes,
+            overwrite = true
+        )
     }
 
-    fun preFetchAllImages(sources: List<ExtensionMetadata>) {
-        val sourcesById = sources.associateBy { UUID.fromString(it.source.getExtensionId()) }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            // Wait for favorites data to be loaded first to prevent race condition
-            val favoritesList = favoritesManager.getAllFavoritesFromDb()
-
-            for (favorite in favoritesList) {
-                if (imageCache.containsKey(favorite.id)) continue
-
-                val source = sourcesById[favorite.extensionId]?.source ?: continue
-
-                launch {
-                    val image = runCatching {
-                        source.getImageForChaptersList(favorite.mangaUrl)
-                    }.getOrNull()
-
-                    image?.let {
-                        imageCache[favorite.id] = CachedImageData(
-                            imageUrl = it.imageUrl,
-                            headers = it.headers
-                        )
-                    }
-                }
-            }
+    fun updateFavoriteCoverFilename(favoriteId: UUID, filename: String?) {
+        viewModelScope.launch {
+            favoritesManager.updateCoverFilename(id = favoriteId, filename = filename)
+            favorites.value = favoritesManager.getAllFavoritesFromDb()
         }
     }
-
 }
-
-data class CachedImageData(
-    val imageUrl: String,
-    val headers: List<Source.Header>
-)

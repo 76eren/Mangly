@@ -25,4 +25,7 @@ class FavoritesManager @Inject constructor(
         return favoritesDao.getByUrl(url).isNotEmpty()
     }
 
+    suspend fun updateCoverFilename(id: UUID, filename: String?) {
+        favoritesDao.updateCoverFilename(id = id, filename = filename)
+    }
 }

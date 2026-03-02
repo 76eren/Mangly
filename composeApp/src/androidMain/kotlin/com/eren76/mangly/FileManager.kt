@@ -14,6 +14,35 @@ class FileManager @Inject constructor(
     private val extensionDao: ExtensionDao
 ) {
 
+    fun saveBytesToStorage(
+        context: Context,
+        relativeDir: String,
+        fileName: String,
+        bytes: ByteArray,
+        overwrite: Boolean = true
+    ): File {
+        val dir = File(context.filesDir, relativeDir)
+        if (!dir.exists()) dir.mkdirs()
+
+        val destinationFile = File(dir, fileName)
+        if (destinationFile.exists() && !overwrite) return destinationFile
+
+        destinationFile.outputStream().use { it.write(bytes) }
+        return destinationFile
+    }
+
+
+    fun getFileInDir(context: Context, relativeDir: String, fileName: String): File? {
+        val file = File(File(context.filesDir, relativeDir), fileName)
+        return if (file.exists()) file else null
+    }
+
+    fun deleteFileInDir(context: Context, relativeDir: String, fileName: String): Boolean {
+        val file = File(File(context.filesDir, relativeDir), fileName)
+        return file.exists() && file.delete()
+    }
+
+    // TOOD: This is not SRP
     suspend fun saveAndInsertEntry(
         context: Context,
         inputStream: InputStream,

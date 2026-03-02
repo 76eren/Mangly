@@ -1,26 +1,28 @@
 package com.eren76.mangly.viewmodels
 
+import android.content.Context
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.eren76.mangly.FileManager
 import com.eren76.mangly.HistoryManager
 import com.eren76.mangly.rooms.entities.HistoryWithReadChapters
-import com.eren76.manglyextension.plugins.ExtensionMetadata
-import com.eren76.manglyextension.plugins.Source
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 
 @HiltViewModel
 class HistoryViewModel
-@Inject constructor(private val historyManager: HistoryManager) : ViewModel() {
+@Inject constructor(
+    private val historyManager: HistoryManager,
+    private val fileManager: FileManager
+) : ViewModel() {
     val historyWithChapters = mutableStateOf<List<HistoryWithReadChapters>>(emptyList())
-    private val imageCache = ConcurrentHashMap<String, HistoryCachedImageData>()
 
+    private val coverDir = "history_cover"
 
     init {
         refresh()
@@ -50,9 +52,27 @@ class HistoryViewModel
         }
     }
 
-    fun deleteChapterFromHistory(mangaUrl: String, chapterUrl: String) {
+    fun deleteChapterFromHistory(mangaUrl: String, chapterUrl: String, context: Context) {
         viewModelScope.launch {
-            historyManager.deleteChapterByMangaUrlAndChapterUrl(mangaUrl, chapterUrl)
+            val historyEntity = historyManager.findByMangaUrl(mangaUrl)
+
+            if (historyEntity != null) {
+                historyManager.deleteChapterByMangaUrlAndChapterUrl(mangaUrl, chapterUrl)
+
+                val remaining = historyManager.getChapters(historyEntity.id)
+                if (remaining.isEmpty()) {
+                    historyEntity.coverImageFilename?.let { filename ->
+                        fileManager.deleteFileInDir(
+                            context = context,
+                            relativeDir = coverDir,
+                            fileName = filename
+                        )
+                    }
+
+                    historyManager.deleteHistoryById(historyEntity.id)
+                }
+            }
+
             refresh()
         }
     }
@@ -63,49 +83,28 @@ class HistoryViewModel
         return readChapters.any { it.chapterUrl == chapterUrl }
     }
 
-    fun getCachedImageData(mangaUrl: String): HistoryCachedImageData? {
-        return imageCache[mangaUrl]
+    fun getCoverFile(filename: String, context: Context): File? {
+        return fileManager.getFileInDir(
+            context = context,
+            relativeDir = coverDir,
+            fileName = filename
+        )
     }
 
-    fun addImageDataToCache(mangaUrl: String, imageUrl: String, headers: List<Source.Header>) {
-        imageCache[mangaUrl] = HistoryCachedImageData(imageUrl, headers)
+    fun saveCoverBytes(filename: String, bytes: ByteArray, context: Context): File {
+        return fileManager.saveBytesToStorage(
+            context = context,
+            relativeDir = coverDir,
+            fileName = filename,
+            bytes = bytes,
+            overwrite = true
+        )
     }
 
-
-    fun preFetchAllImages(sources: List<ExtensionMetadata>) {
-        val sourcesById = sources.associateBy { UUID.fromString(it.source.getExtensionId()) }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            // Wait for history data to be loaded first to prevent race condition
-            val historyList = historyManager.getAllHistoryWithReadChapters()
-
-            for (historyWithChapter in historyList) {
-                val history = historyWithChapter.history
-                val mangaUrl = history.mangaUrl
-
-                if (imageCache.containsKey(mangaUrl)) continue
-
-                val source = sourcesById[history.extensionId]?.source ?: continue
-
-                launch {
-                    val image = runCatching {
-                        source.getImageForChaptersList(mangaUrl)
-                    }.getOrNull()
-
-                    image?.let {
-                        imageCache[mangaUrl] = HistoryCachedImageData(
-                            imageUrl = it.imageUrl,
-                            headers = it.headers
-                        )
-                    }
-                }
-            }
+    fun updateHistoryCoverFilename(historyId: UUID, filename: String?) {
+        viewModelScope.launch {
+            historyManager.updateCoverFilename(id = historyId, filename = filename)
+            refresh()
         }
     }
-    
 }
-
-data class HistoryCachedImageData(
-    val imageUrl: String,
-    val headers: List<Source.Header>
-)
