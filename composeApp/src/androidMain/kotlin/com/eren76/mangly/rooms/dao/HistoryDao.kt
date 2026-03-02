@@ -74,4 +74,7 @@ interface HistoryDao {
             )
         )
     }
+
+    @Query("UPDATE HistoryEntity SET coverImageFilename = :filename WHERE id = :id")
+    suspend fun updateCoverFilename(id: UUID, filename: String?)
 }

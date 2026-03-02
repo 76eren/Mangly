@@ -1,6 +1,5 @@
 package com.eren76.mangly.composables.screens
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,10 +32,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.SubcomposeAsyncImage
-import coil3.network.NetworkHeaders
-import coil3.network.httpHeaders
-import coil3.request.ImageRequest
-import coil3.request.crossfade
+import com.eren76.mangly.composables.shared.image.CoverCache
+import com.eren76.mangly.composables.shared.image.CoverImageRequests
 import com.eren76.mangly.composables.shared.image.ImageLoadingComposable
 import com.eren76.mangly.composables.shared.image.ImageLoadingErrorComposable
 import com.eren76.mangly.rooms.entities.FavoritesEntity
@@ -46,8 +43,6 @@ import com.eren76.manglyextension.plugins.ExtensionMetadata
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import java.io.File
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -193,8 +188,8 @@ private fun FavoriteImage(
 
         imageForList = coverInfo
 
-        val downloaded: DownloadedImage? = runCatching {
-            downloadImage(coverInfo.imageUrl, coverInfo.headers)
+        val downloaded = runCatching {
+            CoverCache.downloadImage(coverInfo.imageUrl, coverInfo.headers)
         }.getOrNull()
 
         if (downloaded == null || downloaded.bytes.isEmpty()) {
@@ -202,7 +197,12 @@ private fun FavoriteImage(
             return@LaunchedEffect
         }
 
-        val ext = resolveImageExtension(downloaded, coverInfo.imageUrl)
+        val ext = CoverCache.inferImageExtension(
+            contentType = downloaded.contentType,
+            finalUrl = downloaded.finalUrl,
+            originalUrl = coverInfo.imageUrl
+        )
+
         val filename = "${favorite.id}.$ext"
 
         val savedFile = withContext(Dispatchers.IO) {
@@ -220,17 +220,20 @@ private fun FavoriteImage(
         localCoverFile = savedFile
     }
 
-    val networkHeaders = remember(imageForList?.headers) { buildNetworkHeaders(imageForList) }
+    val networkHeaders = remember(imageForList?.headers) {
+        CoverCache.buildNetworkHeaders(imageForList?.headers ?: emptyList())
+    }
 
     val localRequest = remember(localCoverFile) {
-        buildLocalImageRequest(context = context, file = localCoverFile)
+        CoverImageRequests.local(context = context, file = localCoverFile)
     }
 
     val remoteRequest = remember(imageForList?.imageUrl, networkHeaders) {
-        buildRemoteImageRequest(
+        CoverImageRequests.remote(
             context = context,
             imageForList = imageForList,
-            networkHeaders = networkHeaders
+            networkHeaders = networkHeaders,
+            crossfade = false
         )
     }
 
@@ -274,95 +277,6 @@ private fun FavoriteImage(
     }
 }
 
-
-private class DownloadedImage(
-    val bytes: ByteArray,
-    val contentType: String?,
-    val finalUrl: String
-)
-
-private fun findMetadataForFavorite(
-    extensionMetadataViewModel: ExtensionMetadataViewModel,
-    favorite: FavoritesEntity
-): ExtensionMetadata? {
-    return extensionMetadataViewModel
-        .getAllSources()
-        .find { it.source.getExtensionId() == favorite.extensionId.toString() }
-}
-
-private suspend fun getCoverImageInfoForFavorite(
-    metadata: ExtensionMetadata,
-    favorite: FavoritesEntity
-): Source.ImageForChaptersList? {
-    return withContext(Dispatchers.IO) {
-        metadata.source.getImageForChaptersList(favorite.mangaUrl)
-    }
-}
-
-private suspend fun downloadImage(
-    imageUrl: String,
-    headers: List<Source.Header>
-): DownloadedImage? {
-    return withContext(Dispatchers.IO) {
-        val client = OkHttpClient()
-        val requestBuilder = Request.Builder().url(imageUrl)
-        for (h in headers) {
-            requestBuilder.addHeader(h.name, h.value)
-        }
-
-        client.newCall(requestBuilder.build()).execute().use { resp ->
-            if (!resp.isSuccessful) return@use null
-            val bodyBytes = resp.body?.bytes() ?: return@use null
-            DownloadedImage(
-                bytes = bodyBytes,
-                contentType = resp.header("Content-Type"),
-                finalUrl = resp.request.url.toString()
-            )
-        }
-    }
-}
-
-private fun resolveImageExtension(downloaded: DownloadedImage, originalUrl: String): String {
-    return extensionFromContentType(downloaded.contentType)
-        ?: extensionFromUrl(downloaded.finalUrl)
-        ?: extensionFromUrl(originalUrl)
-        ?: "jpg"
-}
-
-private fun buildNetworkHeaders(imageForList: Source.ImageForChaptersList?): NetworkHeaders {
-    return NetworkHeaders.Builder().apply {
-        val headers = imageForList?.headers ?: emptyList()
-        for (header in headers) {
-            this[header.name] = header.value
-        }
-    }.build()
-}
-
-private fun buildLocalImageRequest(context: Context, file: File?): ImageRequest? {
-    return file?.let {
-        ImageRequest.Builder(context)
-            .data(it)
-            .crossfade(false)
-            .build()
-    }
-}
-
-private fun buildRemoteImageRequest(
-    context: Context,
-    imageForList: Source.ImageForChaptersList?,
-    networkHeaders: NetworkHeaders
-): ImageRequest {
-    return ImageRequest.Builder(context)
-        .data(imageForList?.imageUrl)
-        .apply {
-            val hdrs = imageForList?.headers
-            if (!hdrs.isNullOrEmpty()) httpHeaders(networkHeaders)
-        }
-        .crossfade(false)
-        .build()
-}
-
-
 private fun onFavoriteClick(
     favorite: FavoritesEntity,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
@@ -380,29 +294,20 @@ private fun onFavoriteClick(
     }
 }
 
-
-private fun extensionFromContentType(contentType: String?): String? {
-    val ct = contentType?.substringBefore(';')?.trim()?.lowercase()
-    return when (ct) {
-        "image/jpeg", "image/jpg" -> "jpg"
-        "image/png" -> "png"
-        "image/webp" -> "webp"
-        "image/gif" -> "gif"
-        "image/avif" -> "avif"
-        "image/bmp" -> "bmp"
-        "image/svg+xml" -> "svg"
-        else -> null
-    }
+private fun findMetadataForFavorite(
+    extensionMetadataViewModel: ExtensionMetadataViewModel,
+    favorite: FavoritesEntity
+): ExtensionMetadata? {
+    return extensionMetadataViewModel
+        .getAllSources()
+        .find { it.source.getExtensionId() == favorite.extensionId.toString() }
 }
 
-private fun extensionFromUrl(url: String): String? {
-    val withoutQuery = url.substringBefore('?').substringBefore('#')
-    val ext = withoutQuery.substringAfterLast('.', missingDelimiterValue = "")
-        .trim()
-        .lowercase()
-
-    if (ext.isBlank() || ext.length > 5) return null
-    if (!ext.all { it.isLetterOrDigit() }) return null
-
-    return ext
+private suspend fun getCoverImageInfoForFavorite(
+    metadata: ExtensionMetadata,
+    favorite: FavoritesEntity
+): Source.ImageForChaptersList? {
+    return withContext(Dispatchers.IO) {
+        metadata.source.getImageForChaptersList(favorite.mangaUrl)
+    }
 }

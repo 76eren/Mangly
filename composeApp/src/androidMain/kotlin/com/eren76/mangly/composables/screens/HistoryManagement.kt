@@ -35,10 +35,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.SubcomposeAsyncImage
-import coil3.network.NetworkHeaders
-import coil3.network.httpHeaders
-import coil3.request.ImageRequest
-import coil3.request.crossfade
+import com.eren76.mangly.composables.shared.image.CoverCache
+import com.eren76.mangly.composables.shared.image.CoverImageRequests
 import com.eren76.mangly.composables.shared.image.ImageLoadingComposable
 import com.eren76.mangly.composables.shared.image.ImageLoadingErrorComposable
 import com.eren76.mangly.rooms.entities.HistoryChapterEntity
@@ -48,9 +46,9 @@ import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.HistoryViewModel
 import com.eren76.manglyextension.plugins.ExtensionMetadata
 import com.eren76.manglyextension.plugins.Source
-import com.eren76.manglyextension.plugins.Source.ImageForChaptersList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.net.URLEncoder
 import java.text.DateFormat
 import java.util.Date
@@ -176,7 +174,7 @@ private fun HistoryRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             HistoryCoverImage(
-                mangaUrl = historyEntity.mangaUrl,
+                historyEntity = historyEntity,
                 source = source,
                 historyViewModel = historyViewModel,
                 modifier = Modifier
@@ -207,7 +205,7 @@ private fun HistoryRow(
 
 @Composable
 private fun HistoryCoverImage(
-    mangaUrl: String,
+    historyEntity: HistoryEntity,
     source: Source?,
     historyViewModel: HistoryViewModel,
     modifier: Modifier = Modifier
@@ -223,7 +221,7 @@ private fun HistoryCoverImage(
     }
 
     HistoryCoverImageLoader(
-        mangaUrl = mangaUrl,
+        historyEntity = historyEntity,
         source = source,
         historyViewModel = historyViewModel,
         modifier = modifier
@@ -232,72 +230,130 @@ private fun HistoryCoverImage(
 
 @Composable
 private fun HistoryCoverImageLoader(
-    mangaUrl: String,
+    historyEntity: HistoryEntity,
     source: Source,
     historyViewModel: HistoryViewModel,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
 
-    // State to trigger recomposition after fetch completes
-    var fetchCompleted by remember(mangaUrl) { mutableStateOf(false) }
+    var localCoverFile by remember(historyEntity.id, historyEntity.coverImageFilename) {
+        mutableStateOf<File?>(null)
+    }
 
-    // Read from cache, will be null initially populated after fetch
-    val cachedData = historyViewModel.getCachedImageData(mangaUrl)
-    val imageUrl = cachedData?.imageUrl
-    val headers = cachedData?.headers ?: emptyList()
-
-    LaunchedEffect(mangaUrl) {
-        if (cachedData != null) {
-            return@LaunchedEffect
-        }
-
-        val image: ImageForChaptersList? = runCatching {
-            withContext(Dispatchers.IO) {
-                source.getImageForChaptersList(mangaUrl)
-            }
-        }.getOrNull()
-
-        image?.let {
-            historyViewModel.addImageDataToCache(
-                mangaUrl = mangaUrl,
-                imageUrl = it.imageUrl,
-                headers = it.headers
-            )
-            // Trigger recomposition to read the newly cached data
-            fetchCompleted = true
+    LaunchedEffect(historyEntity.id, historyEntity.coverImageFilename) {
+        localCoverFile = historyEntity.coverImageFilename?.let { filename ->
+            historyViewModel.getCoverFile(filename = filename, context = context)
         }
     }
 
+    var imageForList by remember(historyEntity.id, historyEntity.mangaUrl) {
+        mutableStateOf<Source.ImageForChaptersList?>(null)
+    }
+    var loadFailed by remember(historyEntity.id, historyEntity.mangaUrl) { mutableStateOf(false) }
 
-    val networkHeaders = NetworkHeaders.Builder().apply {
-        headers.forEach { header ->
-            this[header.name] = header.value
+    LaunchedEffect(historyEntity.id, historyEntity.mangaUrl, localCoverFile) {
+        if (localCoverFile != null) return@LaunchedEffect
+
+        loadFailed = false
+        imageForList = null
+
+        val coverInfo: Source.ImageForChaptersList? = runCatching {
+            withContext(Dispatchers.IO) { source.getImageForChaptersList(historyEntity.mangaUrl) }
+        }.getOrNull()
+
+        if (coverInfo == null || coverInfo.imageUrl.isBlank()) {
+            loadFailed = true
+            return@LaunchedEffect
         }
-    }.build()
 
-    val cacheKey = "history_cover_${mangaUrl.hashCode()}"
-    val request = ImageRequest.Builder(context)
-        .data(imageUrl)
-        .httpHeaders(networkHeaders)
-        .memoryCacheKey(cacheKey)
-        .diskCacheKey(cacheKey)
-        .crossfade(true)
-        .build()
+        imageForList = coverInfo
 
-    SubcomposeAsyncImage(
-        model = request,
-        contentDescription = historyEntityDescriptionFromUrl(mangaUrl),
-        modifier = modifier,
-        contentScale = ContentScale.Crop,
-        loading = {
-            ImageLoadingComposable()
-        },
-        error = {
-            ImageLoadingErrorComposable()
+        val downloaded = runCatching {
+            CoverCache.downloadImage(coverInfo.imageUrl, coverInfo.headers)
+        }.getOrNull()
+
+        if (downloaded == null || downloaded.bytes.isEmpty()) {
+            loadFailed = true
+            return@LaunchedEffect
         }
-    )
 
+        val ext = CoverCache.inferImageExtension(
+            contentType = downloaded.contentType,
+            finalUrl = downloaded.finalUrl,
+            originalUrl = coverInfo.imageUrl
+        )
+
+        val filename = "${historyEntity.id}.$ext"
+
+        val savedFile = withContext(Dispatchers.IO) {
+            historyViewModel.saveCoverBytes(
+                filename = filename,
+                bytes = downloaded.bytes,
+                context = context
+            )
+        }
+
+        historyViewModel.updateHistoryCoverFilename(
+            historyId = historyEntity.id,
+            filename = filename
+        )
+
+        localCoverFile = savedFile
+    }
+
+    val localRequest = remember(localCoverFile) {
+        CoverImageRequests.local(context = context, file = localCoverFile)
+    }
+
+    val networkHeaders = remember(imageForList?.headers) {
+        CoverCache.buildNetworkHeaders(imageForList?.headers ?: emptyList())
+    }
+
+    val remoteRequest = remember(imageForList?.imageUrl, networkHeaders) {
+        CoverImageRequests.remote(
+            context = context,
+            imageForList = imageForList,
+            networkHeaders = networkHeaders,
+            crossfade = true
+        )
+    }
+
+    when {
+        loadFailed -> {
+            Box(modifier = modifier, contentAlignment = Alignment.Center) {
+                ImageLoadingErrorComposable()
+            }
+        }
+
+        localRequest != null -> {
+            SubcomposeAsyncImage(
+                model = localRequest,
+                contentDescription = historyEntityDescriptionFromUrl(historyEntity.mangaUrl),
+                modifier = modifier,
+                contentScale = ContentScale.Crop,
+                loading = { ImageLoadingComposable() },
+                error = { ImageLoadingErrorComposable() }
+            )
+        }
+
+        imageForList?.imageUrl == null -> {
+            Box(modifier = modifier, contentAlignment = Alignment.Center) {
+                ImageLoadingComposable()
+            }
+        }
+
+        else -> {
+            SubcomposeAsyncImage(
+                model = remoteRequest,
+                contentDescription = historyEntityDescriptionFromUrl(historyEntity.mangaUrl),
+                modifier = modifier,
+                contentScale = ContentScale.Crop,
+                loading = { ImageLoadingComposable() },
+                error = { ImageLoadingErrorComposable() }
+            )
+        }
+    }
 }
 
 private fun historyEntityDescriptionFromUrl(url: String): String = "Cover for $url"
