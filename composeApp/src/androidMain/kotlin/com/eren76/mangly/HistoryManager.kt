@@ -53,4 +53,8 @@ class HistoryManager @Inject constructor(
     suspend fun updateCoverFilename(id: UUID, filename: String?) {
         historyDao.updateCoverFilename(id = id, filename = filename)
     }
+
+    suspend fun deleteHistoryById(id: UUID) {
+        historyDao.deleteHistoryById(id)
+    }
 }

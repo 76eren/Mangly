@@ -211,7 +211,7 @@ fun ChaptersList(
                     scope.launch {
                         for (favoriteItem in favoritesViewModel.favorites.value) {
                             if (favoriteItem.mangaUrl == targetUrl) {
-                                favoritesViewModel.removeFavorite(favoriteItem.id)
+                                favoritesViewModel.removeFavorite(favoriteItem.id, context)
                                 Toast.makeText(
                                     context,
                                     "Removed from favorites",
@@ -332,7 +332,11 @@ fun ChaptersList(
                                     chapterUrl = chapterUrl
                                 )
                             ) {
-                                historyViewModel.deleteChapterFromHistory(targetUrl, chapterUrl)
+                                historyViewModel.deleteChapterFromHistory(
+                                    targetUrl,
+                                    chapterUrl,
+                                    context
+                                )
 
                             }
 

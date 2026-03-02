@@ -13,7 +13,7 @@ class FileManager @Inject constructor(
     private val extensionManager: ExtensionManager,
     private val extensionDao: ExtensionDao
 ) {
-    
+
     fun saveBytesToStorage(
         context: Context,
         relativeDir: String,
@@ -35,6 +35,11 @@ class FileManager @Inject constructor(
     fun getFileInDir(context: Context, relativeDir: String, fileName: String): File? {
         val file = File(File(context.filesDir, relativeDir), fileName)
         return if (file.exists()) file else null
+    }
+
+    fun deleteFileInDir(context: Context, relativeDir: String, fileName: String): Boolean {
+        val file = File(File(context.filesDir, relativeDir), fileName)
+        return file.exists() && file.delete()
     }
 
     // TOOD: This is not SRP

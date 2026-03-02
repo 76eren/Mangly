@@ -36,8 +36,17 @@ class FavoritesViewModel
         }
     }
 
-    fun removeFavorite(id: UUID) {
+    fun removeFavorite(id: UUID, context: Context) {
         viewModelScope.launch {
+            val toDelete = favorites.value.firstOrNull { it.id == id }
+            toDelete?.coverImageFilename?.let { filename ->
+                fileManager.deleteFileInDir(
+                    context = context,
+                    relativeDir = coverDir,
+                    fileName = filename
+                )
+            }
+
             favoritesManager.removeFavoriteFromDb(id)
             favorites.value = favoritesManager.getAllFavoritesFromDb()
 

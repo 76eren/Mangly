@@ -52,9 +52,27 @@ class HistoryViewModel
         }
     }
 
-    fun deleteChapterFromHistory(mangaUrl: String, chapterUrl: String) {
+    fun deleteChapterFromHistory(mangaUrl: String, chapterUrl: String, context: Context) {
         viewModelScope.launch {
-            historyManager.deleteChapterByMangaUrlAndChapterUrl(mangaUrl, chapterUrl)
+            val historyEntity = historyManager.findByMangaUrl(mangaUrl)
+
+            if (historyEntity != null) {
+                historyManager.deleteChapterByMangaUrlAndChapterUrl(mangaUrl, chapterUrl)
+
+                val remaining = historyManager.getChapters(historyEntity.id)
+                if (remaining.isEmpty()) {
+                    historyEntity.coverImageFilename?.let { filename ->
+                        fileManager.deleteFileInDir(
+                            context = context,
+                            relativeDir = coverDir,
+                            fileName = filename
+                        )
+                    }
+
+                    historyManager.deleteHistoryById(historyEntity.id)
+                }
+            }
+
             refresh()
         }
     }
