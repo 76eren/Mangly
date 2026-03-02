@@ -9,7 +9,7 @@ data class HistoryWithReadChapters(
 
     @Relation(
         parentColumn = "id",
-        entityColumn = "historyId"
+        entityColumn = "history_id"
     )
     val readChapters: List<HistoryChapterEntity>
 )

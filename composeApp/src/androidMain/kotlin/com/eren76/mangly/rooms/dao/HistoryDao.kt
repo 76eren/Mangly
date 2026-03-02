@@ -20,31 +20,31 @@ interface HistoryDao {
     @Update
     suspend fun update(history: HistoryEntity)
 
-    @Query("SELECT * FROM HistoryEntity WHERE mangaUrl = :mangaUrl LIMIT 1")
+    @Query("SELECT * FROM HistoryEntity WHERE manga_url = :mangaUrl LIMIT 1")
     suspend fun getByMangaUrl(mangaUrl: String): HistoryEntity?
 
     @Query("DELETE FROM HistoryEntity")
     suspend fun clearAll()
 
-    @Query("SELECT * FROM HistoryEntity ORDER BY mangaUrl ASC")
+    @Query("SELECT * FROM HistoryEntity ORDER BY manga_url ASC")
     suspend fun getAll(): List<HistoryEntity>
 
     // HistoryReadChapterEntity operations
     @Insert(onConflict = OnConflictStrategy.REPLACE) // When reading a chapter you have already read, update the readAt timestamp
     suspend fun insertReadChapter(readChapter: HistoryChapterEntity)
 
-    @Query("SELECT * FROM HistoryReadChapterEntity WHERE historyId = :historyId")
+    @Query("SELECT * FROM HistoryReadChapterEntity WHERE history_id = :historyId")
     suspend fun getReadChaptersByHistoryId(historyId: UUID): List<HistoryChapterEntity>
 
-    @Query("DELETE FROM HistoryReadChapterEntity WHERE historyId = :historyId AND chapterUrl IN (:chapterUrls)")
+    @Query("DELETE FROM HistoryReadChapterEntity WHERE history_id = :historyId AND chapter_url IN (:chapterUrls)")
     suspend fun deleteReadChaptersByHistoryIdAndUrls(historyId: UUID, chapterUrls: List<String>)
 
-    @Query("DELETE FROM HistoryReadChapterEntity WHERE historyId = :historyId AND chapterUrl = :chapterUrl")
+    @Query("DELETE FROM HistoryReadChapterEntity WHERE history_id = :historyId AND chapter_url = :chapterUrl")
     suspend fun deleteReadChapterByHistoryIdAndChapterUrl(historyId: UUID, chapterUrl: String)
 
     // Relations
     @Transaction
-    @Query("SELECT * FROM HistoryEntity ORDER BY mangaUrl ASC")
+    @Query("SELECT * FROM HistoryEntity ORDER BY manga_url ASC")
     suspend fun getAllWithReadChapters(): List<HistoryWithReadChapters>
 
     // Ensure a HistoryEntity exists for mangaUrl and add a single chapter within one transaction
@@ -75,7 +75,7 @@ interface HistoryDao {
         )
     }
 
-    @Query("UPDATE HistoryEntity SET coverImageFilename = :filename WHERE id = :id")
+    @Query("UPDATE HistoryEntity SET cover_image_filename = :filename WHERE id = :id")
     suspend fun updateCoverFilename(id: UUID, filename: String?)
 
     @Query("DELETE FROM HistoryEntity WHERE id = :id")

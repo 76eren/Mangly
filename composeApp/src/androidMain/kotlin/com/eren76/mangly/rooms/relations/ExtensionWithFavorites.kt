@@ -9,8 +9,7 @@ data class ExtensionWithFavorites(
     @Embedded val extension: ExtensionEntity,
     @Relation(
         parentColumn = "id",
-        entityColumn = "extensionId"
+        entityColumn = "extension_id"
     )
     val favorites: List<FavoritesEntity>
 )
-

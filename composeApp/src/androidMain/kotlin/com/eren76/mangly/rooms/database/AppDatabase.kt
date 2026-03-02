@@ -12,6 +12,7 @@ import com.eren76.mangly.rooms.database.migrations.Migration2To3
 import com.eren76.mangly.rooms.database.migrations.Migration3To4
 import com.eren76.mangly.rooms.database.migrations.Migration4To5
 import com.eren76.mangly.rooms.database.migrations.Migration5To6
+import com.eren76.mangly.rooms.database.migrations.Migration6To7
 import com.eren76.mangly.rooms.entities.ExtensionEntity
 import com.eren76.mangly.rooms.entities.FavoritesEntity
 import com.eren76.mangly.rooms.entities.HistoryChapterEntity
@@ -19,7 +20,7 @@ import com.eren76.mangly.rooms.entities.HistoryEntity
 
 @Database(
     entities = [ExtensionEntity::class, FavoritesEntity::class, HistoryEntity::class, HistoryChapterEntity::class],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -44,7 +45,8 @@ abstract class AppDatabase : RoomDatabase() {
                         Migration2To3,
                         Migration3To4,
                         Migration4To5,
-                        Migration5To6
+                        Migration5To6,
+                        Migration6To7
                     )
                     .build()
                     .also { INSTANCE = it }
