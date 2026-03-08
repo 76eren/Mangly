@@ -2,6 +2,7 @@ package com.eren76.mangly.composables.screens.readviewer.webtoon
 
 import android.content.Context
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
@@ -76,7 +77,9 @@ fun WebtoonImage(
         modifier = modifier
             .combinedClickable(
                 onClick = onTap,
-                onLongClick = onLongPress
+                onLongClick = onLongPress,
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
             )
             .onGloballyPositioned { coordinates ->
                 val heightDp = with(density) { coordinates.size.height.toDp() }
