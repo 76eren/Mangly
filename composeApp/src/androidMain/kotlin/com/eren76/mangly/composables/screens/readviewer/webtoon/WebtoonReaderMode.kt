@@ -3,7 +3,6 @@ package com.eren76.mangly.composables.screens.readviewer.webtoon
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,7 +23,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
@@ -84,6 +82,7 @@ object WebtoonReaderMode : ReaderMode {
 
         var showControls by remember { mutableStateOf(false) }
         var showLongPressMenu by remember { mutableStateOf(false) }
+        var selectedLongPressImageUrl by remember(images) { mutableStateOf<String?>(null) }
 
 
         val currentPage by remember {
@@ -105,17 +104,6 @@ object WebtoonReaderMode : ReaderMode {
             modifier = modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = {
-                            showControls = !showControls
-                            showLongPressMenu = false
-                        },
-                        onLongPress = {
-                            showLongPressMenu = true
-                        }
-                    )
-                }
         ) {
             ZoomableReaderContainer(
                 modifier = Modifier.fillMaxSize()
@@ -151,7 +139,16 @@ object WebtoonReaderMode : ReaderMode {
                             networkHeaders = networkHeaders,
                             context = context,
                             index = index,
-                            totalImages = images.size
+                            totalImages = images.size,
+                            onTap = {
+                                showControls = !showControls
+                                showLongPressMenu = false
+                            },
+                            onLongPress = {
+                                selectedLongPressImageUrl = imageUrl
+                                showLongPressMenu = true
+                                showControls = false
+                            }
                         )
                     }
 
@@ -189,11 +186,14 @@ object WebtoonReaderMode : ReaderMode {
                     )
                 }
 
-                if (showLongPressMenu && currentPage > 0 && currentPage <= images.size) {
+                selectedLongPressImageUrl?.takeIf { showLongPressMenu }?.let { imageUrl ->
                     LongPressImageMenu(
-                        imageUrl = images[currentPage - 1],
+                        imageUrl = imageUrl,
                         networkHeaders = networkHeaders,
-                        onDismiss = { showLongPressMenu = false }
+                        onDismiss = {
+                            showLongPressMenu = false
+                            selectedLongPressImageUrl = null
+                        }
                     )
                 }
             }
