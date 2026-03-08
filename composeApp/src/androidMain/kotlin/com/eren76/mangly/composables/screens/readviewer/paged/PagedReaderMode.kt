@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil3.network.NetworkHeaders
 import com.eren76.mangly.composables.screens.readviewer.ReaderMode
+import com.eren76.mangly.composables.shared.read.LongPressImageMenu
 import com.eren76.mangly.composables.shared.read.ReadBottomControls
 import com.eren76.mangly.composables.shared.read.ReadTopControls
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
@@ -63,6 +64,8 @@ object PagedReaderMode : ReaderMode {
         )
 
         var showControls by remember { mutableStateOf(false) }
+        var showLongPressMenu by remember { mutableStateOf(false) }
+
 
         // Reset pager position when images change (new chapter)
         LaunchedEffect(images) {
@@ -101,6 +104,10 @@ object PagedReaderMode : ReaderMode {
                                     showControls = !showControls
                                 }
                             }
+                            showLongPressMenu = false
+                        },
+                        onLongPress = {
+                            showLongPressMenu = true
                         }
                     )
                 }
@@ -169,6 +176,14 @@ object PagedReaderMode : ReaderMode {
                         }
                     },
                     modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
+
+            if (showLongPressMenu && pagerState.currentPage < images.size) {
+                LongPressImageMenu(
+                    imageUrl = images[pagerState.currentPage],
+                    networkHeaders = networkHeaders,
+                    onDismiss = { showLongPressMenu = false }
                 )
             }
         }

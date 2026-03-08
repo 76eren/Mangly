@@ -36,6 +36,7 @@ import coil3.request.crossfade
 import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.readviewer.ReaderMode
 import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
+import com.eren76.mangly.composables.shared.read.LongPressImageMenu
 import com.eren76.mangly.composables.shared.read.ReadBottomControls
 import com.eren76.mangly.composables.shared.read.ReadTopControls
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
@@ -82,6 +83,8 @@ object WebtoonReaderMode : ReaderMode {
 
 
         var showControls by remember { mutableStateOf(false) }
+        var showLongPressMenu by remember { mutableStateOf(false) }
+
 
         val currentPage by remember {
             derivedStateOf {
@@ -104,7 +107,13 @@ object WebtoonReaderMode : ReaderMode {
                 .background(MaterialTheme.colorScheme.background)
                 .pointerInput(Unit) {
                     detectTapGestures(
-                        onTap = { showControls = !showControls }
+                        onTap = {
+                            showControls = !showControls
+                            showLongPressMenu = false
+                        },
+                        onLongPress = {
+                            showLongPressMenu = true
+                        }
                     )
                 }
         ) {
@@ -177,6 +186,14 @@ object WebtoonReaderMode : ReaderMode {
                             }
                         }
 
+                    )
+                }
+
+                if (showLongPressMenu && currentPage > 0 && currentPage <= images.size) {
+                    LongPressImageMenu(
+                        imageUrl = images[currentPage - 1],
+                        networkHeaders = networkHeaders,
+                        onDismiss = { showLongPressMenu = false }
                     )
                 }
             }
