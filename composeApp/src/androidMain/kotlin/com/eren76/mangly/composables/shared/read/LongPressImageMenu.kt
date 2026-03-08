@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,6 +66,8 @@ fun LongPressImageMenu(
 
     var isSaving by remember { mutableStateOf(false) }
     var saveResult by remember { mutableStateOf<String?>(null) }
+    var isImageLoading by remember(imageUrl, networkHeaders) { mutableStateOf(true) }
+    var hasImageLoaded by remember(imageUrl, networkHeaders) { mutableStateOf(false) }
 
     val imageRequest = remember(imageUrl, networkHeaders) {
         ImageRequest.Builder(context)
@@ -111,12 +114,17 @@ fun LongPressImageMenu(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                LongPressImagePreview(imageRequest = imageRequest)
+                LongPressImagePreview(
+                    imageRequest = imageRequest,
+                    onLoadingStateChange = { loading -> isImageLoading = loading },
+                    onImageLoadedStateChange = { loaded -> hasImageLoaded = loaded }
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 SaveImageButton(
                     isSaving = isSaving,
+                    isEnabled = hasImageLoaded && !isImageLoading,
                     onClick = { storagePermission.launch() }
                 )
 
@@ -149,7 +157,11 @@ private fun LongPressImageMenuHeader(onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun LongPressImagePreview(imageRequest: ImageRequest) {
+private fun LongPressImagePreview(
+    imageRequest: ImageRequest,
+    onLoadingStateChange: (Boolean) -> Unit,
+    onImageLoadedStateChange: (Boolean) -> Unit
+) {
     SubcomposeAsyncImage(
         model = imageRequest,
         contentDescription = "Image preview",
@@ -159,6 +171,8 @@ private fun LongPressImagePreview(imageRequest: ImageRequest) {
             .clip(RoundedCornerShape(8.dp)),
         contentScale = ContentScale.Fit,
         loading = {
+            onLoadingStateChange(true)
+            onImageLoadedStateChange(false)
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -169,7 +183,19 @@ private fun LongPressImagePreview(imageRequest: ImageRequest) {
                 )
             }
         },
+        success = {
+            onLoadingStateChange(false)
+            onImageLoadedStateChange(true)
+            Image(
+                painter = it.painter,
+                contentDescription = "Image preview",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit
+            )
+        },
         error = {
+            onLoadingStateChange(false)
+            onImageLoadedStateChange(false)
             ImageLoadingErrorComposable(errorMessage = "Failed to load preview")
         }
     )
@@ -178,12 +204,13 @@ private fun LongPressImagePreview(imageRequest: ImageRequest) {
 @Composable
 private fun SaveImageButton(
     isSaving: Boolean,
+    isEnabled: Boolean,
     onClick: () -> Unit
 ) {
     Button(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        enabled = !isSaving
+        enabled = isEnabled && !isSaving
     ) {
         if (isSaving) {
             CircularProgressIndicator(
