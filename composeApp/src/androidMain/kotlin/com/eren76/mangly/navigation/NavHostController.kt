@@ -54,7 +54,12 @@ fun NavHostContainer(
             composable("home") {
                 searchViewModel.clearSearchResults()
                 chaptersListViewModel.clear()
-                Home(favoritesViewModel, extensionMetadataViewModel, navController)
+                Home(
+                    favoritesViewModel,
+                    extensionMetadataViewModel,
+                    historyViewModel,
+                    navController
+                )
             }
 
             composable("search") {

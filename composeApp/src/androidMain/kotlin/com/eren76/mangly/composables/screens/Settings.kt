@@ -72,6 +72,12 @@ fun Settings(
             modifier = Modifier.padding(top = 10.dp, bottom = 10.dp),
         )
 
+        HomePageSorting()
+
+        HorizontalDivider(
+            modifier = Modifier.padding(top = 10.dp, bottom = 10.dp),
+        )
+
         LinkToHistoryManagementScreen(navController)
 
         HorizontalDivider(
@@ -339,6 +345,72 @@ fun SettingDisableImageSavingOnHold() {
         Switch(
             checked = isDisabled,
             onCheckedChange = { updateSetting(it) }
+        )
+    }
+}
+
+@Composable
+fun HomePageSorting() {
+    val context = LocalContext.current
+    val prefs = remember {
+        context.getSharedPreferences(
+            Constants.HOME_SETTING_KEY,
+            Context.MODE_PRIVATE
+        )
+    }
+
+    val defaultValue = HomeSorting.DEFAULT_PREF_VALUE
+
+    var selectedSorting by remember {
+        mutableStateOf(
+            prefs.getString(
+                Constants.HOME_SORTING_SETTING_KEY,
+                defaultValue
+            ) ?: defaultValue
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = "Home page sorting",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+
+        val options = HomeSorting.values().toList()
+
+        SingleChoiceSegmentedButtonRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp, bottom = 4.dp)
+        ) {
+            options.forEachIndexed { index, sorting ->
+                SegmentedButton(
+                    selected = selectedSorting == sorting.prefValue,
+                    onClick = {
+                        selectedSorting = sorting.prefValue
+                        prefs.edit {
+                            putString(Constants.HOME_SORTING_SETTING_KEY, sorting.prefValue)
+                        }
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = sorting.label, maxLines = 1)
+                }
+            }
+        }
+
+        Text(
+            text = "Choose how manga are ordered on the home page.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
         )
     }
 }
