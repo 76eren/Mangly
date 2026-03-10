@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
   build-android:
@@ -74,13 +75,35 @@ jobs:
           mv "$APK_PATH" "$NEW_APK_PATH"
 
           echo "apk_path=$NEW_APK_PATH" >> "$GITHUB_OUTPUT"
-          echo "Renamed APK to: $NEW_APK_PATH"
+
+      - name: Get merged PR description
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const commit_sha = context.sha;
+
+            const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner,
+              repo,
+              commit_sha
+            });
+
+            if (prs.data.length === 0) {
+              core.setOutput("body", "Automated release.");
+              return;
+            }
+
+            const pr = prs.data[0];
+            core.setOutput("body", pr.body || "No PR description provided.");
 
       - name: Create GitHub Release and upload APK
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
           name: Mangly v${{ github.run_number }}
+          body: ${{ steps.pr.outputs.body }}
           draft: false
           prerelease: false
           files: ${{ steps.find_apk.outputs.apk_path }}
