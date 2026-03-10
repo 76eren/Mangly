@@ -1,5 +1,7 @@
 package com.eren76.mangly.composables.screens.readviewer.paged
 
+import android.content.Context
+import android.content.SharedPreferences
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -24,7 +26,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil3.network.NetworkHeaders
+import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.readviewer.ReaderMode
+import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
 import com.eren76.mangly.composables.shared.read.LongPressImageMenu
 import com.eren76.mangly.composables.shared.read.ReadBottomControls
 import com.eren76.mangly.composables.shared.read.ReadTopControls
@@ -47,6 +51,11 @@ object PagedReaderMode : ReaderMode {
     ) {
         val context = LocalContext.current
         val coroutineScope = rememberCoroutineScope()
+
+        val sharedPreferences: SharedPreferences = context.getSharedPreferences(
+            Constants.READING_SETTING_KEY,
+            Context.MODE_PRIVATE
+        )
 
         val networkHeaders = remember(headers) {
             NetworkHeaders.Builder().apply {
@@ -107,7 +116,13 @@ object PagedReaderMode : ReaderMode {
                             showLongPressMenu = false
                         },
                         onLongPress = {
-                            showLongPressMenu = true
+                            if (!sharedPreferences.getBoolean(
+                                    ReaderModePrefs.DISABLE_IMAGE_SAVING_ON_HOLD_SETTING_KEY,
+                                    false
+                                )
+                            ) {
+                                showLongPressMenu = true
+                            }
                         }
                     )
                 }

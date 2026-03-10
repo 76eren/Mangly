@@ -3,6 +3,7 @@ package com.eren76.mangly.composables.screens
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,6 +41,7 @@ import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
 import com.eren76.mangly.composables.screens.readviewer.ReaderModeType
 import com.eren76.mangly.themes.setAppTheme
+
 
 @Composable
 fun Settings(
@@ -65,6 +68,11 @@ fun Settings(
 
         LinkToHistoryManagementScreen(navController)
 
+        HorizontalDivider(
+            modifier = Modifier.padding(top = 10.dp, bottom = 10.dp),
+        )
+
+        SettingDisableImageSavingOnHold()
     }
 }
 
@@ -264,5 +272,67 @@ fun LinkToHistoryManagementScreen(
                 Text("Open")
             }
         }
+    }
+}
+
+@Composable
+fun SettingDisableImageSavingOnHold() {
+    val context = LocalContext.current
+
+    val sharedPreferences = remember {
+        context.getSharedPreferences(
+            Constants.READING_SETTING_KEY,
+            Context.MODE_PRIVATE
+        )
+    }
+
+    var isDisabled by remember {
+        mutableStateOf(
+            sharedPreferences.getBoolean(
+                ReaderModePrefs.DISABLE_IMAGE_SAVING_ON_HOLD_SETTING_KEY,
+                false
+            )
+        )
+    }
+
+    fun updateSetting(value: Boolean) {
+        isDisabled = value
+        sharedPreferences.edit {
+            putBoolean(
+                ReaderModePrefs.DISABLE_IMAGE_SAVING_ON_HOLD_SETTING_KEY,
+                value
+            )
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { updateSetting(!isDisabled) }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = "Disable image saving on hold",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text = "When enabled, long-pressing an image in the reader will not show the save option. This helps prevent accidental saves.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            )
+        }
+
+        Switch(
+            checked = isDisabled,
+            onCheckedChange = { updateSetting(it) }
+        )
     }
 }

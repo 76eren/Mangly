@@ -145,9 +145,15 @@ object WebtoonReaderMode : ReaderMode {
                                 showLongPressMenu = false
                             },
                             onLongPress = {
-                                selectedLongPressImageUrl = imageUrl
-                                showLongPressMenu = true
-                                showControls = false
+                                if (!sharedPreferences.getBoolean(
+                                        ReaderModePrefs.DISABLE_IMAGE_SAVING_ON_HOLD_SETTING_KEY,
+                                        false
+                                    )
+                                ) {
+                                    selectedLongPressImageUrl = imageUrl
+                                    showLongPressMenu = true
+                                    showControls = false
+                                }
                             }
                         )
                     }
