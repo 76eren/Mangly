@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
@@ -37,7 +36,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -384,49 +382,38 @@ fun HomePageSorting() {
         targetValue = if (expanded) 180f else 0f
     )
 
-    Column(
+    ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = if (expanded)
-                MaterialTheme.shapes.medium.copy(
-                    bottomStart = CornerSize(0.dp),
-                    bottomEnd = CornerSize(0.dp)
-                )
-            else MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            onClick = { expanded = !expanded }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "Home page sorting",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = currentLabel,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Icon(
-                    imageVector = Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.rotate(chevronRotation)
+            Column {
+                Text(
+                    text = "Home page sorting",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = currentLabel,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
+            Icon(
+                imageVector = Icons.Rounded.KeyboardArrowDown,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.rotate(chevronRotation)
+            )
         }
 
         AnimatedVisibility(
@@ -434,61 +421,52 @@ fun HomePageSorting() {
             enter = expandVertically() + fadeIn(),
             exit = shrinkVertically() + fadeOut()
         ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium.copy(
-                    topStart = CornerSize(0.dp),
-                    topEnd = CornerSize(0.dp)
-                ),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-            ) {
-                Column {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Column {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                    options.forEach { sorting ->
-                        val isSelected = selectedSorting == sorting.prefValue
-                        val contentColor by animateColorAsState(
-                            targetValue = if (isSelected)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant,
-                            label = "contentColor"
-                        )
+                options.forEach { sorting ->
+                    val isSelected = selectedSorting == sorting.prefValue
+                    val contentColor by animateColorAsState(
+                        targetValue = if (isSelected)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                        label = "contentColor"
+                    )
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedSorting = sorting.prefValue
-                                    prefs.edit {
-                                        putString(
-                                            Constants.HOME_SORTING_SETTING_KEY,
-                                            sorting.prefValue
-                                        )
-                                    }
-                                    expanded = false
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                selectedSorting = sorting.prefValue
+                                prefs.edit {
+                                    putString(
+                                        Constants.HOME_SORTING_SETTING_KEY,
+                                        sorting.prefValue
+                                    )
                                 }
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = sorting.label,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = contentColor
-                            )
-                            AnimatedVisibility(
-                                visible = isSelected,
-                                enter = scaleIn() + fadeIn(),
-                                exit = scaleOut() + fadeOut()
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.CheckCircle,
-                                    contentDescription = "Selected",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
+                                expanded = false
                             }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = sorting.label,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = contentColor
+                        )
+                        AnimatedVisibility(
+                            visible = isSelected,
+                            enter = scaleIn() + fadeIn(),
+                            exit = scaleOut() + fadeOut()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.CheckCircle,
+                                contentDescription = "Selected",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 }
