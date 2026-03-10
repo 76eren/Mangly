@@ -1,6 +1,8 @@
 package com.eren76.mangly.composables.screens.readviewer.webtoon
 
 import android.content.Context
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
@@ -44,7 +46,9 @@ fun WebtoonImage(
     networkHeaders: NetworkHeaders,
     context: Context,
     index: Int,
-    totalImages: Int
+    totalImages: Int,
+    onTap: () -> Unit,
+    onLongPress: () -> Unit
 ) {
     val density = LocalDensity.current
     val cachedHeight = remember(imageUrl) { ImageHeightCache.getHeight(imageUrl) }
@@ -70,12 +74,19 @@ fun WebtoonImage(
     SubcomposeAsyncImage(
         model = imageRequest,
         contentDescription = "Page ${index + 1} of $totalImages",
-        modifier = modifier.onGloballyPositioned { coordinates ->
-            val heightDp = with(density) { coordinates.size.height.toDp() }
-            if (heightDp > 0.dp) {
-                ImageHeightCache.setHeight(imageUrl, heightDp)
-            }
-        },
+        modifier = modifier
+            .combinedClickable(
+                onClick = onTap,
+                onLongClick = onLongPress,
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            )
+            .onGloballyPositioned { coordinates ->
+                val heightDp = with(density) { coordinates.size.height.toDp() }
+                if (heightDp > 0.dp) {
+                    ImageHeightCache.setHeight(imageUrl, heightDp)
+                }
+            },
         contentScale = ContentScale.FillWidth,
         loading = {
             ImageLoadingComposable(
@@ -88,6 +99,3 @@ fun WebtoonImage(
         }
     )
 }
-
-
-

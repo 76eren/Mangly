@@ -3,7 +3,6 @@ package com.eren76.mangly.composables.screens.readviewer.webtoon
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,7 +23,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
@@ -36,6 +34,7 @@ import coil3.request.crossfade
 import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.readviewer.ReaderMode
 import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
+import com.eren76.mangly.composables.shared.read.LongPressImageMenu
 import com.eren76.mangly.composables.shared.read.ReadBottomControls
 import com.eren76.mangly.composables.shared.read.ReadTopControls
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
@@ -82,6 +81,9 @@ object WebtoonReaderMode : ReaderMode {
 
 
         var showControls by remember { mutableStateOf(false) }
+        var showLongPressMenu by remember { mutableStateOf(false) }
+        var selectedLongPressImageUrl by remember(images) { mutableStateOf<String?>(null) }
+
 
         val currentPage by remember {
             derivedStateOf {
@@ -102,11 +104,6 @@ object WebtoonReaderMode : ReaderMode {
             modifier = modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = { showControls = !showControls }
-                    )
-                }
         ) {
             ZoomableReaderContainer(
                 modifier = Modifier.fillMaxSize()
@@ -142,7 +139,22 @@ object WebtoonReaderMode : ReaderMode {
                             networkHeaders = networkHeaders,
                             context = context,
                             index = index,
-                            totalImages = images.size
+                            totalImages = images.size,
+                            onTap = {
+                                showControls = !showControls
+                                showLongPressMenu = false
+                            },
+                            onLongPress = {
+                                if (!sharedPreferences.getBoolean(
+                                        ReaderModePrefs.DISABLE_IMAGE_SAVING_ON_HOLD_SETTING_KEY,
+                                        false
+                                    )
+                                ) {
+                                    selectedLongPressImageUrl = imageUrl
+                                    showLongPressMenu = true
+                                    showControls = false
+                                }
+                            }
                         )
                     }
 
@@ -177,6 +189,17 @@ object WebtoonReaderMode : ReaderMode {
                             }
                         }
 
+                    )
+                }
+
+                selectedLongPressImageUrl?.takeIf { showLongPressMenu }?.let { imageUrl ->
+                    LongPressImageMenu(
+                        imageUrl = imageUrl,
+                        networkHeaders = networkHeaders,
+                        onDismiss = {
+                            showLongPressMenu = false
+                            selectedLongPressImageUrl = null
+                        }
                     )
                 }
             }

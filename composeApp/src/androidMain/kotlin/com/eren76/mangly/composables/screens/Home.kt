@@ -1,5 +1,6 @@
 package com.eren76.mangly.composables.screens
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,13 +33,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.SubcomposeAsyncImage
+import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.shared.image.CoverCache
 import com.eren76.mangly.composables.shared.image.CoverImageRequests
 import com.eren76.mangly.composables.shared.image.ImageLoadingComposable
 import com.eren76.mangly.composables.shared.image.ImageLoadingErrorComposable
 import com.eren76.mangly.rooms.entities.FavoritesEntity
+import com.eren76.mangly.rooms.entities.HistoryChapterEntity
+import com.eren76.mangly.rooms.entities.HistoryWithReadChapters
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.FavoritesViewModel
+import com.eren76.mangly.viewmodels.HistoryViewModel
 import com.eren76.manglyextension.plugins.ExtensionMetadata
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.Dispatchers
@@ -47,15 +52,49 @@ import java.io.File
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
+// TODO: This should be moved somewhere else but I am not sure where
+enum class HomeSorting(val prefValue: String, val label: String) {
+    LatestRead("latest_read", "Latest chapter read"),
+    LatestFavorite("latest_favorite", "Latest added to favorites"),
+    Alphabetical("alphabetical", "By alphabet");
+
+    companion object {
+        const val DEFAULT_PREF_VALUE = "latest_read"
+
+        fun fromPrefValue(value: String?): HomeSorting = when (value) {
+            LatestFavorite.prefValue -> LatestFavorite
+            Alphabetical.prefValue -> Alphabetical
+            else -> LatestRead
+        }
+    }
+}
+
 @Composable
 fun Home(
     favoritesViewModel: FavoritesViewModel,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
+    historyViewModel: HistoryViewModel,
     navHostController: NavHostController
 ) {
+    val context = LocalContext.current
     val favorites = favoritesViewModel.favorites.value
-    val sortedFavorites = remember(favorites) {
-        favorites.sortedBy { it.mangaTitle.lowercase() }
+
+    val sortingPref = remember {
+        context.getSharedPreferences(
+            Constants.HOME_SETTING_KEY,
+            Context.MODE_PRIVATE
+        ).getString(
+            Constants.HOME_SORTING_SETTING_KEY,
+            HomeSorting.DEFAULT_PREF_VALUE
+        )
+    }
+
+    val sorting = remember(sortingPref) {
+        HomeSorting.fromPrefValue(sortingPref)
+    }
+
+    val sortedFavorites = remember(favorites, sorting) {
+        sortFavorites(favorites, sorting, historyViewModel)
     }
 
     Column(
@@ -310,4 +349,81 @@ private suspend fun getCoverImageInfoForFavorite(
     return withContext(Dispatchers.IO) {
         metadata.source.getImageForChaptersList(favorite.mangaUrl)
     }
+}
+
+private fun sortFavorites(
+    favorites: List<FavoritesEntity>,
+    sorting: HomeSorting,
+    historyViewModel: HistoryViewModel
+): List<FavoritesEntity> {
+    if (favorites.isEmpty()) return favorites
+
+    return when (sorting) {
+        HomeSorting.Alphabetical -> favorites.sortedWith(
+            compareBy(
+                { it.mangaTitle.lowercase() },
+                { it.mangaUrl },
+                { it.id.toString() }
+            ))
+
+        HomeSorting.LatestFavorite -> favorites.sortedWith(
+            compareByDescending<FavoritesEntity> { favorite ->
+                val ts = favorite.created_at
+                if (ts > 0L) ts else Long.MIN_VALUE
+            }.thenBy { it.mangaTitle.lowercase() }
+                .thenBy { it.mangaUrl }
+                .thenBy { it.id.toString() }
+        )
+
+        HomeSorting.LatestRead -> {
+            val historyWithChapters = historyViewModel.historyWithChapters.value
+            val latestReadByUrl: Map<String, Long> =
+                computeLatestReadByMangaUrl(historyWithChapters)
+
+            favorites.sortedWith(
+                compareByDescending<FavoritesEntity> { favorite ->
+                    val lastRead = latestReadByUrl[favorite.mangaUrl] ?: 0L
+                    val hasHistory = lastRead > 0L
+                    if (hasHistory) 1 else 0
+                }
+                    .thenByDescending { favorite ->
+                        val lastRead = latestReadByUrl[favorite.mangaUrl] ?: 0L
+                        if (lastRead > 0L) lastRead else Long.MIN_VALUE
+                    }
+                    .thenByDescending { favorite ->
+                        val ts = favorite.created_at
+                        if (ts > 0L) ts else Long.MIN_VALUE
+                    }
+                    .thenBy { it.mangaTitle.lowercase() }
+                    .thenBy { it.mangaUrl }
+                    .thenBy { it.id.toString() }
+            )
+        }
+    }
+}
+
+private fun computeLatestReadByMangaUrl(
+    historyWithChapters: List<HistoryWithReadChapters>
+): Map<String, Long> {
+    val latestByUrl = mutableMapOf<String, Long>()
+
+    for (entry: HistoryWithReadChapters in historyWithChapters) {
+        val history = entry.history
+        var latest = 0L
+        for (readChapter: HistoryChapterEntity in entry.readChapters) {
+            val readAt = readChapter.readAt ?: continue
+            if (readAt > latest) {
+                latest = readAt
+            }
+        }
+        if (latest <= 0L) continue
+
+        val url = history.mangaUrl
+        val current = latestByUrl[url]
+        if (current == null || latest > current) {
+            latestByUrl[url] = latest
+        }
+    }
+
+    return latestByUrl
 }
