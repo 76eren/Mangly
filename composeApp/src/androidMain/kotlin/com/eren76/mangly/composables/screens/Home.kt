@@ -92,13 +92,9 @@ fun Home(
     val sorting = remember(sortingPref) {
         HomeSorting.fromPrefValue(sortingPref)
     }
-    val historyWithChapters = historyViewModel.historyWithChapters.value
-    val latestReadByUrl: Map<String, Long> = remember(historyWithChapters) {
-        computeLatestReadByMangaUrl(historyWithChapters)
-    }
 
-    val sortedFavorites = remember(favorites, sorting, latestReadByUrl) {
-        sortFavorites(favorites, sorting, latestReadByUrl)
+    val sortedFavorites = remember(favorites, sorting) {
+        sortFavorites(favorites, sorting, historyViewModel)
     }
 
     Column(
@@ -358,7 +354,7 @@ private suspend fun getCoverImageInfoForFavorite(
 private fun sortFavorites(
     favorites: List<FavoritesEntity>,
     sorting: HomeSorting,
-    latestReadByUrl: Map<String, Long>
+    historyViewModel: HistoryViewModel
 ): List<FavoritesEntity> {
     if (favorites.isEmpty()) return favorites
 
@@ -379,24 +375,30 @@ private fun sortFavorites(
                 .thenBy { it.id.toString() }
         )
 
-        HomeSorting.LatestRead -> favorites.sortedWith(
-            compareByDescending<FavoritesEntity> { favorite ->
-                val lastRead = latestReadByUrl[favorite.mangaUrl] ?: 0L
-                val hasHistory = lastRead > 0L
-                if (hasHistory) 1 else 0
-            }
-                .thenByDescending { favorite ->
+        HomeSorting.LatestRead -> {
+            val historyWithChapters = historyViewModel.historyWithChapters.value
+            val latestReadByUrl: Map<String, Long> =
+                computeLatestReadByMangaUrl(historyWithChapters)
+
+            favorites.sortedWith(
+                compareByDescending<FavoritesEntity> { favorite ->
                     val lastRead = latestReadByUrl[favorite.mangaUrl] ?: 0L
-                    if (lastRead > 0L) lastRead else Long.MIN_VALUE
+                    val hasHistory = lastRead > 0L
+                    if (hasHistory) 1 else 0
                 }
-                .thenByDescending { favorite ->
-                    val ts = favorite.created_at
-                    if (ts > 0L) ts else Long.MIN_VALUE
-                }
-                .thenBy { it.mangaTitle.lowercase() }
-                .thenBy { it.mangaUrl }
-                .thenBy { it.id.toString() }
-        )
+                    .thenByDescending { favorite ->
+                        val lastRead = latestReadByUrl[favorite.mangaUrl] ?: 0L
+                        if (lastRead > 0L) lastRead else Long.MIN_VALUE
+                    }
+                    .thenByDescending { favorite ->
+                        val ts = favorite.created_at
+                        if (ts > 0L) ts else Long.MIN_VALUE
+                    }
+                    .thenBy { it.mangaTitle.lowercase() }
+                    .thenBy { it.mangaUrl }
+                    .thenBy { it.id.toString() }
+            )
+        }
     }
 }
 
