@@ -2,6 +2,15 @@ package com.eren76.mangly.composables.screens
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,9 +22,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -25,6 +37,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,7 +48,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.navigation.NavHostController
@@ -353,64 +368,131 @@ fun SettingDisableImageSavingOnHold() {
 fun HomePageSorting() {
     val context = LocalContext.current
     val prefs = remember {
-        context.getSharedPreferences(
-            Constants.HOME_SETTING_KEY,
-            Context.MODE_PRIVATE
-        )
+        context.getSharedPreferences(Constants.HOME_SETTING_KEY, Context.MODE_PRIVATE)
     }
-
     val defaultValue = HomeSorting.DEFAULT_PREF_VALUE
-
     var selectedSorting by remember {
         mutableStateOf(
-            prefs.getString(
-                Constants.HOME_SORTING_SETTING_KEY,
-                defaultValue
-            ) ?: defaultValue
+            prefs.getString(Constants.HOME_SORTING_SETTING_KEY, defaultValue) ?: defaultValue
         )
     }
+    val options = HomeSorting.entries
+    var expanded by remember { mutableStateOf(false) }
+
+    val currentLabel = options.first { it.prefValue == selectedSorting }.label
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f
+    )
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Text(
-            text = "Home page sorting",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground,
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
-
-        val options = HomeSorting.values().toList()
-
-        SingleChoiceSegmentedButtonRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp, bottom = 4.dp)
+            shape = if (expanded)
+                MaterialTheme.shapes.medium.copy(
+                    bottomStart = CornerSize(0.dp),
+                    bottomEnd = CornerSize(0.dp)
+                )
+            else MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            onClick = { expanded = !expanded }
         ) {
-            options.forEachIndexed { index, sorting ->
-                SegmentedButton(
-                    selected = selectedSorting == sorting.prefValue,
-                    onClick = {
-                        selectedSorting = sorting.prefValue
-                        prefs.edit {
-                            putString(Constants.HOME_SORTING_SETTING_KEY, sorting.prefValue)
-                        }
-                    },
-                    shape = SegmentedButtonDefaults.itemShape(index, options.size),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(text = sorting.label, maxLines = 1)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "Home page sorting",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = currentLabel,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
+                Icon(
+                    imageVector = Icons.Rounded.KeyboardArrowDown,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.rotate(chevronRotation)
+                )
             }
         }
 
-        Text(
-            text = "Choose how manga are ordered on the home page.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-        )
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium.copy(
+                    topStart = CornerSize(0.dp),
+                    topEnd = CornerSize(0.dp)
+                ),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+            ) {
+                Column {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                    options.forEach { sorting ->
+                        val isSelected = selectedSorting == sorting.prefValue
+                        val contentColor by animateColorAsState(
+                            targetValue = if (isSelected)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant,
+                            label = "contentColor"
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    selectedSorting = sorting.prefValue
+                                    prefs.edit {
+                                        putString(
+                                            Constants.HOME_SORTING_SETTING_KEY,
+                                            sorting.prefValue
+                                        )
+                                    }
+                                    expanded = false
+                                }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = sorting.label,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                color = contentColor
+                            )
+                            AnimatedVisibility(
+                                visible = isSelected,
+                                enter = scaleIn() + fadeIn(),
+                                exit = scaleOut() + fadeOut()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.CheckCircle,
+                                    contentDescription = "Selected",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

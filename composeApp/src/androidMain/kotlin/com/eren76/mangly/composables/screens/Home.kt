@@ -54,8 +54,8 @@ import java.nio.charset.StandardCharsets
 
 // TODO: This should be moved somewhere else but I am not sure where
 enum class HomeSorting(val prefValue: String, val label: String) {
-    LatestRead("latest_read", "Latest read"),
-    LatestFavorite("latest_favorite", "Latest favorites"),
+    LatestRead("latest_read", "Latest chapter read"),
+    LatestFavorite("latest_favorite", "Latest added to favorites"),
     Alphabetical("alphabetical", "By alphabet");
 
     companion object {
