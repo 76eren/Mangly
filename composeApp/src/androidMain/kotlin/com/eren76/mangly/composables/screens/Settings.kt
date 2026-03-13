@@ -98,6 +98,12 @@ fun Settings(
         )
 
         SettingDisableImageSavingOnHold()
+
+        HorizontalDivider(
+            modifier = Modifier.padding(top = 10.dp, bottom = 10.dp),
+        )
+
+        EnablePagination()
     }
 }
 
@@ -472,5 +478,67 @@ fun HomePageSorting() {
                 }
             }
         }
+    }
+}
+
+@Composable
+fun EnablePagination() {
+    val context = LocalContext.current
+
+    val sharedPreferences = remember {
+        context.getSharedPreferences(
+            Constants.PAGINATION_SETTINGS_KEY,
+            Context.MODE_PRIVATE
+        )
+    }
+
+    var isDisabled by remember {
+        mutableStateOf(
+            sharedPreferences.getBoolean(
+                Constants.PAGINATION_ENABLED_KEY,
+                false
+            )
+        )
+    }
+
+    fun updateSetting(value: Boolean) {
+        isDisabled = value
+        sharedPreferences.edit {
+            putBoolean(
+                Constants.PAGINATION_ENABLED_KEY,
+                value
+            )
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { updateSetting(!isDisabled) }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = "Enable pagination",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text = "When enabled, all items on both the home page and history page get paginated. This helps if you are overwhelmed by the amount of items shown at once.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            )
+        }
+
+        Switch(
+            checked = isDisabled,
+            onCheckedChange = { updateSetting(it) }
+        )
     }
 }
