@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -74,8 +73,6 @@ fun PaginatedFavorites(
             .padding(16.dp)
     ) {
         Spacer(modifier = Modifier.height(8.dp))
-
-        HorizontalDivider()
 
         Spacer(modifier = Modifier.height(12.dp))
 
