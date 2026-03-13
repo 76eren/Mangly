@@ -3,7 +3,6 @@ package com.eren76.mangly.composables.screens.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -45,7 +44,6 @@ fun FavoriteCard(
     extensionMetadataViewModel: ExtensionMetadataViewModel,
     favoritesViewModel: FavoritesViewModel,
     onClick: () -> Unit,
-    isPaginatedMode: Boolean
 ) {
     Card(
         modifier = Modifier
@@ -54,52 +52,31 @@ fun FavoriteCard(
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        if (isPaginatedMode) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                FavoriteImage(
-                    favorite = favorite,
-                    extensionMetadataViewModel = extensionMetadataViewModel,
-                    favoritesViewModel = favoritesViewModel,
-                    modifier = Modifier.fillMaxSize()
-                )
+        Box(modifier = Modifier.fillMaxSize()) {
+            FavoriteImage(
+                favorite = favorite,
+                extensionMetadataViewModel = extensionMetadataViewModel,
+                favoritesViewModel = favoritesViewModel,
+                modifier = Modifier.fillMaxSize()
+            )
 
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .fillMaxWidth()
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = favorite.mangaTitle,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = Color.White,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-        } else {
-            Column {
-                FavoriteImage(
-                    favorite = favorite,
-                    extensionMetadataViewModel = extensionMetadataViewModel,
-                    favoritesViewModel = favoritesViewModel,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(140.dp)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .padding(horizontal = 6.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = favorite.mangaTitle,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Column(modifier = Modifier.padding(8.dp)) {
-                    Text(
-                        text = favorite.mangaTitle,
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 4.dp)
-                    )
-                }
             }
         }
+
     }
 }
 
