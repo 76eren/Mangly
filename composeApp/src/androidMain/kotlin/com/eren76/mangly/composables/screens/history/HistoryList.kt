@@ -1,7 +1,7 @@
 package com.eren76.mangly.composables.screens.history
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,14 +23,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.eren76.mangly.rooms.entities.HistoryEntity
@@ -40,6 +44,7 @@ import com.eren76.manglyextension.plugins.ExtensionMetadata
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import java.util.UUID
 
@@ -132,6 +137,20 @@ fun PaginatedHistoryList(
             .collect { }
     }
 
+    var scrubberHeightPx by remember { mutableIntStateOf(0) }
+    var scrubberOffsetFraction by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(pagerState.currentPage, totalPages) {
+        if (totalPages > 1) {
+            scrubberOffsetFraction = pagerState.currentPage.toFloat() / (totalPages - 1).toFloat()
+        } else {
+            scrubberOffsetFraction = 0f
+        }
+    }
+
+    val coroutineScope = rememberCoroutineScope()
+    val density = LocalDensity.current
+
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -213,25 +232,61 @@ fun PaginatedHistoryList(
         if (totalPages > 1) {
             Spacer(modifier = Modifier.width(8.dp))
 
-            Column(
+            Box(
                 modifier = Modifier
-                    .fillMaxHeight(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxHeight()
+                    .width(16.dp)
+                    .onSizeChanged { size ->
+                        scrubberHeightPx = size.height
+                    }
+                    .pointerInput(totalPages, scrubberHeightPx) {
+                        detectVerticalDragGestures { change, _ ->
+                            change.consume()
+                            if (scrubberHeightPx <= 0) return@detectVerticalDragGestures
+
+                            val localPosY =
+                                change.position.y.coerceIn(0f, scrubberHeightPx.toFloat())
+                            val fraction = localPosY / scrubberHeightPx.toFloat()
+                            scrubberOffsetFraction = fraction
+
+                            val targetPage = ((totalPages - 1) * fraction)
+                                .toInt()
+                                .coerceIn(0, totalPages - 1)
+
+                            if (targetPage != pagerState.currentPage) {
+                                coroutineScope.launch {
+                                    pagerState.scrollToPage(targetPage)
+                                }
+                            }
+                        }
+                    },
+                contentAlignment = Alignment.TopCenter
             ) {
-                repeat(totalPages) { index ->
-                    val isSelected = index == pagerState.currentPage
-                    Box(
-                        modifier = Modifier
-                            .padding(vertical = 4.dp)
-                            .size(if (isSelected) 10.dp else 8.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isSelected) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                            )
-                    )
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(4.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                )
+
+                val thumbOffsetDp = with(density) {
+                    if (scrubberHeightPx > 0) {
+                        (scrubberHeightPx * scrubberOffsetFraction)
+                            .coerceIn(0f, scrubberHeightPx.toFloat())
+                            .toDp()
+                    } else {
+                        0.dp
+                    }
                 }
+
+                Box(
+                    modifier = Modifier
+                        .padding(top = thumbOffsetDp)
+                        .size(12.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                )
             }
         }
     }
