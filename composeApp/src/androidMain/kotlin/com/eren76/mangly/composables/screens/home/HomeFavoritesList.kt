@@ -1,5 +1,6 @@
 package com.eren76.mangly.composables.screens.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,26 +12,29 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Button
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.eren76.mangly.rooms.entities.FavoritesEntity
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.FavoritesViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 @Composable
 fun PaginatedFavorites(
@@ -42,27 +46,26 @@ fun PaginatedFavorites(
     onPageStartIndexChanged: ((Int) -> Unit)? = null
 ) {
     val safePageSize = remember(pageSize) { maxOf(1, pageSize) }
+    val totalPages =
+        if (sortedFavorites.isEmpty()) 1 else (sortedFavorites.size + safePageSize - 1) / safePageSize
 
-    var paginationIndexToGetFrom by rememberSaveable { mutableStateOf(0) }
+    val pagerState = rememberPagerState(
+        initialPage = 0,
+        pageCount = { totalPages }
+    )
 
-    LaunchedEffect(sortedFavorites.size, safePageSize) {
-        val maxStart = if (sortedFavorites.isEmpty()) 0
-        else ((sortedFavorites.size - 1) / safePageSize) * safePageSize
-
-        val clamped = paginationIndexToGetFrom.coerceIn(0, maxStart)
-        if (clamped != paginationIndexToGetFrom) {
-            paginationIndexToGetFrom = clamped
+    LaunchedEffect(totalPages) {
+        val maxPage = (totalPages - 1).coerceAtLeast(0)
+        if (pagerState.currentPage > maxPage) {
+            pagerState.scrollToPage(maxPage)
         }
-        onPageStartIndexChanged?.invoke(paginationIndexToGetFrom)
     }
 
-    val startIndex = paginationIndexToGetFrom
-    val endIndex = minOf(startIndex + safePageSize, sortedFavorites.size)
-
-    val pageItems = if (startIndex < sortedFavorites.size) {
-        sortedFavorites.subList(startIndex, endIndex)
-    } else {
-        emptyList()
+    LaunchedEffect(pagerState, safePageSize) {
+        snapshotFlow { pagerState.currentPage }
+            .map { it * safePageSize }
+            .distinctUntilChanged()
+            .collect { onPageStartIndexChanged?.invoke(it) }
     }
 
     Column(
@@ -70,56 +73,63 @@ fun PaginatedFavorites(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-
-        Text(
-            text = "Page ${startIndex / safePageSize + 1} of ${(sortedFavorites.size + safePageSize - 1) / safePageSize}",
-            style = MaterialTheme.typography.titleMedium
-        )
-
         Spacer(modifier = Modifier.height(8.dp))
 
         HorizontalDivider()
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Column(
+        HorizontalPager(
+            state = pagerState,
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            repeat(3) { rowIndex ->
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    repeat(2) { columnIndex ->
-                        val itemIndex = rowIndex * 2 + columnIndex
+                .fillMaxWidth()
+        ) { page ->
+            val startIndex = page * safePageSize
+            val endIndex = minOf(startIndex + safePageSize, sortedFavorites.size)
+            val pageItems = if (startIndex < sortedFavorites.size) {
+                sortedFavorites.subList(startIndex, endIndex)
+            } else {
+                emptyList()
+            }
 
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                        ) {
-                            if (itemIndex < pageItems.size) {
-                                val favorite = pageItems[itemIndex]
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                repeat(3) { rowIndex ->
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        repeat(2) { columnIndex ->
+                            val itemIndex = rowIndex * 2 + columnIndex
 
-                                FavoriteCard(
-                                    favorite = favorite,
-                                    extensionMetadataViewModel = extensionMetadataViewModel,
-                                    favoritesViewModel = favoritesViewModel,
-                                    onClick = {
-                                        onFavoriteClick(
-                                            favorite = favorite,
-                                            extensionMetadataViewModel = extensionMetadataViewModel,
-                                            navController = navHostController
-                                        )
-                                    }
-                                )
-                            } else {
-                                Spacer(modifier = Modifier.fillMaxSize())
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                            ) {
+                                if (itemIndex < pageItems.size) {
+                                    val favorite = pageItems[itemIndex]
+
+                                    FavoriteCard(
+                                        favorite = favorite,
+                                        extensionMetadataViewModel = extensionMetadataViewModel,
+                                        favoritesViewModel = favoritesViewModel,
+                                        onClick = {
+                                            onFavoriteClick(
+                                                favorite = favorite,
+                                                extensionMetadataViewModel = extensionMetadataViewModel,
+                                                navController = navHostController
+                                            )
+                                        }
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.fillMaxSize())
+                                }
                             }
                         }
                     }
@@ -129,31 +139,25 @@ fun PaginatedFavorites(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-
-            Button(
-                onClick = {
-                    paginationIndexToGetFrom = maxOf(0, paginationIndexToGetFrom - safePageSize)
-                    onPageStartIndexChanged?.invoke(paginationIndexToGetFrom)
-                },
-                enabled = paginationIndexToGetFrom > 0
+        if (totalPages > 1) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Previous")
-            }
-
-            Button(
-                onClick = {
-                    if (paginationIndexToGetFrom + safePageSize < sortedFavorites.size) {
-                        paginationIndexToGetFrom += safePageSize
-                        onPageStartIndexChanged?.invoke(paginationIndexToGetFrom)
-                    }
-                },
-                enabled = paginationIndexToGetFrom + safePageSize < sortedFavorites.size
-            ) {
-                Text("Next")
+                repeat(totalPages) { index ->
+                    val isSelected = index == pagerState.currentPage
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .size(if (isSelected) 10.dp else 8.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isSelected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                            )
+                    )
+                }
             }
         }
     }
@@ -191,4 +195,3 @@ fun ShowItemsInLazyGrid(
         }
     }
 }
-
