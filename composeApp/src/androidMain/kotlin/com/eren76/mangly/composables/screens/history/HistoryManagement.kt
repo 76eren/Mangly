@@ -1,14 +1,12 @@
 package com.eren76.mangly.composables.screens.history
 
+import android.content.Context
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -17,14 +15,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.eren76.mangly.Constants
 import com.eren76.mangly.rooms.entities.HistoryEntity
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.HistoryViewModel
 import com.eren76.manglyextension.plugins.ExtensionMetadata
-import com.eren76.manglyextension.plugins.Source
-import java.net.URLEncoder
 import java.util.SortedMap
 import java.util.UUID
 
@@ -34,6 +32,15 @@ fun HistoryManagement(
     navHostController: NavHostController,
     extensionMetaDataViewModel: ExtensionMetadataViewModel
 ) {
+    val context = LocalContext.current
+
+    val paginationPreferences = remember {
+        context.getSharedPreferences(
+            Constants.PAGINATION_SETTINGS_KEY,
+            Context.MODE_PRIVATE
+        )
+    }
+
     val historyWithChapters by historyViewModel.historyWithChapters
 
     if (historyWithChapters.all { it.readChapters.isEmpty() }) {
@@ -65,40 +72,25 @@ fun HistoryManagement(
 
         HorizontalDivider()
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 12.dp)
-        ) {
-            items(
-                items = historyData.entries.toList(),
-                key = { entry ->
-                    val timeKey = entry.key
-                    val historyEntity = entry.value
-                    historyEntity.id.toString() + timeKey.toString()
-                }
-            ) { entry ->
-                val timeKey = entry.key
-                val historyEntity = entry.value
 
-                val sourceMetadata = sourcesById[historyEntity.extensionId]
-                val source: Source? = sourceMetadata?.source
-
-                HistoryRow(
-                    historyEntity = historyEntity,
-                    lastReadAt = timeKey,
-                    source = source,
-                    historyViewModel = historyViewModel,
-                    onClick = {
-                        val encodedUrl = URLEncoder.encode(
-                            historyEntity.mangaUrl,
-                            Charsets.UTF_8.name()
-                        )
-                        extensionMetaDataViewModel.setSelectedSource(sourcesById[historyEntity.extensionId]!!) // TODO: not ideal
-                        navHostController.navigate("chapters/$encodedUrl")
-                    }
-                )
-            }
+        if (!paginationPreferences.getBoolean(Constants.PAGINATION_ENABLED_KEY, false)) {
+            ShowItemsInLazyGrid(
+                historyData = historyData,
+                sourcesById = sourcesById,
+                historyViewModel = historyViewModel,
+                navHostController = navHostController,
+                extensionMetaDataViewModel = extensionMetaDataViewModel
+            )
+        } else {
+            PaginatedHistoryList(
+                historyData = historyData,
+                sourcesById = sourcesById,
+                historyViewModel = historyViewModel,
+                navHostController = navHostController,
+                extensionMetaDataViewModel = extensionMetaDataViewModel
+            )
         }
+
     }
 }
 
