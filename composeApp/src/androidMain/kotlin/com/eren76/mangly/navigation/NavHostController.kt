@@ -11,10 +11,10 @@ import com.eren76.mangly.composables.screens.ChaptersList
 import com.eren76.mangly.composables.screens.ExtensionDetails
 import com.eren76.mangly.composables.screens.Extensions
 import com.eren76.mangly.composables.screens.HistoryManagement
-import com.eren76.mangly.composables.screens.Home
 import com.eren76.mangly.composables.screens.Read
 import com.eren76.mangly.composables.screens.Search
 import com.eren76.mangly.composables.screens.Settings
+import com.eren76.mangly.composables.screens.home.Home
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
 import com.eren76.mangly.viewmodels.ExtensionDetailsViewModel
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
