@@ -122,7 +122,8 @@ fun PaginatedFavorites(
                                                 extensionMetadataViewModel = extensionMetadataViewModel,
                                                 navController = navHostController
                                             )
-                                        }
+                                        },
+                                        isPaginatedMode = true
                                     )
                                 } else {
                                     Spacer(modifier = Modifier.fillMaxSize())
@@ -187,7 +188,8 @@ fun ShowItemsInLazyGrid(
                         extensionMetadataViewModel = extensionMetadataViewModel,
                         navController = navHostController
                     )
-                }
+                },
+                isPaginatedMode = false
             )
         }
     }
