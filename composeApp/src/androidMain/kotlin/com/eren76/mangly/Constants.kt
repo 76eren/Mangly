@@ -7,6 +7,10 @@ class Constants {
         const val READING_SETTING_KEY = "mangly_reading_settings"
         const val HOME_SETTING_KEY = "mangly_home_settings"
         const val HOME_SORTING_SETTING_KEY = "mangly_home_sorting_settings"
+        const val PAGINATION_SETTINGS_KEY = "pagination_settings"
+        const val PAGINATION_ENABLED_KEY = "pagination_enabled"
+        const val MANGLY_PAGINATION_SIZE_KEY =
+            6 // This only applies to the home page. The history page calculates its own pagination size based on the screen height and item height.
 
     }
 }
