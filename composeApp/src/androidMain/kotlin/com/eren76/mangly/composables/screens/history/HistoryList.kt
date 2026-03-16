@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.PagerDefaults
+import androidx.compose.foundation.pager.PagerSnapDistance
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -123,6 +125,12 @@ fun PaginatedHistoryList(
         pageCount = { totalPages }
     )
 
+    val pagerFlingBehavior = PagerDefaults.flingBehavior(
+        state = pagerState,
+        pagerSnapDistance = PagerSnapDistance.atMost(1),
+        snapPositionalThreshold = 0.2f
+    )
+
     LaunchedEffect(totalPages) {
         val maxPage = (totalPages - 1).coerceAtLeast(0)
         if (pagerState.currentPage > maxPage) {
@@ -142,7 +150,8 @@ fun PaginatedHistoryList(
 
     LaunchedEffect(pagerState.currentPage, totalPages) {
         if (totalPages > 1) {
-            scrubberOffsetFraction = pagerState.currentPage.toFloat() / (totalPages - 1).toFloat()
+            scrubberOffsetFraction =
+                pagerState.currentPage.toFloat() / (totalPages - 1).toFloat()
         } else {
             scrubberOffsetFraction = 0f
         }
@@ -156,17 +165,20 @@ fun PaginatedHistoryList(
             .fillMaxSize()
             .padding(16.dp)
     ) {
+
         Column(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
         ) {
+
             Spacer(modifier = Modifier.height(8.dp))
 
             Spacer(modifier = Modifier.height(12.dp))
 
             VerticalPager(
                 state = pagerState,
+                flingBehavior = pagerFlingBehavior,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -174,6 +186,7 @@ fun PaginatedHistoryList(
                         pagerHeightPx = size.height
                     }
             ) { page ->
+
                 val startIndex = page * pageSize
                 val endIndex = minOf(startIndex + pageSize, entriesList.size)
                 val pageItems = if (startIndex < entriesList.size) {
@@ -183,10 +196,12 @@ fun PaginatedHistoryList(
                 }
 
                 if (pageItems.isNotEmpty()) {
+
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(vertical = 12.dp)
                     ) {
+
                         items(
                             items = pageItems,
                             key = { entry ->
@@ -195,6 +210,7 @@ fun PaginatedHistoryList(
                                 historyEntity.id.toString() + timeKey.toString()
                             }
                         ) { entry ->
+
                             val timeKey = entry.key
                             val historyEntity = entry.value
 
@@ -208,6 +224,7 @@ fun PaginatedHistoryList(
                                     }
                                 }
                             ) {
+
                                 HistoryRow(
                                     historyEntity = historyEntity,
                                     lastReadAt = timeKey,
@@ -218,7 +235,11 @@ fun PaginatedHistoryList(
                                             historyEntity.mangaUrl,
                                             Charsets.UTF_8.name()
                                         )
-                                        extensionMetaDataViewModel.setSelectedSource(sourcesById[historyEntity.extensionId]!!) // TODO: not ideal
+
+                                        extensionMetaDataViewModel.setSelectedSource(
+                                            sourcesById[historyEntity.extensionId]!!
+                                        )
+
                                         navHostController.navigate("chapters/$encodedUrl")
                                     }
                                 )
@@ -230,6 +251,7 @@ fun PaginatedHistoryList(
         }
 
         if (totalPages > 1) {
+
             Spacer(modifier = Modifier.width(8.dp))
 
             Box(
@@ -241,12 +263,16 @@ fun PaginatedHistoryList(
                     }
                     .pointerInput(totalPages, scrubberHeightPx) {
                         detectVerticalDragGestures { change, _ ->
+
                             change.consume()
+
                             if (scrubberHeightPx <= 0) return@detectVerticalDragGestures
 
                             val localPosY =
                                 change.position.y.coerceIn(0f, scrubberHeightPx.toFloat())
+
                             val fraction = localPosY / scrubberHeightPx.toFloat()
+
                             scrubberOffsetFraction = fraction
 
                             val targetPage = ((totalPages - 1) * fraction)
@@ -254,6 +280,7 @@ fun PaginatedHistoryList(
                                 .coerceIn(0, totalPages - 1)
 
                             if (targetPage != pagerState.currentPage) {
+
                                 coroutineScope.launch {
                                     pagerState.scrollToPage(targetPage)
                                 }
@@ -262,6 +289,7 @@ fun PaginatedHistoryList(
                     },
                 contentAlignment = Alignment.TopCenter
             ) {
+
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
@@ -271,10 +299,13 @@ fun PaginatedHistoryList(
                 )
 
                 val thumbOffsetDp = with(density) {
+
                     if (scrubberHeightPx > 0) {
+
                         (scrubberHeightPx * scrubberOffsetFraction)
                             .coerceIn(0f, scrubberHeightPx.toFloat())
                             .toDp()
+
                     } else {
                         0.dp
                     }
