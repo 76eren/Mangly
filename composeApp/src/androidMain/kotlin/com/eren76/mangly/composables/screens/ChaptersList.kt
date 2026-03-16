@@ -202,51 +202,54 @@ fun ChaptersList(
             favoritesViewModel.favorites.value.any { it.mangaUrl == targetUrl }
         }
 
-        if (isFavorite) {
-            Icon(
-                imageVector = Icons.Default.Favorite,
-                contentDescription = "Favorite",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable {
-                    scope.launch {
-                        for (favoriteItem in favoritesViewModel.favorites.value) {
-                            if (favoriteItem.mangaUrl == targetUrl) {
-                                favoritesViewModel.removeFavorite(favoriteItem.id, context)
-                                Toast.makeText(
-                                    context,
-                                    "Removed from favorites",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                break
+        if (mangaName != "") {
+            if (isFavorite) {
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = "Favorite",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable {
+                        scope.launch {
+                            for (favoriteItem in favoritesViewModel.favorites.value) {
+                                if (favoriteItem.mangaUrl == targetUrl) {
+                                    favoritesViewModel.removeFavorite(favoriteItem.id, context)
+                                    Toast.makeText(
+                                        context,
+                                        "Removed from favorites",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    break
+                                }
                             }
                         }
                     }
-                }
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Default.FavoriteBorder,
-                contentDescription = "Favorite",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable {
-                    scope.launch {
-                        val favoriteEntity = FavoritesEntity(
-                            id = UUID.randomUUID(),
-                            mangaUrl = targetUrl,
-                            mangaTitle = mangaName,
-                            created_at = System.currentTimeMillis(),
-                            extensionId = UUID.fromString(metadata.source.getExtensionId())
-                        )
-                        favoritesViewModel.addFavorite(favoriteEntity)
-                        Toast.makeText(
-                            context,
-                            "Added to favorites",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable {
+                        scope.launch {
+                            val favoriteEntity = FavoritesEntity(
+                                id = UUID.randomUUID(),
+                                mangaUrl = targetUrl,
+                                mangaTitle = mangaName,
+                                created_at = System.currentTimeMillis(),
+                                extensionId = UUID.fromString(metadata.source.getExtensionId())
+                            )
+                            favoritesViewModel.addFavorite(favoriteEntity)
+                            Toast.makeText(
+                                context,
+                                "Added to favorites",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
-                }
-            )
+                )
+            }
         }
+
 
         image?.let {
             SubcomposeAsyncImage(
