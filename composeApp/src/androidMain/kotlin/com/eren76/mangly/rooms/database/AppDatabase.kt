@@ -7,20 +7,31 @@ import androidx.room.RoomDatabase
 import com.eren76.mangly.rooms.dao.ExtensionDao
 import com.eren76.mangly.rooms.dao.FavoritesDao
 import com.eren76.mangly.rooms.dao.HistoryDao
+import com.eren76.mangly.rooms.dao.DownloadsDao
 import com.eren76.mangly.rooms.database.migrations.Migration1To2
 import com.eren76.mangly.rooms.database.migrations.Migration2To3
 import com.eren76.mangly.rooms.database.migrations.Migration3To4
 import com.eren76.mangly.rooms.database.migrations.Migration4To5
 import com.eren76.mangly.rooms.database.migrations.Migration5To6
 import com.eren76.mangly.rooms.database.migrations.Migration6To7
+import com.eren76.mangly.rooms.database.migrations.Migration7To8
+import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
+import com.eren76.mangly.rooms.entities.DownloadsEntity
 import com.eren76.mangly.rooms.entities.ExtensionEntity
 import com.eren76.mangly.rooms.entities.FavoritesEntity
 import com.eren76.mangly.rooms.entities.HistoryChapterEntity
 import com.eren76.mangly.rooms.entities.HistoryEntity
 
 @Database(
-    entities = [ExtensionEntity::class, FavoritesEntity::class, HistoryEntity::class, HistoryChapterEntity::class],
-    version = 7,
+    entities = [
+        ExtensionEntity::class,
+        FavoritesEntity::class,
+        HistoryEntity::class,
+        HistoryChapterEntity::class,
+        DownloadsEntity::class,
+        DownloadedChapterEntity::class
+    ],
+    version = 8,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,6 +39,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun extensionEntryDao(): ExtensionDao
     abstract fun favoritesDao(): FavoritesDao
     abstract fun historyDao(): HistoryDao
+    abstract fun downloadsDao(): DownloadsDao
 
     companion object {
         @Volatile
@@ -46,7 +58,8 @@ abstract class AppDatabase : RoomDatabase() {
                         Migration3To4,
                         Migration4To5,
                         Migration5To6,
-                        Migration6To7
+                        Migration6To7,
+                        Migration7To8
                     )
                     .build()
                     .also { INSTANCE = it }

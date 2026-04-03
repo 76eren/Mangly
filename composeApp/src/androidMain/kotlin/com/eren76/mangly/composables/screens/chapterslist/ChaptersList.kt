@@ -235,6 +235,9 @@ fun ChaptersList(
                         }
                         selectedChapters.clear()
                     }
+                },
+                onDownloadSelection = {
+                    
                 }
             )
         }

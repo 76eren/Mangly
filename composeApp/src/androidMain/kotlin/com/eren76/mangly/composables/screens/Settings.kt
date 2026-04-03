@@ -98,6 +98,12 @@ fun Settings(
             modifier = Modifier.padding(top = 10.dp, bottom = 10.dp),
         )
 
+        LinkToDownloadsScreen(navController)
+
+        HorizontalDivider(
+            modifier = Modifier.padding(top = 10.dp, bottom = 10.dp),
+        )
+
         SettingDisableImageSavingOnHold()
 
         HorizontalDivider(
@@ -306,6 +312,52 @@ fun LinkToHistoryManagementScreen(
         }
     }
 }
+
+@Composable
+fun LinkToDownloadsScreen(
+    navHostController: NavHostController
+) {
+    ElevatedCard(
+        modifier = Modifier
+            .padding(top = 16.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
+            ) {
+                Text(
+                    text = "Manage downloads",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "View your downloads",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            FilledTonalButton(
+                onClick = { navHostController.navigate("downloads") },
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Text("Open")
+            }
+        }
+    }
+}
+
 
 @Composable
 fun SettingDisableImageSavingOnHold() {
