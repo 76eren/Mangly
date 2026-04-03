@@ -46,7 +46,7 @@ class DownloadsViewModel
                 chapterUrl = chapterUrl,
                 extensionMetadata = extensionMetadata,
                 context = context,
-                downoadsDirectory = DOWNLOADS_DIRECTORY,
+                downloadsDirectory = DOWNLOADS_DIRECTORY,
                 currentDownloads = downloads.value
             )
             refresh()

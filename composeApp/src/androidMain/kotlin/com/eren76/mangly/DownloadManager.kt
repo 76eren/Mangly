@@ -47,7 +47,7 @@ class DownloadManager @Inject constructor(
         chapterUrl: String,
         extensionMetadata: ExtensionMetadata,
         context: Context,
-        downoadsDirectory: String,
+        downloadsDirectory: String,
         currentDownloads: List<DownloadWithChapters>
     ) {
         return withContext(Dispatchers.IO) {
@@ -91,7 +91,8 @@ class DownloadManager @Inject constructor(
                 chapter = chapterEntity
             )
 
-            val chapterDir = "${downoadsDirectory}/${mangaurl}/${chapterUrl.hashCode()}"
+            val chapterDir =
+                "${downloadsDirectory}/${downloadEntity.downloadId}/${chapterEntity.id}"
             var savedImages = 0
             for (imageUrl in chapterImages.images) {
                 val imageBytes = downloadImage(imageUrl, chapterImages.headers, context)
