@@ -1,22 +1,25 @@
 package com.eren76.mangly.viewmodels
 
+import android.content.Context
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.eren76.mangly.DownloadManager
 import com.eren76.mangly.rooms.dao.DownloadsDao
-import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
-import com.eren76.mangly.rooms.entities.DownloadsEntity
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
+import com.eren76.manglyextension.plugins.ExtensionMetadata
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
-import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class DownloadsViewModel
 @Inject constructor(
-    private val downloadsDao: DownloadsDao
+    private val downloadsDao: DownloadsDao,
+    private val downloadManager: DownloadManager
 ) : ViewModel() {
+    private val DOWNLOADS_DIRECTORY = "downloads"
+
     val downloads = mutableStateOf<List<DownloadWithChapters>>(emptyList())
 
     init {
@@ -29,52 +32,25 @@ class DownloadsViewModel
         }
     }
 
-    fun addOrUpdateDownload(download: DownloadsEntity) {
-        viewModelScope.launch {
-            downloadsDao.insertDownload(download)
-            refresh()
-        }
-    }
-
-    fun addDownloadedChapter(
-        download: DownloadsEntity,
-        chapter: DownloadedChapterEntity
+    fun createDownload(
+        mangaurl: String,
+        mangaName: String,
+        chapterUrl: String,
+        extensionMetadata: ExtensionMetadata,
+        context: Context
     ) {
         viewModelScope.launch {
-            downloadsDao.ensureDownloadAndInsertChapter(download, chapter)
-            refresh()
-        }
-    }
-
-    fun updateChapterDownloadState(
-        chapterId: UUID,
-        isFullyDownloaded: Boolean,
-        filePath: String?,
-        downloadedAt: Long? = System.currentTimeMillis()
-    ) {
-        viewModelScope.launch {
-            downloadsDao.updateDownloadedChapterState(
-                chapterId = chapterId,
-                isFullyDownloaded = isFullyDownloaded,
-                filePath = filePath,
-                downloadedAt = downloadedAt
+            downloadManager.downloadChapter(
+                mangaurl = mangaurl,
+                mangaName = mangaName,
+                chapterUrl = chapterUrl,
+                extensionMetadata = extensionMetadata,
+                context = context,
+                downoadsDirectory = DOWNLOADS_DIRECTORY,
+                currentDownloads = downloads.value
             )
             refresh()
         }
-    }
 
-    fun deleteChapter(chapterId: UUID) {
-        viewModelScope.launch {
-            downloadsDao.deleteDownloadedChapterById(chapterId)
-            refresh()
-        }
-    }
-
-    fun deleteDownload(downloadId: UUID) {
-        viewModelScope.launch {
-            downloadsDao.deleteDownloadById(downloadId)
-            refresh()
-        }
     }
 }
-

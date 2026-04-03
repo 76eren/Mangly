@@ -102,12 +102,13 @@ fun NavHostContainer(
                 val encodedUrl = backStackEntry.arguments?.getString("url").orEmpty()
                 val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
                 ChaptersList(
-                    url,
-                    extensionMetadataViewModel,
-                    chaptersListViewModel,
-                    favoritesViewModel,
-                    historyViewModel,
-                    navController
+                    targetUrl = url,
+                    extensionMetadataViewModel = extensionMetadataViewModel,
+                    chaptersListViewModel = chaptersListViewModel,
+                    favoritesViewModel = favoritesViewModel,
+                    historyViewModel = historyViewModel,
+                    downloadsViewModel = downloadsViewModel,
+                    navHostController = navController
                 )
             }
 

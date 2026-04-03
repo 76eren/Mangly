@@ -1,6 +1,7 @@
 package com.eren76.mangly.di
 
 import android.content.Context
+import com.eren76.mangly.DownloadManager
 import com.eren76.mangly.ExtensionManager
 import com.eren76.mangly.FileManager
 import com.eren76.mangly.rooms.dao.ExtensionDao
@@ -46,4 +47,11 @@ object AppModule {
         extensionManager: ExtensionManager,
         extensionDao: ExtensionDao
     ): FileManager = FileManager(extensionManager, extensionDao)
+
+    @Provides
+    @Singleton
+    fun provideDownloadManager(
+        fileManager: FileManager,
+        downloadsDao: DownloadsDao
+    ): DownloadManager = DownloadManager(fileManager, downloadsDao)
 }
