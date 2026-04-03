@@ -32,6 +32,10 @@ interface DownloadsDao {
     @Query("SELECT * FROM DownloadsEntity WHERE download_id = :downloadId LIMIT 1")
     suspend fun getWithChaptersByDownloadId(downloadId: UUID): DownloadWithChapters?
 
+    @Transaction
+    @Query("SELECT * FROM DownloadsEntity WHERE manga_url = :mangaUrl LIMIT 1")
+    suspend fun getWithChaptersByMangaUrl(mangaUrl: String): DownloadWithChapters?
+
     @Query("DELETE FROM DownloadedChapterEntity WHERE id = :chapterId")
     suspend fun deleteDownloadedChapterById(chapterId: UUID)
 

@@ -23,6 +23,8 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.recyclerview)
+            implementation(libs.androidx.work.runtime.ktx)
+            implementation(libs.androidx.hilt.work)
 
             implementation(libs.coil.compose)
             implementation(libs.coil.network.okhttp)
@@ -89,6 +91,7 @@ dependencies {
 
     implementation(libs.hilt.android)
     add("kspAndroid", "com.google.dagger:hilt-compiler:2.57.1")
+    add("kspAndroid", libs.androidx.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
     implementation(libs.gson)

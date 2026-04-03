@@ -4,8 +4,6 @@ import android.content.Context
 import com.eren76.mangly.rooms.dao.DownloadsDao
 import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.entities.DownloadsEntity
-import com.eren76.mangly.rooms.relations.DownloadWithChapters
-import com.eren76.manglyextension.plugins.ExtensionMetadata
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -45,34 +43,25 @@ class DownloadManager @Inject constructor(
         mangaurl: String,
         mangaName: String,
         chapterUrl: String,
-        extensionMetadata: ExtensionMetadata,
+        source: Source,
+        extensionId: UUID,
         context: Context,
-        downloadsDirectory: String,
-        currentDownloads: List<DownloadWithChapters>
+        downloadsDirectory: String
     ) {
         return withContext(Dispatchers.IO) {
-            var id = UUID.randomUUID()
-            var existingChapterId: UUID? = null
+            val existingDownload = downloadsDao.getWithChaptersByMangaUrl(mangaurl)
+            val id = existingDownload?.download?.downloadId ?: UUID.randomUUID()
+            val existingChapterId = existingDownload?.chapters?.firstOrNull {
+                it.chapterUrl == chapterUrl
+            }?.id
 
-            // Check if we already have ever downloaded something of this manga before
-            for (download in currentDownloads) {
-                if (download.download.mangaUrl == mangaurl) {
-                    id = download.download.downloadId
-                    existingChapterId = download.chapters.firstOrNull {
-                        it.chapterUrl == chapterUrl
-                    }?.id
-                    break
-                }
-            }
-
-            val source = extensionMetadata.source
             val chapterImages: Source.ChapterImages = source.getChapterImages(chapterUrl)
 
             val downloadEntity = DownloadsEntity(
                 downloadId = id,
                 mangaUrl = mangaurl,
                 mangaName = mangaName,
-                extensionId = runCatching { UUID.fromString(source.getExtensionId()) }.getOrNull()
+                extensionId = extensionId
             )
 
             val chapterId = existingChapterId ?: UUID.randomUUID()
