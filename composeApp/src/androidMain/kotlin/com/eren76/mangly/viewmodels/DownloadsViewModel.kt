@@ -64,8 +64,14 @@ class DownloadsViewModel
             .setInputData(inputData)
             .build()
 
-        val uniqueName = "chapter_download_${mangaurl.hashCode()}_${chapterUrl.hashCode()}"
+        // This limits the download queue to one worker, but ensures that chapters are downloaded sequentially and not in parallel
+        // In the future I might consider allowing multiple parallel downloads
         WorkManager.getInstance(context.applicationContext)
-            .enqueueUniqueWork(uniqueName, ExistingWorkPolicy.KEEP, request)
+            .beginUniqueWork(
+                "chapter_download_queue",
+                ExistingWorkPolicy.APPEND,
+                request
+            )
+            .enqueue()
     }
 }
