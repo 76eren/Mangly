@@ -73,6 +73,7 @@ class DownloadsViewModel
 
         // This limits the download queue to one worker, but ensures that chapters are downloaded sequentially and not in parallel
         // In the future I might consider allowing multiple parallel downloads
+        // REMINDER BEFORE CHANGING THIS: if changing to parallel make sure to not mess up the notifications
         WorkManager.getInstance(context.applicationContext)
             .beginUniqueWork(
                 "chapter_download_queue",
