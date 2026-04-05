@@ -1,21 +1,19 @@
 package com.eren76.mangly.workers
 
-import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.eren76.mangly.DownloadManager
 import com.eren76.mangly.ExtensionManager
 import com.eren76.mangly.R
+import com.eren76.mangly.permissions.NotificationPermissionHandling
 import com.eren76.mangly.rooms.dao.ExtensionDao
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -163,7 +161,7 @@ class ChapterDownloadWorker(
         progressChapter: Int,
         totalChapters: Int
     ) {
-        if (!canPostNotifications()) return
+        if (!NotificationPermissionHandling.canPostNotifications(applicationContext)) return
 
         val notification = buildProgressNotification(mangaName, progressChapter, totalChapters)
         val manager =
@@ -177,7 +175,7 @@ class ChapterDownloadWorker(
         finishedChapters: Int,
         totalChapters: Int
     ) {
-        if (!canPostNotifications()) return
+        if (!NotificationPermissionHandling.canPostNotifications(applicationContext)) return
 
         val progressText = if (totalChapters > 0) {
             val clampedFinished = finishedChapters.coerceIn(0, totalChapters)
@@ -219,13 +217,6 @@ class ChapterDownloadWorker(
         manager.createNotificationChannel(channel)
     }
 
-    private fun canPostNotifications(): Boolean {
-        return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-                ContextCompat.checkSelfPermission(
-                    applicationContext,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED
-    }
 
     private fun notificationIdForWork(): Int {
         return DOWNLOAD_QUEUE_NOTIFICATION_ID
