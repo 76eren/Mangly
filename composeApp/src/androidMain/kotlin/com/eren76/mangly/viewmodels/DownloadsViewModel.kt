@@ -42,8 +42,13 @@ class DownloadsViewModel
         mangaName: String,
         chapterUrl: String,
         extensionMetadata: ExtensionMetadata,
-        context: Context
+        context: Context,
+        queueIndex: Int = 1,
+        queueTotal: Int = 1
     ) {
+        val safeQueueIndex = queueIndex.coerceAtLeast(1)
+        val safeQueueTotal = queueTotal.coerceAtLeast(safeQueueIndex)
+
         val inputData = Data.Builder()
             .putString(ChapterDownloadWorker.KEY_MANGA_URL, mangaurl)
             .putString(ChapterDownloadWorker.KEY_MANGA_NAME, mangaName)
@@ -53,6 +58,8 @@ class DownloadsViewModel
                 extensionMetadata.source.getExtensionId()
             )
             .putString(ChapterDownloadWorker.KEY_DOWNLOADS_DIR, DOWNLOADS_DIRECTORY)
+            .putInt(ChapterDownloadWorker.KEY_QUEUE_INDEX, safeQueueIndex)
+            .putInt(ChapterDownloadWorker.KEY_QUEUE_TOTAL, safeQueueTotal)
             .build()
 
         val request = OneTimeWorkRequestBuilder<ChapterDownloadWorker>()

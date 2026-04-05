@@ -18,8 +18,7 @@ class DownloadManager @Inject constructor(
 ) {
     suspend fun downloadImage(
         imageUrl: String,
-        headers: List<Source.Header>,
-        context: Context
+        headers: List<Source.Header>
     ): ByteArray? {
         return try {
             withContext(Dispatchers.IO) {
@@ -34,7 +33,7 @@ class DownloadManager @Inject constructor(
                     response.body?.bytes()
                 }
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -46,7 +45,7 @@ class DownloadManager @Inject constructor(
         source: Source,
         extensionId: UUID,
         context: Context,
-        downloadsDirectory: String
+        downloadsDirectory: String,
     ) {
         return withContext(Dispatchers.IO) {
             val existingDownload = downloadsDao.getWithChaptersByMangaUrl(mangaurl)
@@ -83,8 +82,9 @@ class DownloadManager @Inject constructor(
             val chapterDir =
                 "${downloadsDirectory}/${downloadEntity.downloadId}/${chapterEntity.id}"
             var savedImages = 0
+            var processedImages = 0
             for (imageUrl in chapterImages.images) {
-                val imageBytes = downloadImage(imageUrl, chapterImages.headers, context)
+                val imageBytes = downloadImage(imageUrl, chapterImages.headers)
                 if (imageBytes != null) {
                     val fileName =
                         "${mangaName}_${chapterUrl.hashCode()}_${imageUrl.hashCode()}.jpg"
@@ -97,6 +97,8 @@ class DownloadManager @Inject constructor(
 
                     savedImages++
                 }
+
+                processedImages++
             }
 
             val isFullyDownloaded = savedImages == chapterImages.images.size && savedImages > 0

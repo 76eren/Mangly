@@ -241,13 +241,18 @@ fun ChaptersList(
                 },
                 onDownloadSelection = {
                     scope.launch {
-                        for (chapterUrl: String in selectedChapters.toList()) {
+                        val selectedList = selectedChapters.toList()
+                        val queueTotal = selectedList.size
+
+                        for ((index, chapterUrl) in selectedList.withIndex()) {
                             downloadsViewModel.createDownload(
                                 mangaurl = targetUrl,
                                 mangaName = mangaName,
                                 chapterUrl = chapterUrl,
                                 extensionMetadata = metadata,
-                                context = context
+                                context = context,
+                                queueIndex = index + 1,
+                                queueTotal = queueTotal
                             )
                         }
                         selectedChapters.clear()
