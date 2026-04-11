@@ -58,6 +58,9 @@ interface DownloadsDao {
         downloadedAt: Long?
     )
 
+    @Query("UPDATE DownloadsEntity SET cover_image_filename = :filename WHERE download_id = :downloadId")
+    suspend fun updateCoverFilename(downloadId: UUID, filename: String?)
+
     @Transaction
     suspend fun ensureDownloadAndInsertChapter(
         download: DownloadsEntity,

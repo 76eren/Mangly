@@ -1,14 +1,14 @@
 package com.eren76.mangly
 
 import android.content.Context
+import com.eren76.mangly.composables.shared.image.CoverCache
 import com.eren76.mangly.rooms.dao.DownloadsDao
 import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.entities.DownloadsEntity
+import com.eren76.mangly.rooms.relations.DownloadWithChapters
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import java.util.UUID
 import javax.inject.Inject
 
@@ -16,26 +16,13 @@ class DownloadManager @Inject constructor(
     private val fileManager: FileManager,
     private val downloadsDao: DownloadsDao,
 ) {
+    private val coverDir = "download_covers"
+
     suspend fun downloadImage(
         imageUrl: String,
         headers: List<Source.Header>
     ): ByteArray? {
-        return try {
-            withContext(Dispatchers.IO) {
-                val client = OkHttpClient()
-                val requestBuilder = Request.Builder().url(imageUrl)
-                for (header in headers) {
-                    requestBuilder.addHeader(header.name, header.value)
-                }
-
-                client.newCall(requestBuilder.build()).execute().use { response ->
-                    if (!response.isSuccessful) return@use null
-                    response.body?.bytes()
-                }
-            }
-        } catch (_: Exception) {
-            null
-        }
+        return runCatching { CoverCache.downloadImage(imageUrl, headers)?.bytes }.getOrNull()
     }
 
     suspend fun downloadChapter(
@@ -48,7 +35,8 @@ class DownloadManager @Inject constructor(
         downloadsDirectory: String,
     ) {
         return withContext(Dispatchers.IO) {
-            val existingDownload = downloadsDao.getWithChaptersByMangaUrl(mangaurl)
+            val existingDownload: DownloadWithChapters? =
+                downloadsDao.getWithChaptersByMangaUrl(mangaurl)
             val id = existingDownload?.download?.downloadId ?: UUID.randomUUID()
             val existingChapterId = existingDownload?.chapters?.firstOrNull {
                 it.chapterUrl == chapterUrl
@@ -60,6 +48,7 @@ class DownloadManager @Inject constructor(
                 downloadId = id,
                 mangaUrl = mangaurl,
                 mangaName = mangaName,
+                coverImageFilename = existingDownload?.download?.coverImageFilename,
                 extensionId = extensionId
             )
 
@@ -79,10 +68,17 @@ class DownloadManager @Inject constructor(
                 chapter = chapterEntity
             )
 
+            downloadCoverIfMissing(
+                existingCoverFilename = existingDownload?.download?.coverImageFilename,
+                downloadId = id,
+                mangaUrl = mangaurl,
+                source = source,
+                context = context
+            )
+
             val chapterDir =
                 "${downloadsDirectory}/${downloadEntity.downloadId}/${chapterEntity.id}"
             var savedImages = 0
-            var processedImages = 0
             for (imageUrl in chapterImages.images) {
                 val imageBytes = downloadImage(imageUrl, chapterImages.headers)
                 if (imageBytes != null) {
@@ -97,8 +93,6 @@ class DownloadManager @Inject constructor(
 
                     savedImages++
                 }
-
-                processedImages++
             }
 
             val isFullyDownloaded = savedImages == chapterImages.images.size && savedImages > 0
@@ -110,6 +104,44 @@ class DownloadManager @Inject constructor(
             )
 
         }
+    }
+
+    private suspend fun downloadCoverIfMissing(
+        existingCoverFilename: String?,
+        downloadId: UUID,
+        mangaUrl: String,
+        source: Source,
+        context: Context
+    ) {
+        if (existingCoverFilename != null) return
+
+        val coverInfo: Source.ImageForChaptersList? = runCatching {
+            source.getImageForChaptersList(mangaUrl)
+        }.getOrNull()
+
+        if (coverInfo == null || coverInfo.imageUrl.isBlank()) return
+
+        val cover = runCatching {
+            CoverCache.downloadImage(coverInfo.imageUrl, coverInfo.headers)
+        }.getOrNull()
+
+        if (cover == null || cover.bytes.isEmpty()) return
+
+        val extension = CoverCache.inferImageExtension(
+            contentType = cover.contentType,
+            finalUrl = cover.finalUrl,
+            originalUrl = coverInfo.imageUrl
+        )
+        val filename = "${downloadId}.$extension"
+
+        fileManager.saveBytesToStorage(
+            context = context,
+            relativeDir = coverDir,
+            fileName = filename,
+            bytes = cover.bytes,
+            overwrite = true
+        )
+        downloadsDao.updateCoverFilename(downloadId = downloadId, filename = filename)
     }
 
 }
