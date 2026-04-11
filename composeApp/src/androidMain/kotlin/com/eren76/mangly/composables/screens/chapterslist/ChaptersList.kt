@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.eren76.mangly.rooms.entities.FavoritesEntity
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
+import com.eren76.mangly.viewmodels.DownloadsViewModel
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.FavoritesViewModel
 import com.eren76.mangly.viewmodels.HistoryViewModel
@@ -45,6 +46,7 @@ fun ChaptersList(
     chaptersListViewModel: ChaptersListViewModel,
     favoritesViewModel: FavoritesViewModel,
     historyViewModel: HistoryViewModel,
+    downloadsViewModel: DownloadsViewModel,
     navHostController: NavHostController
 ) {
     // TODO: Do this some other way, because now this needs to be set before navigating to this screen
@@ -91,6 +93,7 @@ fun ChaptersList(
                 }
             }
         }.getOrNull()
+
 
         val fetchedImage = runCatching {
             withContext(Dispatchers.IO) {
@@ -232,6 +235,25 @@ fun ChaptersList(
                                     chapterUrl = chapterUrl
                                 )
                             }
+                        }
+                        selectedChapters.clear()
+                    }
+                },
+                onDownloadSelection = {
+                    scope.launch {
+                        val selectedList = selectedChapters.toList()
+                        val queueTotal = selectedList.size
+
+                        for ((index, chapterUrl) in selectedList.withIndex()) {
+                            downloadsViewModel.createDownload(
+                                mangaurl = targetUrl,
+                                mangaName = mangaName,
+                                chapterUrl = chapterUrl,
+                                extensionMetadata = metadata,
+                                context = context,
+                                queueIndex = index + 1,
+                                queueTotal = queueTotal
+                            )
                         }
                         selectedChapters.clear()
                     }

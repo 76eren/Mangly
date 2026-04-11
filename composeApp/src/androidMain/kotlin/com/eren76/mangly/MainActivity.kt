@@ -19,6 +19,7 @@ import com.eren76.mangly.navigation.NavigationConstants
 import com.eren76.mangly.rooms.entities.ExtensionEntity
 import com.eren76.mangly.themes.AppTheme
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
+import com.eren76.mangly.viewmodels.DownloadsViewModel
 import com.eren76.mangly.viewmodels.ExtensionDetailsViewModel
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.FavoritesViewModel
@@ -61,6 +62,7 @@ class MainActivity : ComponentActivity() {
                     val chaptersListViewModel: ChaptersListViewModel = hiltViewModel()
                     val favoritesViewModel: FavoritesViewModel = hiltViewModel()
                     val historyViewModel: HistoryViewModel = hiltViewModel()
+                    val downloadsViewModel: DownloadsViewModel = hiltViewModel()
 
 
                     // Populate data for view models
@@ -85,7 +87,8 @@ class MainActivity : ComponentActivity() {
                                 searchViewModel = searchViewModel,
                                 chaptersListViewModel = chaptersListViewModel,
                                 favoritesViewModel = favoritesViewModel,
-                                historyViewModel = historyViewModel
+                                historyViewModel = historyViewModel,
+                                downloadsViewModel = downloadsViewModel
                             )
                         }
                     }
