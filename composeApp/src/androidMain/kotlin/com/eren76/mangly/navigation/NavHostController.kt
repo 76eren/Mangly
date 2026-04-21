@@ -13,7 +13,6 @@ import com.eren76.mangly.composables.screens.Read
 import com.eren76.mangly.composables.screens.Search
 import com.eren76.mangly.composables.screens.Settings
 import com.eren76.mangly.composables.screens.chapterslist.ChaptersList
-import com.eren76.mangly.composables.screens.downloads.Downloads
 import com.eren76.mangly.composables.screens.history.HistoryManagement
 import com.eren76.mangly.composables.screens.home.Home
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
@@ -59,9 +58,24 @@ fun NavHostContainer(
                 chaptersListViewModel.clear()
                 Home(
                     favoritesViewModel,
+                    downloadsViewModel,
                     extensionMetadataViewModel,
                     historyViewModel,
-                    navController
+                    navController,
+                    showDownloads = false
+                )
+            }
+
+            composable("home/downloads") {
+                searchViewModel.clearSearchResults()
+                chaptersListViewModel.clear()
+                Home(
+                    favoritesViewModel,
+                    downloadsViewModel,
+                    extensionMetadataViewModel,
+                    historyViewModel,
+                    navController,
+                    showDownloads = true
                 )
             }
 
@@ -132,12 +146,6 @@ fun NavHostContainer(
                     extensionMetaDataViewModel = extensionMetadataViewModel
                 )
 
-            }
-
-            composable("downloads") { backStackEntry ->
-                searchViewModel.clearSearchResults()
-                chaptersListViewModel.clear()
-                Downloads(downloadsViewModel = downloadsViewModel)
             }
         })
 }

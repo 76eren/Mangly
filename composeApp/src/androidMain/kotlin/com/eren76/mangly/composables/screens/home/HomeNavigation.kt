@@ -9,22 +9,25 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.util.UUID
 
-fun onFavoriteClick(
-    favorite: FavoritesEntity,
+fun onHomeMangaClick(
+    mangaUrl: String,
+    extensionId: UUID?,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
     navController: NavHostController
 ) {
-    // Find the corresponding extension by ID and set it as selected
+    if (extensionId == null) return
+
     val targetMetadata: ExtensionMetadata? = extensionMetadataViewModel
         .getAllSources()
-        .find { it.source.getExtensionId() == favorite.extensionId.toString() }
+        .find { it.source.getExtensionId() == extensionId.toString() }
 
-    if (targetMetadata != null) {
-        extensionMetadataViewModel.setSelectedSource(targetMetadata)
-        val encodedUrl = URLEncoder.encode(favorite.mangaUrl, StandardCharsets.UTF_8.toString())
-        navController.navigate("chapters/${encodedUrl}")
-    }
+    if (targetMetadata == null) return
+
+    extensionMetadataViewModel.setSelectedSource(targetMetadata)
+    val encodedUrl = URLEncoder.encode(mangaUrl, StandardCharsets.UTF_8.toString())
+    navController.navigate("chapters/${encodedUrl}")
 }
 
 fun findMetadataForFavorite(

@@ -349,7 +349,7 @@ fun LinkToDownloadsScreen(
             }
 
             FilledTonalButton(
-                onClick = { navHostController.navigate("downloads") },
+                onClick = { navHostController.navigate("home/downloads") },
                 modifier = Modifier.padding(start = 8.dp)
             ) {
                 Text("Open")
