@@ -1,4 +1,4 @@
-package com.eren76.mangly
+package com.eren76.mangly.permissions
 
 import android.Manifest
 import android.os.Build
@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 
 
-object PermissionHandling {
+object StoragePermissionHandling {
 
     fun canWriteWithoutPermission(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
 }
@@ -29,7 +29,7 @@ fun rememberStoragePermissionHandler(
 
     return remember(onGranted) {
         StoragePermissionState {
-            if (PermissionHandling.canWriteWithoutPermission()) {
+            if (StoragePermissionHandling.canWriteWithoutPermission()) {
                 onGranted()
             } else {
                 launcher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)

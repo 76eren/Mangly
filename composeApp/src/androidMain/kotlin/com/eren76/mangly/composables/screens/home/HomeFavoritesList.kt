@@ -117,8 +117,9 @@ fun PaginatedFavorites(
                                         extensionMetadataViewModel = extensionMetadataViewModel,
                                         favoritesViewModel = favoritesViewModel,
                                         onClick = {
-                                            onFavoriteClick(
-                                                favorite = favorite,
+                                            onHomeMangaClick(
+                                                mangaUrl = favorite.mangaUrl,
+                                                extensionId = favorite.extensionId,
                                                 extensionMetadataViewModel = extensionMetadataViewModel,
                                                 navController = navHostController
                                             )
@@ -182,8 +183,9 @@ fun ShowItemsInLazyGrid(
                 extensionMetadataViewModel = extensionMetadataViewModel,
                 favoritesViewModel = favoritesViewModel,
                 onClick = {
-                    onFavoriteClick(
-                        favorite = favorite,
+                    onHomeMangaClick(
+                        mangaUrl = favorite.mangaUrl,
+                        extensionId = favorite.extensionId,
                         extensionMetadataViewModel = extensionMetadataViewModel,
                         navController = navHostController
                     )

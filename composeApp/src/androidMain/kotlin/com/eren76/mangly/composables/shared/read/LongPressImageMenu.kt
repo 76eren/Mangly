@@ -48,7 +48,7 @@ import coil3.request.SuccessResult
 import coil3.request.crossfade
 import coil3.toBitmap
 import com.eren76.mangly.composables.shared.image.ImageLoadingErrorComposable
-import com.eren76.mangly.rememberStoragePermissionHandler
+import com.eren76.mangly.permissions.rememberStoragePermissionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
