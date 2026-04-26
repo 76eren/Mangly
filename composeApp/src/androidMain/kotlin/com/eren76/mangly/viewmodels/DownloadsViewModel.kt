@@ -58,6 +58,7 @@ class DownloadsViewModel
     fun createDownload(
         mangaurl: String,
         mangaName: String,
+        mangaSummary: String,
         chapterUrl: String,
         extensionMetadata: ExtensionMetadata,
         context: Context,
@@ -72,6 +73,7 @@ class DownloadsViewModel
         val inputData = Data.Builder()
             .putString(ChapterDownloadWorker.KEY_MANGA_URL, mangaurl)
             .putString(ChapterDownloadWorker.KEY_MANGA_NAME, mangaName)
+            .putString(ChapterDownloadWorker.KEY_MANGA_SUMMARY, mangaSummary)
             .putString(ChapterDownloadWorker.KEY_CHAPTER_URL, chapterUrl)
             .putString(
                 ChapterDownloadWorker.KEY_EXTENSION_ID,

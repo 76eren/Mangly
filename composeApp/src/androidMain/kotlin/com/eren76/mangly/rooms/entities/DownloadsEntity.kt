@@ -31,6 +31,9 @@ data class DownloadsEntity(
     @ColumnInfo(name = "manga_name")
     val mangaName: String? = null,
 
+    @ColumnInfo(name = "summary")
+    val mangaSummary: String? = null,
+
     @ColumnInfo(name = "cover_image_filename")
     val coverImageFilename: String? = null,
 

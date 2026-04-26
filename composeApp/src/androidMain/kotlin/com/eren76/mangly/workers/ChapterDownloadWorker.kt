@@ -43,6 +43,7 @@ class ChapterDownloadWorker(
     override suspend fun doWork(): Result {
         val mangaUrl = inputData.getString(KEY_MANGA_URL) ?: return Result.failure()
         val mangaName = inputData.getString(KEY_MANGA_NAME) ?: return Result.failure()
+        val mangaSummary = inputData.getString(KEY_MANGA_SUMMARY).orEmpty()
         val chapterUrl = inputData.getString(KEY_CHAPTER_URL) ?: return Result.failure()
         val extensionIdValue = inputData.getString(KEY_EXTENSION_ID) ?: return Result.failure()
         val downloadsDirectory = inputData.getString(KEY_DOWNLOADS_DIR) ?: DEFAULT_DOWNLOADS_DIR
@@ -78,6 +79,7 @@ class ChapterDownloadWorker(
             deps.downloadManager().downloadChapter(
                 mangaurl = mangaUrl,
                 mangaName = mangaName,
+                mangaSummary = mangaSummary,
                 chapterUrl = chapterUrl,
                 source = metadata.source,
                 extensionId = extensionId,
@@ -225,6 +227,7 @@ class ChapterDownloadWorker(
     companion object {
         const val KEY_MANGA_URL = "manga_url"
         const val KEY_MANGA_NAME = "manga_name"
+        const val KEY_MANGA_SUMMARY = "manga_summary"
         const val KEY_CHAPTER_URL = "chapter_url"
         const val KEY_EXTENSION_ID = "extension_id"
         const val KEY_DOWNLOADS_DIR = "downloads_dir"

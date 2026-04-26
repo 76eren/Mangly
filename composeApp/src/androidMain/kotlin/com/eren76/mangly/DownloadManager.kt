@@ -28,6 +28,7 @@ class DownloadManager @Inject constructor(
     suspend fun downloadChapter(
         mangaurl: String,
         mangaName: String,
+        mangaSummary: String,
         chapterUrl: String,
         source: Source,
         extensionId: UUID,
@@ -43,11 +44,13 @@ class DownloadManager @Inject constructor(
             }?.id
 
             val chapterImages: Source.ChapterImages = source.getChapterImages(chapterUrl)
+            val normalizedSummary = mangaSummary.takeIf { it.isNotBlank() }
 
             val downloadEntity = DownloadsEntity(
                 downloadId = id,
                 mangaUrl = mangaurl,
                 mangaName = mangaName,
+                mangaSummary = normalizedSummary ?: existingDownload?.download?.mangaSummary,
                 coverImageFilename = existingDownload?.download?.coverImageFilename,
                 extensionId = extensionId
             )

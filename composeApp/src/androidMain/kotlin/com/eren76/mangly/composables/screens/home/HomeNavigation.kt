@@ -15,7 +15,8 @@ fun onHomeMangaClick(
     mangaUrl: String,
     extensionId: UUID?,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
-    navController: NavHostController
+    navController: NavHostController,
+    isDownload: Boolean = false
 ) {
     if (extensionId == null) return
 
@@ -25,9 +26,12 @@ fun onHomeMangaClick(
 
     if (targetMetadata == null) return
 
-    extensionMetadataViewModel.setSelectedSource(targetMetadata)
+    extensionMetadataViewModel.setSelectedSource(targetMetadata) // TODO: This should not be done this way but for now it's fine
     val encodedUrl = URLEncoder.encode(mangaUrl, StandardCharsets.UTF_8.toString())
-    navController.navigate("chapters/${encodedUrl}")
+    navController.navigate(
+        if (isDownload) "chapters/$encodedUrl"
+        else "chapters/$encodedUrl/downloads"
+    )
 }
 
 fun findMetadataForFavorite(

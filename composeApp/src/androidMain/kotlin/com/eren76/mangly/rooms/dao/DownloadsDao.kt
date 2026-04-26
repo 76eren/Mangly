@@ -61,6 +61,20 @@ interface DownloadsDao {
     @Query("UPDATE DownloadsEntity SET cover_image_filename = :filename WHERE download_id = :downloadId")
     suspend fun updateCoverFilename(downloadId: UUID, filename: String?)
 
+    @Query(
+        """
+        UPDATE DownloadsEntity
+        SET manga_name = :mangaName,
+            summary = :mangaSummary
+        WHERE download_id = :downloadId
+        """
+    )
+    suspend fun updateDownloadMetadata(
+        downloadId: UUID,
+        mangaName: String?,
+        mangaSummary: String?
+    )
+
     @Transaction
     suspend fun ensureDownloadAndInsertChapter(
         download: DownloadsEntity,
@@ -69,6 +83,16 @@ interface DownloadsDao {
         val existing = getDownloadById(download.downloadId)
         if (existing == null) {
             insertDownload(download)
+        } else {
+            val resolvedName = download.mangaName ?: existing.mangaName
+            val resolvedSummary = download.mangaSummary ?: existing.mangaSummary
+            if (resolvedName != existing.mangaName || resolvedSummary != existing.mangaSummary) {
+                updateDownloadMetadata(
+                    downloadId = download.downloadId,
+                    mangaName = resolvedName,
+                    mangaSummary = resolvedSummary
+                )
+            }
         }
         insertDownloadedChapter(chapter)
     }

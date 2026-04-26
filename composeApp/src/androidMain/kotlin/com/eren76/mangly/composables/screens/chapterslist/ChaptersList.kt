@@ -47,10 +47,14 @@ fun ChaptersList(
     favoritesViewModel: FavoritesViewModel,
     historyViewModel: HistoryViewModel,
     downloadsViewModel: DownloadsViewModel,
-    navHostController: NavHostController
+    navHostController: NavHostController,
+    showDownloads: Boolean = false
 ) {
     // TODO: Do this some other way, because now this needs to be set before navigating to this screen
     val metadata: ExtensionMetadata? = extensionMetadataViewModel.selectedSingleSource.value
+
+    val downloads = downloadsViewModel.downloads.value
+    val relatedDownload = downloads.find { it.download.mangaUrl == targetUrl }
 
 
     if (metadata == null) {
@@ -248,6 +252,7 @@ fun ChaptersList(
                             downloadsViewModel.createDownload(
                                 mangaurl = targetUrl,
                                 mangaName = mangaName,
+                                mangaSummary = summary,
                                 chapterUrl = chapterUrl,
                                 extensionMetadata = metadata,
                                 context = context,
