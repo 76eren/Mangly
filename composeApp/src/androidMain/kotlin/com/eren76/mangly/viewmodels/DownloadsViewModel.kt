@@ -60,6 +60,7 @@ class DownloadsViewModel
         mangaName: String,
         mangaSummary: String,
         chapterUrl: String,
+        chapterName: String,
         extensionMetadata: ExtensionMetadata,
         context: Context,
         queueIndex: Int = 1,
@@ -75,6 +76,7 @@ class DownloadsViewModel
             .putString(ChapterDownloadWorker.KEY_MANGA_NAME, mangaName)
             .putString(ChapterDownloadWorker.KEY_MANGA_SUMMARY, mangaSummary)
             .putString(ChapterDownloadWorker.KEY_CHAPTER_URL, chapterUrl)
+            .putString(ChapterDownloadWorker.KEY_CHAPTER_NAME, chapterName)
             .putString(
                 ChapterDownloadWorker.KEY_EXTENSION_ID,
                 extensionMetadata.source.getExtensionId()

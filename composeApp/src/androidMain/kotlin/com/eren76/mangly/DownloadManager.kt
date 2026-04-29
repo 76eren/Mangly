@@ -34,6 +34,7 @@ class DownloadManager @Inject constructor(
         extensionId: UUID,
         context: Context,
         downloadsDirectory: String,
+        chapterName: String,
     ) {
         return withContext(Dispatchers.IO) {
             val existingDownload: DownloadWithChapters? =
@@ -45,20 +46,6 @@ class DownloadManager @Inject constructor(
 
             val chapterImages: Source.ChapterImages = source.getChapterImages(chapterUrl)
             val normalizedSummary = mangaSummary.takeIf { it.isNotBlank() }
-
-            // TODO: Horrible way of doing this SHOULD be refactored
-            val resolvedChapterName: String = try {
-                val availableChapters: List<Source.ChapterValue> =
-                    source.getChaptersFromChapterUrl(mangaurl)
-
-                val name: String? = availableChapters
-                    .firstOrNull { chapter -> chapter.url == chapterUrl }
-                    ?.title
-
-                name?.takeIf { it.isNotBlank() } ?: chapterUrl
-            } catch (_: Exception) {
-                chapterUrl
-            }
 
             val downloadEntity = DownloadsEntity(
                 downloadId = id,
@@ -73,7 +60,7 @@ class DownloadManager @Inject constructor(
             val chapterEntity = DownloadedChapterEntity(
                 id = chapterId,
                 downloadId = id,
-                chapterName = resolvedChapterName,
+                chapterName = chapterName,
                 chapterUrl = chapterUrl,
                 downloadedAt = null,
                 filePath = null,

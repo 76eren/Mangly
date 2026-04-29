@@ -45,6 +45,7 @@ class ChapterDownloadWorker(
         val mangaName = inputData.getString(KEY_MANGA_NAME) ?: return Result.failure()
         val mangaSummary = inputData.getString(KEY_MANGA_SUMMARY).orEmpty()
         val chapterUrl = inputData.getString(KEY_CHAPTER_URL) ?: return Result.failure()
+        val chapterName = inputData.getString(KEY_CHAPTER_NAME).orEmpty()
         val extensionIdValue = inputData.getString(KEY_EXTENSION_ID) ?: return Result.failure()
         val downloadsDirectory = inputData.getString(KEY_DOWNLOADS_DIR) ?: DEFAULT_DOWNLOADS_DIR
         val queueIndex = inputData.getInt(KEY_QUEUE_INDEX, 1).coerceAtLeast(1)
@@ -81,6 +82,7 @@ class ChapterDownloadWorker(
                 mangaName = mangaName,
                 mangaSummary = mangaSummary,
                 chapterUrl = chapterUrl,
+                chapterName = chapterName,
                 source = metadata.source,
                 extensionId = extensionId,
                 context = applicationContext,
@@ -229,6 +231,7 @@ class ChapterDownloadWorker(
         const val KEY_MANGA_NAME = "manga_name"
         const val KEY_MANGA_SUMMARY = "manga_summary"
         const val KEY_CHAPTER_URL = "chapter_url"
+        const val KEY_CHAPTER_NAME = "chapter_name"
         const val KEY_EXTENSION_ID = "extension_id"
         const val KEY_DOWNLOADS_DIR = "downloads_dir"
         const val DEFAULT_DOWNLOADS_DIR = "downloads"

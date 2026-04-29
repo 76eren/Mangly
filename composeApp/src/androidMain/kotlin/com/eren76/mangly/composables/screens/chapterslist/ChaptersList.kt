@@ -291,6 +291,8 @@ fun ChaptersList(
                                 mangaName = mangaName,
                                 mangaSummary = summary,
                                 chapterUrl = chapterUrl,
+                                chapterName = chapters?.find { it.url == chapterUrl }?.title
+                                    ?: chapterUrl,
                                 extensionMetadata = metadata!!,
                                 context = context,
                                 queueIndex = index + 1,
