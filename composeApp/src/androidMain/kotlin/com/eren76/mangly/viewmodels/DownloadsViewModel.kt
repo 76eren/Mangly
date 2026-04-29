@@ -29,7 +29,7 @@ class DownloadsViewModel
     private val downloadsDao: DownloadsDao,
     private val fileManager: FileManager
 ) : ViewModel() {
-    private val DOWNLOADS_DIRECTORY = "downloads"
+    private val DOWNLOADS_DIRECTORY = "download_covers"
     private val DOWNLOAD_QUEUE_WORK_NAME = "chapter_download_queue"
 
     val downloads = mutableStateOf<List<DownloadWithChapters>>(emptyList())
