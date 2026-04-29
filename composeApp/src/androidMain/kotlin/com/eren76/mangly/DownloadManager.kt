@@ -10,6 +10,7 @@ import com.eren76.mangly.viewmodels.DownloadsViewModel
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
 
@@ -84,11 +85,14 @@ class DownloadManager @Inject constructor(
             val chapterDir =
                 "${downloadsDirectory}/${downloadEntity.downloadId}/${chapterEntity.id}"
             var savedImages = 0
-            for (imageUrl in chapterImages.images) {
+            for ((pageIndexZeroBased, imageUrl) in chapterImages.images.withIndex()) {
                 val imageBytes = downloadImage(imageUrl, chapterImages.headers)
                 if (imageBytes != null) {
-                    val fileName =
-                        "${mangaName}_${chapterUrl.hashCode()}_${imageUrl.hashCode()}.jpg"
+
+                    val pageNumber = pageIndexZeroBased + 1
+
+                    val extension = getDownloadExtension(imageUrl)
+                    val fileName = "$pageNumber.$extension"
                     fileManager.saveBytesToStorage(
                         context = context,
                         relativeDir = chapterDir,
@@ -109,6 +113,22 @@ class DownloadManager @Inject constructor(
             )
 
         }
+    }
+
+    fun getDownloadExtension(imageUrl: String): String {
+        val extensionFromUrl = runCatching {
+            val cleaned = imageUrl.substringBefore('?').substringBefore('#')
+            val lastSegment = cleaned.substringAfterLast('/', cleaned)
+            lastSegment.substringAfterLast('.', "")
+                .lowercase(Locale.US)
+                .takeIf { it.isNotBlank() && it.length <= 5 }
+        }.getOrNull()
+        val extension = when (extensionFromUrl) {
+            "jpg", "jpeg", "png", "webp", "gif" -> extensionFromUrl
+            else -> "jpg"
+        }
+
+        return extension
     }
 
     private suspend fun downloadCoverIfMissing(
