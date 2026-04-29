@@ -26,7 +26,6 @@ import androidx.navigation.NavHostController
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
 import com.eren76.mangly.viewmodels.DownloadsViewModel
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
-import java.io.File
 
 @Composable
 fun ShowDownloadsInList(
@@ -50,12 +49,6 @@ fun ShowDownloadsInList(
             val subtitle = "$downloadedChapters chapters downloaded"
             val canOpen = item.download.extensionId != null
 
-            // TODO: show image as well
-            val file: File? = downloadsViewModel.getCoverFile(
-                item.download.coverImageFilename ?: "",
-                LocalContext.current
-            )
-
             ElevatedCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -64,7 +57,8 @@ fun ShowDownloadsInList(
                             mangaUrl = item.download.mangaUrl,
                             extensionId = item.download.extensionId,
                             extensionMetadataViewModel = extensionMetadataViewModel,
-                            navController = navHostController
+                            navController = navHostController,
+                            isDownload = true
                         )
                     }
             ) {

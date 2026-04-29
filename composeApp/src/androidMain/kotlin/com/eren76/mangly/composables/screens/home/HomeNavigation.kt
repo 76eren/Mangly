@@ -29,8 +29,8 @@ fun onHomeMangaClick(
     extensionMetadataViewModel.setSelectedSource(targetMetadata) // TODO: This should not be done this way but for now it's fine
     val encodedUrl = URLEncoder.encode(mangaUrl, StandardCharsets.UTF_8.toString())
     navController.navigate(
-        if (isDownload) "chapters/$encodedUrl"
-        else "chapters/$encodedUrl/downloads"
+        if (isDownload) "chapters/$encodedUrl/downloads"
+        else "chapters/$encodedUrl"
     )
 }
 
