@@ -29,8 +29,13 @@ class DownloadsViewModel
     private val downloadsDao: DownloadsDao,
     private val fileManager: FileManager
 ) : ViewModel() {
-    private val DOWNLOADS_DIRECTORY = "download_covers"
+    private val DOWNLOADS_DIRECTORY = "downloads"
     private val DOWNLOAD_QUEUE_WORK_NAME = "chapter_download_queue"
+
+    companion object {
+        val DOWNLOADS_COVERS_DIRECTORY = "download_covers"
+
+    }
 
     val downloads = mutableStateOf<List<DownloadWithChapters>>(emptyList())
 
@@ -50,7 +55,7 @@ class DownloadsViewModel
     fun getCoverFile(filename: String, context: Context): File? {
         return fileManager.getFileInDir(
             context = context,
-            relativeDir = DOWNLOADS_DIRECTORY,
+            relativeDir = DOWNLOADS_COVERS_DIRECTORY,
             fileName = filename
         )
     }

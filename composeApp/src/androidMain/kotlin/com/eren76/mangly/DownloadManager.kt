@@ -6,6 +6,7 @@ import com.eren76.mangly.rooms.dao.DownloadsDao
 import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.entities.DownloadsEntity
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
+import com.eren76.mangly.viewmodels.DownloadsViewModel
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -16,7 +17,7 @@ class DownloadManager @Inject constructor(
     private val fileManager: FileManager,
     private val downloadsDao: DownloadsDao,
 ) {
-    private val coverDir = "download_covers"
+    private val coverDir = DownloadsViewModel.DOWNLOADS_COVERS_DIRECTORY
 
     suspend fun downloadImage(
         imageUrl: String,
