@@ -1,6 +1,7 @@
 package com.eren76.mangly.composables.screens.readviewer.webtoon
 
-import android.content.Context
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.defaultMinSize
@@ -9,16 +10,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.SubcomposeAsyncImage
-import coil3.network.NetworkHeaders
-import coil3.network.httpHeaders
-import coil3.request.ImageRequest
-import coil3.request.crossfade
+import com.eren76.mangly.composables.screens.readviewer.ReaderPage
+import com.eren76.mangly.composables.screens.readviewer.ReaderPageState
 import com.eren76.mangly.composables.shared.image.ImageLoadingComposable
 import com.eren76.mangly.composables.shared.image.ImageLoadingErrorComposable
 
@@ -42,23 +42,24 @@ object ImageHeightCache {
 
 @Composable
 fun WebtoonImage(
-    imageUrl: String,
-    networkHeaders: NetworkHeaders,
-    context: Context,
+    page: ReaderPage,
     index: Int,
     totalImages: Int,
     onTap: () -> Unit,
     onLongPress: () -> Unit
 ) {
     val density = LocalDensity.current
-    val cachedHeight = remember(imageUrl) { ImageHeightCache.getHeight(imageUrl) }
+    val cachedHeight = remember(page.url) { ImageHeightCache.getHeight(page.url) }
 
-    val imageRequest = remember(imageUrl, networkHeaders) {
-        ImageRequest.Builder(context)
-            .data(imageUrl)
-            .httpHeaders(networkHeaders)
-            .crossfade(false)
-            .build()
+    var imageBitmap: ImageBitmap? = null
+    val state = page.state
+    if (state is ReaderPageState.Success) {
+        val bytes = state.bytes
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        if (bitmap != null) {
+            imageBitmap = bitmap.asImageBitmap()
+        }
+
     }
 
     val modifier = if (cachedHeight != null) {
@@ -71,9 +72,7 @@ fun WebtoonImage(
             .defaultMinSize(minHeight = 200.dp)
     }
 
-    SubcomposeAsyncImage(
-        model = imageRequest,
-        contentDescription = "Page ${index + 1} of $totalImages",
+    BoxForImageState(
         modifier = modifier
             .combinedClickable(
                 onClick = onTap,
@@ -84,18 +83,46 @@ fun WebtoonImage(
             .onGloballyPositioned { coordinates ->
                 val heightDp = with(density) { coordinates.size.height.toDp() }
                 if (heightDp > 0.dp) {
-                    ImageHeightCache.setHeight(imageUrl, heightDp)
+                    ImageHeightCache.setHeight(page.url, heightDp)
                 }
             },
-        contentScale = ContentScale.FillWidth,
-        loading = {
-            ImageLoadingComposable(
-                index = index,
-                minHeight = cachedHeight ?: 200.dp
-            )
-        },
-        error = {
+        state = page.state,
+        imageBitmap = imageBitmap,
+        index = index,
+        minHeight = cachedHeight ?: 200.dp,
+        totalImages = totalImages
+    )
+}
+
+@Composable
+private fun BoxForImageState(
+    modifier: Modifier,
+    state: ReaderPageState,
+    imageBitmap: ImageBitmap?,
+    index: Int,
+    minHeight: Dp,
+    totalImages: Int,
+) {
+    when (state) {
+        is ReaderPageState.Loading -> {
+            ImageLoadingComposable(index = index, minHeight = minHeight)
+        }
+
+        is ReaderPageState.Error -> {
             ImageLoadingErrorComposable(index = index)
         }
-    )
+
+        is ReaderPageState.Success -> {
+            if (imageBitmap == null) {
+                ImageLoadingErrorComposable(index = index)
+                return
+            }
+            Image(
+                bitmap = imageBitmap,
+                contentDescription = "Page ${index + 1} of $totalImages",
+                modifier = modifier,
+                contentScale = ContentScale.FillWidth
+            )
+        }
+    }
 }

@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -16,12 +17,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import coil3.ImageLoader
+import coil3.network.NetworkHeaders
 import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.readviewer.ReaderMode
 import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
 import com.eren76.mangly.composables.screens.readviewer.ReaderModeType
+import com.eren76.mangly.composables.screens.readviewer.ReaderPage
 import com.eren76.mangly.composables.screens.readviewer.createReaderMode
 import com.eren76.mangly.composables.screens.readviewer.getReaderModeTypeFromPref
+import com.eren76.mangly.composables.screens.readviewer.loadReaderPagesIncrementally
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.HistoryViewModel
@@ -40,6 +45,7 @@ fun Read(
 ) {
     var url by remember(targetUrl) { mutableStateOf(targetUrl) }
     var chapterImages by remember { mutableStateOf<Source.ChapterImages?>(null) }
+    val pages = remember(url) { mutableStateListOf<ReaderPage>() }
 
     val metadata: ExtensionMetadata? = extensionMetadataViewModel.selectedSingleSource.value
     if (metadata == null) {
@@ -71,9 +77,37 @@ fun Read(
         }
     }
 
+    LaunchedEffect(chapterImages) {
+        val imgs: List<String> = chapterImages?.images.orEmpty()
+        if (imgs.isEmpty()) return@LaunchedEffect
+
+        pages.clear()
+        pages.addAll(imgs.mapIndexed { index, imageUrl ->
+            ReaderPage(
+                index = index,
+                url = imageUrl
+            )
+        })
+
+        val headers = NetworkHeaders.Builder().apply {
+            for (header in chapterImages?.headers.orEmpty()) {
+                this[header.name] = header.value
+            }
+        }.build()
+
+        val imageLoader = ImageLoader(context)
+        loadReaderPagesIncrementally(
+            context = context,
+            imageLoader = imageLoader,
+            pages = pages,
+            headers = headers,
+            maxConcurrency = 4 // TODO: make this configurable in the settings
+        )
+    }
+
     if (chapterImages != null && chapterImages!!.images.isNotEmpty()) {
         readerMode.Content(
-            images = chapterImages!!.images,
+            pages = pages,
             headers = chapterImages!!.headers,
             modifier = Modifier
                 .fillMaxSize()

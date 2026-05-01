@@ -7,12 +7,24 @@ import com.eren76.mangly.composables.screens.readviewer.webtoon.WebtoonReaderMod
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
 import com.eren76.manglyextension.plugins.Source
 
+sealed interface ReaderPageState {
+    data object Loading : ReaderPageState
+    data class Success(val bytes: ByteArray) : ReaderPageState
+    data class Error(val throwable: Throwable? = null) : ReaderPageState
+}
+
+data class ReaderPage(
+    val index: Int,
+    val url: String,
+    val state: ReaderPageState = ReaderPageState.Loading,
+)
+
 interface ReaderMode {
     val name: String
 
     @Composable
     fun Content(
-        images: List<String>,
+        pages: List<ReaderPage>,
         headers: List<Source.Header>,
         modifier: Modifier,
         onPreviousChapter: () -> Unit,

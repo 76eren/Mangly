@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,20 +19,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import coil3.ImageLoader
 import coil3.network.NetworkHeaders
-import coil3.network.httpHeaders
-import coil3.request.CachePolicy
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.readviewer.ReaderMode
 import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
+import com.eren76.mangly.composables.screens.readviewer.ReaderPage
+import com.eren76.mangly.composables.screens.readviewer.ReaderPageState
 import com.eren76.mangly.composables.shared.read.LongPressImageMenu
 import com.eren76.mangly.composables.shared.read.ReadBottomControls
 import com.eren76.mangly.composables.shared.read.ReadTopControls
@@ -46,13 +41,18 @@ object WebtoonReaderMode : ReaderMode {
 
     @Composable
     override fun Content(
-        images: List<String>,
+        pages: List<ReaderPage>,
         headers: List<Source.Header>,
         modifier: Modifier,
         onPreviousChapter: () -> Unit,
         onNextChapter: () -> Unit,
         chaptersListViewModel: ChaptersListViewModel
     ) {
+
+        var showControls by remember { mutableStateOf(false) }
+        var showLongPressMenu by remember { mutableStateOf(false) }
+        var selectedLongPressImageUrl by remember(pages) { mutableStateOf<String?>(null) }
+        var selectedLongPressImageBytes by remember(pages) { mutableStateOf<ByteArray?>(null) }
         val context = LocalContext.current
         val coroutineScope = rememberCoroutineScope()
 
@@ -64,25 +64,13 @@ object WebtoonReaderMode : ReaderMode {
 
         val lazyListState = rememberLazyListState()
 
-        val networkHeaders = remember(headers) {
+        remember(headers) {
             NetworkHeaders.Builder().apply {
                 for (header in headers) {
                     this[header.name] = header.value
                 }
             }.build()
         }
-
-        PrefetchAroundViewport(
-            lazyListState = lazyListState,
-            images = images,
-            networkHeaders = networkHeaders,
-            sharedPreferences = sharedPreferences
-        )
-
-
-        var showControls by remember { mutableStateOf(false) }
-        var showLongPressMenu by remember { mutableStateOf(false) }
-        var selectedLongPressImageUrl by remember(images) { mutableStateOf<String?>(null) }
 
 
         val currentPage by remember {
@@ -95,7 +83,7 @@ object WebtoonReaderMode : ReaderMode {
         }
 
         // Reset scroll position when images change (new chapter)
-        LaunchedEffect(images) {
+        LaunchedEffect(pages) {
             ImageHeightCache.clear()
             lazyListState.scrollToItem(0)
         }
@@ -129,17 +117,15 @@ object WebtoonReaderMode : ReaderMode {
                     }
 
                     items(
-                        count = images.size,
+                        count = pages.size,
                         key = { index -> "image_$index" }
                     ) { index ->
-                        val imageUrl = images[index]
+                        val page = pages[index]
 
                         WebtoonImage(
-                            imageUrl = imageUrl,
-                            networkHeaders = networkHeaders,
-                            context = context,
+                            page = page,
                             index = index,
-                            totalImages = images.size,
+                            totalImages = pages.size,
                             onTap = {
                                 showControls = !showControls
                                 showLongPressMenu = false
@@ -150,7 +136,12 @@ object WebtoonReaderMode : ReaderMode {
                                         false
                                     )
                                 ) {
-                                    selectedLongPressImageUrl = imageUrl
+                                    // Freeze the selection at the time of long-press.
+                                    // Using index later can point to a different item if the list
+                                    // changes or if recomposition reorders/reuses slots.
+                                    selectedLongPressImageUrl = page.url
+                                    selectedLongPressImageBytes =
+                                        (page.state as? ReaderPageState.Success)?.bytes
                                     showLongPressMenu = true
                                     showControls = false
                                 }
@@ -172,7 +163,7 @@ object WebtoonReaderMode : ReaderMode {
                 if (showControls) {
                     ReadTopControls(
                         currentPage = currentPage,
-                        totalPages = images.size,
+                        totalPages = pages.size,
                         chapterTitle = chaptersListViewModel.getSelectedChapterNumber(),
                         onPreviousChapter = onPreviousChapter,
                         modifier = Modifier.align(Alignment.TopCenter)
@@ -182,7 +173,7 @@ object WebtoonReaderMode : ReaderMode {
                         onNextChapter = onNextChapter,
                         modifier = Modifier.align(Alignment.BottomCenter),
                         currentPage = currentPage,
-                        totalPages = images.size,
+                        totalPages = pages.size,
                         onGoToPage = { page ->
                             coroutineScope.launch {
                                 lazyListState.scrollToItem(page)
@@ -192,59 +183,24 @@ object WebtoonReaderMode : ReaderMode {
                     )
                 }
 
-                selectedLongPressImageUrl?.takeIf { showLongPressMenu }?.let { imageUrl ->
-                    LongPressImageMenu(
-                        imageUrl = imageUrl,
-                        networkHeaders = networkHeaders,
-                        onDismiss = {
-                            showLongPressMenu = false
-                            selectedLongPressImageUrl = null
+                selectedLongPressImageUrl
+                    ?.takeIf { showLongPressMenu }
+                    ?.let { imageUrl ->
+                        val bytes = selectedLongPressImageBytes
+                        if (bytes != null) {
+                            LongPressImageMenu(
+                                imageBytes = bytes,
+                                onDismiss = {
+                                    showLongPressMenu = false
+                                    selectedLongPressImageUrl = null
+                                    selectedLongPressImageBytes = null
+                                }
+                            )
                         }
-                    )
-                }
+                    }
             }
         }
 
     }
 }
 
-@Composable
-private fun PrefetchAroundViewport(
-    lazyListState: LazyListState,
-    images: List<String>,
-    networkHeaders: NetworkHeaders,
-    sharedPreferences: SharedPreferences
-) {
-    val context = LocalContext.current
-    val imageLoader = ImageLoader(context)
-
-    val preloadAmount = sharedPreferences.getInt(
-        ReaderModePrefs.IMAGE_PRELOAD_AMOUNT,
-        2
-    )
-
-    LaunchedEffect(images, networkHeaders) {
-        snapshotFlow { lazyListState.firstVisibleItemIndex }
-            .collect { firstVisible ->
-
-                // +1 because item 0 is header
-                val currentImageIndex = (firstVisible - 1).coerceAtLeast(0)
-
-                val start = (currentImageIndex).coerceAtLeast(0)
-                val endExclusive = (currentImageIndex + preloadAmount).coerceAtMost(images.size)
-
-                for (i in start until endExclusive) {
-                    val url = images[i]
-                    val req = ImageRequest.Builder(context)
-                        .data(url)
-                        .httpHeaders(networkHeaders)
-                        .crossfade(false)
-                        .memoryCachePolicy(CachePolicy.ENABLED)
-                        .diskCachePolicy(CachePolicy.ENABLED)
-                        .build()
-
-                    imageLoader.enqueue(req)
-                }
-            }
-    }
-}
