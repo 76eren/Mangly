@@ -63,12 +63,9 @@ fun Read(
         else downloadsViewModel.downloads.value.find { it.download.mangaUrl == chaptersListViewModel.getSelectedMangaUrl() }
     }
 
-    // TODO: This should not have to be that way instead the selected source should also be assigned properly in download mode
-    val resolvedExtensionId: UUID? = when {
-        download -> relatedDownload?.download?.extensionId
-        else -> extensionMetadataViewModel.selectedSingleSource.value?.source?.getExtensionId()
+    val resolvedExtensionId: UUID? =
+        extensionMetadataViewModel.selectedSingleSource.value?.source?.getExtensionId()
             ?.let { UUID.fromString(it) }
-    }
 
     fun addToHistoryIfPossible(chapterUrl: String) {
         val extId = resolvedExtensionId ?: return
