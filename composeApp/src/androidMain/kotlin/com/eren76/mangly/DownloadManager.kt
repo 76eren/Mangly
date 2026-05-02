@@ -13,6 +13,7 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.math.floor
 
 class DownloadManager @Inject constructor(
     private val fileManager: FileManager,
@@ -59,11 +60,15 @@ class DownloadManager @Inject constructor(
             )
 
             val chapterId = existingChapterId ?: UUID.randomUUID()
+
+            val chapterIndex = parseChapterIndex(chapterName)
+
             val chapterEntity = DownloadedChapterEntity(
                 id = chapterId,
                 downloadId = id,
                 chapterName = chapterName,
                 chapterUrl = chapterUrl,
+                chapterIndex = chapterIndex,
                 downloadedAt = null,
                 filePath = null,
                 isFullyDownloaded = false
@@ -113,6 +118,20 @@ class DownloadManager @Inject constructor(
             )
 
         }
+    }
+
+    /**
+     * Convert a chapter name like "Chapter 16.5" into an integer ordering index.
+     * We use (number * 10) to preserve common .5 chapters (16.5 -> 165) while keeping ints.
+     */
+    private fun parseChapterIndex(chapterName: String?): Int? {
+        if (chapterName.isNullOrBlank()) return null
+
+        // Capture first number in the string (e.g. "16", "16.5", "001")
+        val match = Regex("(\\d+(?:\\.\\d+)?)").find(chapterName) ?: return null
+        val value = match.value.toDoubleOrNull() ?: return null
+
+        return floor(value * 10.0).toInt()
     }
 
     fun getDownloadExtension(imageUrl: String): String {

@@ -34,6 +34,13 @@ data class DownloadedChapterEntity(
     @ColumnInfo(name = "chapter_url")
     val chapterUrl: String? = null,
 
+    /**
+     * Ordering index for chapters within the same manga.
+     * 0-based; may contain gaps.
+     */
+    @ColumnInfo(name = "chapter_index")
+    val chapterIndex: Int? = null,
+
     @ColumnInfo(name = "downloaded_at")
     val downloadedAt: Long? = null,
 

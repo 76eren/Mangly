@@ -15,6 +15,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.eren76.mangly.FileManager
 import com.eren76.mangly.rooms.dao.DownloadsDao
+import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
 import com.eren76.mangly.workers.ChapterDownloadWorker
 import com.eren76.manglyextension.plugins.ExtensionMetadata
@@ -49,6 +50,20 @@ class DownloadsViewModel
     fun refresh() {
         viewModelScope.launch {
             downloads.value = downloadsDao.getAllWithChapters()
+                .map { downloadWithChapters ->
+                    downloadWithChapters.copy(
+                        chapters = downloadWithChapters.chapters
+                            .sortedWith(
+                                compareBy<
+                                        DownloadedChapterEntity
+                                        >(
+                                    { it.chapterIndex == null },
+                                    { it.chapterIndex },
+                                    { it.chapterName?.lowercase() }
+                                )
+                            )
+                    )
+                }
         }
     }
 

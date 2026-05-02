@@ -24,6 +24,18 @@ interface DownloadsDao {
     @Query("SELECT * FROM DownloadedChapterEntity WHERE download_id = :downloadId")
     suspend fun getChaptersByDownloadId(downloadId: UUID): List<DownloadedChapterEntity>
 
+    @Query(
+        """
+        SELECT * FROM DownloadedChapterEntity
+        WHERE download_id = :downloadId
+        ORDER BY
+            CASE WHEN chapter_index IS NULL THEN 1 ELSE 0 END,
+            chapter_index ASC,
+            chapter_name COLLATE NOCASE ASC
+        """
+    )
+    suspend fun getChaptersByDownloadIdOrdered(downloadId: UUID): List<DownloadedChapterEntity>
+
     @Transaction
     @Query("SELECT * FROM DownloadsEntity ORDER BY manga_url ASC")
     suspend fun getAllWithChapters(): List<DownloadWithChapters>

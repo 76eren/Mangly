@@ -19,6 +19,7 @@ import com.eren76.mangly.rooms.database.migrations.Migration8To9
 import com.eren76.mangly.rooms.database.migrations.Migration9To10
 import com.eren76.mangly.rooms.database.migrations.Migration10To11
 import com.eren76.mangly.rooms.database.migrations.Migration11To12
+import com.eren76.mangly.rooms.database.migrations.Migration12To13
 import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.entities.DownloadsEntity
 import com.eren76.mangly.rooms.entities.ExtensionEntity
@@ -35,7 +36,7 @@ import com.eren76.mangly.rooms.entities.HistoryEntity
         DownloadsEntity::class,
         DownloadedChapterEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -67,7 +68,8 @@ abstract class AppDatabase : RoomDatabase() {
                         Migration8To9,
                         Migration9To10,
                         Migration10To11,
-                        Migration11To12
+                        Migration11To12,
+                        Migration12To13
                     )
                     .build()
                     .also { INSTANCE = it }
