@@ -18,7 +18,12 @@ import java.util.UUID
             onUpdate = ForeignKey.NO_ACTION
         )
     ],
-    indices = [Index(value = ["download_id"])]
+    indices = [
+        Index(value = ["download_id"]),
+
+        // Must be declared here so Room expects it during schema validation.
+        Index(value = ["download_id", "chapter_index"])
+    ]
 )
 data class DownloadedChapterEntity(
     @PrimaryKey

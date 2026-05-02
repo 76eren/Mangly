@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 13,
-    "identityHash": "92ece84dd55d039d2219024d55a14a94",
+    "identityHash": "a63be0ba249eb4bef5db0b642f5c3269",
     "entities": [
       {
         "tableName": "ExtensionEntity",
@@ -370,6 +370,16 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_DownloadedChapterEntity_download_id` ON `${TABLE_NAME}` (`download_id`)"
+          },
+          {
+            "name": "index_DownloadedChapterEntity_download_id_chapter_index",
+            "unique": false,
+            "columnNames": [
+              "download_id",
+              "chapter_index"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_DownloadedChapterEntity_download_id_chapter_index` ON `${TABLE_NAME}` (`download_id`, `chapter_index`)"
           }
         ],
         "foreignKeys": [
@@ -389,7 +399,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '92ece84dd55d039d2219024d55a14a94')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a63be0ba249eb4bef5db0b642f5c3269')"
     ]
   }
 }
