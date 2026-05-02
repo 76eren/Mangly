@@ -1,6 +1,7 @@
 package com.eren76.mangly.composables.screens.readviewer
 
 import android.content.Context
+import android.graphics.Bitmap
 import coil3.ImageLoader
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
@@ -11,6 +12,7 @@ import coil3.request.ImageResult
 import coil3.request.SuccessResult
 import coil3.request.bitmapConfig
 import coil3.request.crossfade
+import coil3.size.Size
 import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -42,8 +44,8 @@ suspend fun loadReaderPagesIncrementally(
                         .crossfade(false)
                         .memoryCachePolicy(CachePolicy.ENABLED)
                         .diskCachePolicy(CachePolicy.ENABLED)
-                        // Decode to bitmap and then compress to bytes so reader modes don't need Coil
-                        .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                        .bitmapConfig(Bitmap.Config.ARGB_8888)
+                        .size(Size.ORIGINAL)
                         .build()
 
                     val result: ImageResult = withContext(Dispatchers.IO) {
@@ -55,7 +57,7 @@ suspend fun loadReaderPagesIncrementally(
                             val bytes = withContext(Dispatchers.IO) {
                                 ByteArrayOutputStream().use { baos ->
                                     bitmap.compress(
-                                        android.graphics.Bitmap.CompressFormat.PNG,
+                                        Bitmap.CompressFormat.PNG,
                                         100,
                                         baos
                                     )
@@ -79,8 +81,5 @@ suspend fun loadReaderPagesIncrementally(
     }.awaitAll()
 }
 
-suspend fun populateDownloadedImages() {
-
-}
 
 

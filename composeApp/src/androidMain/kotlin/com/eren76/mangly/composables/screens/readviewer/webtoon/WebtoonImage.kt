@@ -30,7 +30,7 @@ import kotlinx.coroutines.withContext
 /**
  * We split anything taller than MAX_TEXTURE_SIZE into tiles that each stay within this budget.
  */
-private const val MAX_TEXTURE_SIZE = 4096
+private const val MAX_TEXTURE_SIZE = 2048
 
 object ImageHeightCache {
     private val heightCache = HashMap<String, Dp>()
@@ -70,10 +70,8 @@ fun WebtoonImage(
                             ?: return@runCatching null
 
                     if (src.height <= MAX_TEXTURE_SIZE) {
-                        // Common case: image fits in a single GPU texture – no copy needed.
                         listOf(src.asImageBitmap())
                     } else {
-                        // Tall page: split into MAX_TEXTURE_SIZE-px tall tiles so every tile is within the GPU texture size limit.
                         buildList {
                             var y = 0
                             while (y < src.height) {
