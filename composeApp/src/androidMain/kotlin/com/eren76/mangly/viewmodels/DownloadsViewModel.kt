@@ -121,7 +121,7 @@ class DownloadsViewModel
         WorkManager.getInstance(context.applicationContext)
             .beginUniqueWork(
                 DOWNLOAD_QUEUE_WORK_NAME,
-                ExistingWorkPolicy.APPEND,
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
                 request
             )
             .enqueue()

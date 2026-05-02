@@ -57,13 +57,17 @@ class ChapterDownloadWorker(
         val extensionEntry = deps.extensionDao().getById(extensionId) ?: return Result.failure()
 
         createNotificationChannelIfNeeded()
-        setForeground(
-            createForegroundInfo(
-                mangaName = mangaName,
-                progressChapter = queueIndex,
-                totalChapters = queueTotal
+        try {
+            setForeground(
+                createForegroundInfo(
+                    mangaName = mangaName,
+                    progressChapter = queueIndex,
+                    totalChapters = queueTotal
+                )
             )
-        )
+        } catch (e: Exception) {
+
+        }
 
         return try {
             val metadata = deps.extensionManager().extractExtensionMetadata(
