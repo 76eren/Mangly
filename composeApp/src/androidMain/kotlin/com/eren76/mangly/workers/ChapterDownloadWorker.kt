@@ -66,7 +66,7 @@ class ChapterDownloadWorker(
                 )
             )
         } catch (e: Exception) {
-
+            return Result.retry()
         }
 
         return try {
@@ -245,5 +245,14 @@ class ChapterDownloadWorker(
         private const val CHANNEL_ID = "chapter_downloads"
         private const val CHANNEL_NAME = "Chapter downloads"
         private const val DOWNLOAD_QUEUE_NOTIFICATION_ID = 1001
+    }
+
+    override suspend fun getForegroundInfo(): ForegroundInfo {
+        createNotificationChannelIfNeeded()
+        return createForegroundInfo(
+            mangaName = inputData.getString(KEY_MANGA_NAME) ?: "Manga",
+            progressChapter = inputData.getInt(KEY_QUEUE_INDEX, 1),
+            totalChapters = inputData.getInt(KEY_QUEUE_TOTAL, 1)
+        )
     }
 }
