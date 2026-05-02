@@ -1,5 +1,6 @@
 package com.eren76.mangly.composables.screens.chapterslist
 
+import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.eren76.mangly.Constants
 import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.entities.FavoritesEntity
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
@@ -83,6 +85,12 @@ fun ChaptersList(
     val selectedChapters = remember { mutableStateListOf<String>() }
     val isSelectionMode = selectedChapters.isNotEmpty()
     val context = LocalContext.current
+    val downloadsPrefs = remember {
+        context.getSharedPreferences(Constants.READING_SETTING_KEY, Context.MODE_PRIVATE)
+    }
+    val isDownloadModeEnabled = remember(downloadsPrefs) {
+        downloadsPrefs.getBoolean(Constants.MANGLY_ENBALE_DOWNLOADS, false)
+    }
     var localCoverFile by remember { mutableStateOf<File?>(null) }
 
     BackHandler(enabled = isSelectionMode) {
@@ -301,7 +309,8 @@ fun ChaptersList(
                         }
                         selectedChapters.clear()
                     }
-                }
+                },
+                showDownloadUi = isDownloadModeEnabled
             )
         }
 

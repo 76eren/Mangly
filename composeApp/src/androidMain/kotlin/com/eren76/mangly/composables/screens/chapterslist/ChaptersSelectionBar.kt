@@ -23,7 +23,8 @@ fun ChaptersSelectionBar(
     selectedCount: Int,
     modifier: Modifier = Modifier,
     onApplySelection: () -> Unit,
-    onDownloadSelection: () -> Unit
+    onDownloadSelection: () -> Unit,
+    showDownloadUi: Boolean = true
 ) {
     Surface(
         modifier = modifier,
@@ -53,12 +54,14 @@ fun ChaptersSelectionBar(
                     )
                     Text(text = "Mark")
                 }
-                TextButton(onClick = onDownloadSelection) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Apply download selection"
-                    )
-                    Text(text = "Download")
+                if (showDownloadUi) {
+                    TextButton(onClick = onDownloadSelection) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Apply download selection"
+                        )
+                        Text(text = "Download")
+                    }
                 }
             }
 
