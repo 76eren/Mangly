@@ -40,6 +40,7 @@ fun ChapterListItemCard(
     scrollState: ScrollState,
     selectedChapterUrls: MutableList<String>,
     isSelectionMode: Boolean,
+    isDownload: Boolean
 ) {
     val isRead =
         historyViewModel.historyWithChapters.value.any { history ->
@@ -68,7 +69,8 @@ fun ChapterListItemCard(
                 chaptersListViewModel,
                 scrollState.value,
                 chapter.title,
-                targetUrl
+                targetUrl,
+                isDownload
             )
         }
     }

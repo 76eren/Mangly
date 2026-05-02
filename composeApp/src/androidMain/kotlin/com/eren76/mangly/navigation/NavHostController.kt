@@ -149,7 +149,22 @@ fun NavHostContainer(
                     targetUrl = url,
                     extensionMetadataViewModel = extensionMetadataViewModel,
                     chaptersListViewModel = chaptersListViewModel,
-                    historyViewModel = historyViewModel
+                    historyViewModel = historyViewModel,
+                    downloadsViewModel = downloadsViewModel,
+                    download = false
+                )
+            }
+
+            composable("read/{url}/downloads") { backStackEntry ->
+                val encodedUrl = backStackEntry.arguments?.getString("url").orEmpty()
+                val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
+                Read(
+                    targetUrl = url,
+                    extensionMetadataViewModel = extensionMetadataViewModel,
+                    chaptersListViewModel = chaptersListViewModel,
+                    historyViewModel = historyViewModel,
+                    downloadsViewModel = downloadsViewModel,
+                    download = true
                 )
             }
 

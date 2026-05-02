@@ -29,12 +29,19 @@ fun onChapterClick(
     chaptersListViewModel: ChaptersListViewModel,
     scrollPosition: Int,
     chapterTitle: String,
-    chapterUrl: String
+    chapterUrl: String,
+    isDownload: Boolean
 ) {
+    // Probably not the best way of sharing states between composables
     chaptersListViewModel.setScrollPosition(scrollPosition)
     chaptersListViewModel.setSelectedChapterNumber(chapterTitle)
     chaptersListViewModel.setSelectedMangaUrl(chapterUrl)
     val encodedUrl = URLEncoder.encode(mangaUrl, StandardCharsets.UTF_8.toString())
-    navHostController.navigate("read/${encodedUrl}")
+
+    if (!isDownload) {
+        navHostController.navigate("read/${encodedUrl}")
+    } else {
+        navHostController.navigate("read/${encodedUrl}/downloads")
+    }
 }
 

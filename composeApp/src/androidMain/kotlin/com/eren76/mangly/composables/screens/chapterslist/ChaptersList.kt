@@ -305,7 +305,7 @@ fun ChaptersList(
             )
         }
 
-        chapters?.let { chapterList ->
+        chapters?.let { chapterList: List<Source.ChapterValue> ->
             if (chapterList.isEmpty()) {
                 Text(
                     if (showDownloads) "No downloaded chapters found." else "No chapters found.",
@@ -313,7 +313,7 @@ fun ChaptersList(
                 )
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    chapterList.forEach { chapter ->
+                    chapterList.forEach { chapter: Source.ChapterValue ->
                         ChapterListItemCard(
                             chapter = chapter,
                             targetUrl = targetUrl,
@@ -322,7 +322,8 @@ fun ChaptersList(
                             navHostController = navHostController,
                             scrollState = scrollState,
                             selectedChapterUrls = selectedChapters,
-                            isSelectionMode = isSelectionMode
+                            isSelectionMode = isSelectionMode,
+                            isDownload = showDownloads
                         )
                     }
                 }

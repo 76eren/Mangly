@@ -26,8 +26,8 @@ suspend fun loadReaderPagesIncrementally(
     imageLoader: ImageLoader,
     pages: MutableList<ReaderPage>,
     headers: NetworkHeaders,
-    maxConcurrency: Int = 4,
 ) = coroutineScope {
+    val maxConcurrency: Int = 4 // TODO: Make this user-configurable
     val semaphore = Semaphore(maxConcurrency)
 
     pages.mapIndexed { index, page ->
@@ -77,6 +77,10 @@ suspend fun loadReaderPagesIncrementally(
             }
         }
     }.awaitAll()
+}
+
+suspend fun populateDownloadedImages() {
+
 }
 
 
