@@ -1,0 +1,385 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 9,
+    "identityHash": "6af9312d9b24b70d83c44fd31fc9b678",
+    "entities": [
+      {
+        "tableName": "ExtensionEntity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` BLOB NOT NULL, `name` TEXT NOT NULL, `file_path` TEXT NOT NULL, `upload_time` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "filePath",
+            "columnName": "file_path",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uploadTime",
+            "columnName": "upload_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "FavoritesEntity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` BLOB NOT NULL, `manga_url` TEXT NOT NULL, `manga_title` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `cover_image_filename` TEXT, `extension_id` BLOB NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`extension_id`) REFERENCES `ExtensionEntity`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mangaUrl",
+            "columnName": "manga_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mangaTitle",
+            "columnName": "manga_title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "created_at",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "coverImageFilename",
+            "columnName": "cover_image_filename",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "extensionId",
+            "columnName": "extension_id",
+            "affinity": "BLOB",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_FavoritesEntity_extension_id",
+            "unique": false,
+            "columnNames": [
+              "extension_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_FavoritesEntity_extension_id` ON `${TABLE_NAME}` (`extension_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "ExtensionEntity",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "extension_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "HistoryEntity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` BLOB NOT NULL, `manga_url` TEXT NOT NULL, `manga_name` TEXT NOT NULL, `cover_image_filename` TEXT, `extension_id` BLOB NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`extension_id`) REFERENCES `ExtensionEntity`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mangaUrl",
+            "columnName": "manga_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mangaName",
+            "columnName": "manga_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "coverImageFilename",
+            "columnName": "cover_image_filename",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "extensionId",
+            "columnName": "extension_id",
+            "affinity": "BLOB",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_HistoryEntity_extension_id",
+            "unique": false,
+            "columnNames": [
+              "extension_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_HistoryEntity_extension_id` ON `${TABLE_NAME}` (`extension_id`)"
+          },
+          {
+            "name": "index_HistoryEntity_manga_url",
+            "unique": true,
+            "columnNames": [
+              "manga_url"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_HistoryEntity_manga_url` ON `${TABLE_NAME}` (`manga_url`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "ExtensionEntity",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "extension_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "HistoryReadChapterEntity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`history_id` BLOB NOT NULL, `chapter_url` TEXT NOT NULL, `read_at` INTEGER, PRIMARY KEY(`history_id`, `chapter_url`), FOREIGN KEY(`history_id`) REFERENCES `HistoryEntity`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "historyId",
+            "columnName": "history_id",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chapterUrl",
+            "columnName": "chapter_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "readAt",
+            "columnName": "read_at",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "history_id",
+            "chapter_url"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_HistoryReadChapterEntity_history_id",
+            "unique": false,
+            "columnNames": [
+              "history_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_HistoryReadChapterEntity_history_id` ON `${TABLE_NAME}` (`history_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "HistoryEntity",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "history_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "DownloadsEntity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`download_id` BLOB NOT NULL, `manga_url` TEXT NOT NULL, `manga_name` TEXT, `chapter_url` TEXT, `extension_id` BLOB, PRIMARY KEY(`download_id`), FOREIGN KEY(`extension_id`) REFERENCES `ExtensionEntity`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "downloadId",
+            "columnName": "download_id",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mangaUrl",
+            "columnName": "manga_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mangaName",
+            "columnName": "manga_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "chapterUrl",
+            "columnName": "chapter_url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "extensionId",
+            "columnName": "extension_id",
+            "affinity": "BLOB"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "download_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_DownloadsEntity_extension_id",
+            "unique": false,
+            "columnNames": [
+              "extension_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_DownloadsEntity_extension_id` ON `${TABLE_NAME}` (`extension_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "ExtensionEntity",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "extension_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "DownloadedChapterEntity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` BLOB NOT NULL, `download_id` BLOB NOT NULL, `chapter_name` TEXT, `chapter_url` TEXT, `downloaded_at` INTEGER, `file_path` TEXT, `is_fully_downloaded` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`download_id`) REFERENCES `DownloadsEntity`(`download_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "downloadId",
+            "columnName": "download_id",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chapterName",
+            "columnName": "chapter_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "chapterUrl",
+            "columnName": "chapter_url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "downloadedAt",
+            "columnName": "downloaded_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "filePath",
+            "columnName": "file_path",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isFullyDownloaded",
+            "columnName": "is_fully_downloaded",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_DownloadedChapterEntity_download_id",
+            "unique": false,
+            "columnNames": [
+              "download_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_DownloadedChapterEntity_download_id` ON `${TABLE_NAME}` (`download_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "DownloadsEntity",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "download_id"
+            ],
+            "referencedColumns": [
+              "download_id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6af9312d9b24b70d83c44fd31fc9b678')"
+    ]
+  }
+}

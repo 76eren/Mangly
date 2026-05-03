@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -21,7 +23,10 @@ import androidx.compose.ui.unit.dp
 fun ChaptersSelectionBar(
     selectedCount: Int,
     modifier: Modifier = Modifier,
-    onApplySelection: () -> Unit
+    onApplySelection: () -> Unit,
+    onDownloadOrDeleteSelection: () -> Unit,
+    showDownloadUi: Boolean = true,
+    isDownloadMode: Boolean = false
 ) {
     Surface(
         modifier = modifier,
@@ -40,13 +45,33 @@ fun ChaptersSelectionBar(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
-            TextButton(onClick = onApplySelection) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "Apply chapter selection"
-                )
-                Text(text = "Mark")
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(0.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onApplySelection) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Apply chapter selection"
+                    )
+                    Text(text = "Mark")
+                }
+                if (showDownloadUi) {
+                    TextButton(onClick = onDownloadOrDeleteSelection) {
+                        Icon(
+                            imageVector = (if (!isDownloadMode) Icons.Default.Add else Icons.Default.Delete),
+                            contentDescription = if (!isDownloadMode) {
+                                "Apply download selection"
+                            } else {
+                                "Apply delete selection"
+                            }
+                        )
+                        Text(if (!isDownloadMode) "Download" else "Delete")
+                    }
+                }
             }
+
+
         }
     }
 }

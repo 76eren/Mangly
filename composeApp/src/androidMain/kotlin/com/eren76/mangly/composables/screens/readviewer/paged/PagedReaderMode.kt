@@ -29,6 +29,8 @@ import coil3.network.NetworkHeaders
 import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.readviewer.ReaderMode
 import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
+import com.eren76.mangly.composables.screens.readviewer.ReaderPage
+import com.eren76.mangly.composables.screens.readviewer.ReaderPageState
 import com.eren76.mangly.composables.shared.read.LongPressImageMenu
 import com.eren76.mangly.composables.shared.read.ReadBottomControls
 import com.eren76.mangly.composables.shared.read.ReadTopControls
@@ -42,7 +44,7 @@ object PagedReaderMode : ReaderMode {
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     override fun Content(
-        images: List<String>,
+        pages: List<ReaderPage>,
         headers: List<Source.Header>,
         modifier: Modifier,
         onPreviousChapter: () -> Unit,
@@ -65,8 +67,8 @@ object PagedReaderMode : ReaderMode {
             }.build()
         }
 
-        // images + 1 navigation page at the end
-        val totalPages = images.size + 1
+        // pages + 1 navigation page at the end
+        val totalPages = pages.size + 1
         val pagerState = rememberPagerState(
             initialPage = 0,
             pageCount = { totalPages }
@@ -76,8 +78,8 @@ object PagedReaderMode : ReaderMode {
         var showLongPressMenu by remember { mutableStateOf(false) }
 
 
-        // Reset pager position when images change (new chapter)
-        LaunchedEffect(images) {
+        // Used for new chapter
+        LaunchedEffect(pages) {
             pagerState.scrollToPage(0)
         }
 
@@ -132,14 +134,13 @@ object PagedReaderMode : ReaderMode {
                 modifier = Modifier.fillMaxSize(),
                 beyondViewportPageCount = 1
             ) { pageIndex ->
-                if (pageIndex < images.size) {
+                if (pageIndex < pages.size) {
                     // Regular image page
+                    val page = pages[pageIndex]
                     PagedImage(
-                        imageUrl = images[pageIndex],
-                        networkHeaders = networkHeaders,
-                        context = context,
+                        page = page,
                         index = pageIndex,
-                        totalImages = images.size
+                        totalImages = pages.size
                     )
                 } else {
                     // Navigation page at the end
@@ -160,13 +161,13 @@ object PagedReaderMode : ReaderMode {
                     .padding(8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                val currentPageDisplay = if (pagerState.currentPage < images.size) {
+                val currentPageDisplay = if (pagerState.currentPage < pages.size) {
                     pagerState.currentPage + 1
                 } else {
-                    images.size
+                    pages.size
                 }
                 Text(
-                    text = "$currentPageDisplay / ${images.size}",
+                    text = "$currentPageDisplay / ${pages.size}",
                     color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -174,8 +175,8 @@ object PagedReaderMode : ReaderMode {
 
             if (showControls) {
                 ReadTopControls(
-                    currentPage = if (pagerState.currentPage < images.size) pagerState.currentPage + 1 else images.size,
-                    totalPages = images.size,
+                    currentPage = if (pagerState.currentPage < pages.size) pagerState.currentPage + 1 else pages.size,
+                    totalPages = pages.size,
                     chapterTitle = chaptersListViewModel.getSelectedChapterNumber(),
                     onPreviousChapter = onPreviousChapter,
                     modifier = Modifier.align(Alignment.TopCenter)
@@ -194,12 +195,15 @@ object PagedReaderMode : ReaderMode {
                 )
             }
 
-            if (showLongPressMenu && pagerState.currentPage < images.size) {
-                LongPressImageMenu(
-                    imageUrl = images[pagerState.currentPage],
-                    networkHeaders = networkHeaders,
-                    onDismiss = { showLongPressMenu = false }
-                )
+            if (showLongPressMenu && pagerState.currentPage < pages.size) {
+                val selectedPage = pages[pagerState.currentPage]
+                val bytes = (selectedPage.state as? ReaderPageState.Success)?.bytes
+                if (bytes != null) {
+                    LongPressImageMenu(
+                        imageBytes = bytes,
+                        onDismiss = { showLongPressMenu = false }
+                    )
+                }
             }
         }
     }

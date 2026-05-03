@@ -16,6 +16,7 @@ import com.eren76.mangly.composables.screens.chapterslist.ChaptersList
 import com.eren76.mangly.composables.screens.history.HistoryManagement
 import com.eren76.mangly.composables.screens.home.Home
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
+import com.eren76.mangly.viewmodels.DownloadsViewModel
 import com.eren76.mangly.viewmodels.ExtensionDetailsViewModel
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.FavoritesViewModel
@@ -35,7 +36,8 @@ fun NavHostContainer(
     searchViewModel: SearchViewModel,
     chaptersListViewModel: ChaptersListViewModel,
     favoritesViewModel: FavoritesViewModel,
-    historyViewModel: HistoryViewModel
+    historyViewModel: HistoryViewModel,
+    downloadsViewModel: DownloadsViewModel
 
 ) {
 
@@ -56,9 +58,24 @@ fun NavHostContainer(
                 chaptersListViewModel.clear()
                 Home(
                     favoritesViewModel,
+                    downloadsViewModel,
                     extensionMetadataViewModel,
                     historyViewModel,
-                    navController
+                    navController,
+                    showDownloads = false
+                )
+            }
+
+            composable("home/downloads") {
+                searchViewModel.clearSearchResults()
+                chaptersListViewModel.clear()
+                Home(
+                    favoritesViewModel,
+                    downloadsViewModel,
+                    extensionMetadataViewModel,
+                    historyViewModel,
+                    navController,
+                    showDownloads = true
                 )
             }
 
@@ -99,12 +116,29 @@ fun NavHostContainer(
                 val encodedUrl = backStackEntry.arguments?.getString("url").orEmpty()
                 val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
                 ChaptersList(
-                    url,
-                    extensionMetadataViewModel,
-                    chaptersListViewModel,
-                    favoritesViewModel,
-                    historyViewModel,
-                    navController
+                    targetUrl = url,
+                    extensionMetadataViewModel = extensionMetadataViewModel,
+                    chaptersListViewModel = chaptersListViewModel,
+                    favoritesViewModel = favoritesViewModel,
+                    historyViewModel = historyViewModel,
+                    downloadsViewModel = downloadsViewModel,
+                    navHostController = navController,
+                    showDownloads = false
+                )
+            }
+
+            composable("chapters/{url}/downloads") { backStackEntry ->
+                val encodedUrl = backStackEntry.arguments?.getString("url").orEmpty()
+                val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
+                ChaptersList(
+                    targetUrl = url,
+                    extensionMetadataViewModel = extensionMetadataViewModel,
+                    chaptersListViewModel = chaptersListViewModel,
+                    favoritesViewModel = favoritesViewModel,
+                    historyViewModel = historyViewModel,
+                    downloadsViewModel = downloadsViewModel,
+                    navHostController = navController,
+                    showDownloads = true
                 )
             }
 
@@ -115,7 +149,22 @@ fun NavHostContainer(
                     targetUrl = url,
                     extensionMetadataViewModel = extensionMetadataViewModel,
                     chaptersListViewModel = chaptersListViewModel,
-                    historyViewModel = historyViewModel
+                    historyViewModel = historyViewModel,
+                    downloadsViewModel = downloadsViewModel,
+                    download = false
+                )
+            }
+
+            composable("read/{url}/downloads") { backStackEntry ->
+                val encodedUrl = backStackEntry.arguments?.getString("url").orEmpty()
+                val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
+                Read(
+                    targetUrl = url,
+                    extensionMetadataViewModel = extensionMetadataViewModel,
+                    chaptersListViewModel = chaptersListViewModel,
+                    historyViewModel = historyViewModel,
+                    downloadsViewModel = downloadsViewModel,
+                    download = true
                 )
             }
 
@@ -129,6 +178,5 @@ fun NavHostContainer(
                 )
 
             }
-
         })
 }

@@ -42,6 +42,12 @@ class FileManager @Inject constructor(
         return file.exists() && file.delete()
     }
 
+    fun deleteDirectory(context: Context, relativeDir: String): Boolean {
+        val dir = File(context.filesDir, relativeDir)
+        if (!dir.exists() || !dir.isDirectory) return false
+        return dir.deleteRecursively()
+    }
+
     // TOOD: This is not SRP
     suspend fun saveAndInsertEntry(
         context: Context,

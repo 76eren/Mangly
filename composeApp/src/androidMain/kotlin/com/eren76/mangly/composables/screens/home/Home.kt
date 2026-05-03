@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.eren76.mangly.Constants
+import com.eren76.mangly.viewmodels.DownloadsViewModel
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.FavoritesViewModel
 import com.eren76.mangly.viewmodels.HistoryViewModel
@@ -23,9 +24,11 @@ import com.eren76.mangly.viewmodels.HistoryViewModel
 @Composable
 fun Home(
     favoritesViewModel: FavoritesViewModel,
+    downloadsViewModel: DownloadsViewModel,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
     historyViewModel: HistoryViewModel,
-    navHostController: NavHostController
+    navHostController: NavHostController,
+    showDownloads: Boolean = false,
 ) {
     val context = LocalContext.current
 
@@ -53,6 +56,7 @@ fun Home(
     val sortedFavorites = remember(favorites, sorting) {
         sortFavorites(favorites, sorting, historyViewModel)
     }
+    val downloads = downloadsViewModel.downloads.value
 
     Column(
         modifier = Modifier
@@ -62,12 +66,29 @@ fun Home(
         verticalArrangement = Arrangement.Top
     ) {
         Text(
-            "Favorites",
+            if (showDownloads) "Downloads" else "Favorites",
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(16.dp)
         )
 
-        if (sortedFavorites.isEmpty()) {
+        // I kinda hate this but for now it works, needs to be refactored at some point
+        if (showDownloads) {
+            if (downloads.isEmpty()) {
+                Text(
+                    text = "No downloads yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(16.dp)
+                )
+            } else {
+                ShowDownloadsInList(
+                    downloads = downloads,
+                    extensionMetadataViewModel = extensionMetadataViewModel,
+                    navHostController = navHostController,
+                    downloadsViewModel = downloadsViewModel
+
+                )
+            }
+        } else if (sortedFavorites.isEmpty()) {
             Text(
                 text = "No favorites yet.",
                 style = MaterialTheme.typography.bodyMedium,

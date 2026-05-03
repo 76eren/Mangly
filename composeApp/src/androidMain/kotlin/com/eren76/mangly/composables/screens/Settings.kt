@@ -64,6 +64,20 @@ fun Settings(
     navController: NavHostController
 ) {
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
+
+    val downloadsPrefs = remember {
+        context.getSharedPreferences(
+            Constants.READING_SETTING_KEY,
+            Context.MODE_PRIVATE
+        )
+    }
+
+    var isDownloadModeEnabled by remember {
+        mutableStateOf(
+            downloadsPrefs.getBoolean(Constants.MANGLY_ENBALE_DOWNLOADS, false)
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -105,6 +119,62 @@ fun Settings(
         )
 
         EnablePagination()
+
+        HorizontalDivider(
+            modifier = Modifier.padding(top = 10.dp, bottom = 10.dp),
+        )
+
+
+        DownloadModeSetting(
+            isEnabled = isDownloadModeEnabled,
+            onEnabledChanged = {
+                isDownloadModeEnabled = it
+                downloadsPrefs.edit { putBoolean(Constants.MANGLY_ENBALE_DOWNLOADS, it) }
+            }
+        )
+        if (isDownloadModeEnabled) {
+            LinkToDownloadsScreen(navController)
+
+            HorizontalDivider(
+                modifier = Modifier.padding(top = 10.dp, bottom = 10.dp),
+            )
+        }
+
+
+    }
+}
+
+@Composable
+private fun DownloadModeSetting(
+    isEnabled: Boolean,
+    onEnabledChanged: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onEnabledChanged(!isEnabled) }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Enable download mode (Beta)",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text = "Downloading is currently beta. Expect issues and missing features.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            )
+        }
+
+        Switch(
+            checked = isEnabled,
+            onCheckedChange = { onEnabledChanged(it) }
+        )
     }
 }
 
@@ -306,6 +376,52 @@ fun LinkToHistoryManagementScreen(
         }
     }
 }
+
+@Composable
+fun LinkToDownloadsScreen(
+    navHostController: NavHostController
+) {
+    ElevatedCard(
+        modifier = Modifier
+            .padding(top = 16.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
+            ) {
+                Text(
+                    text = "Manage downloads",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "View your downloads",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            FilledTonalButton(
+                onClick = { navHostController.navigate("home/downloads") },
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Text("Open")
+            }
+        }
+    }
+}
+
 
 @Composable
 fun SettingDisableImageSavingOnHold() {

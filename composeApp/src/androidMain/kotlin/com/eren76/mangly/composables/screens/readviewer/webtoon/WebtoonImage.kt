@@ -1,33 +1,39 @@
 package com.eren76.mangly.composables.screens.readviewer.webtoon
 
-import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.SubcomposeAsyncImage
-import coil3.network.NetworkHeaders
-import coil3.network.httpHeaders
-import coil3.request.ImageRequest
-import coil3.request.crossfade
+import com.eren76.mangly.composables.screens.readviewer.ReaderPage
+import com.eren76.mangly.composables.screens.readviewer.ReaderPageState
 import com.eren76.mangly.composables.shared.image.ImageLoadingComposable
 import com.eren76.mangly.composables.shared.image.ImageLoadingErrorComposable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
- * Cache to store measured heights of images by their URL.
- * This helps maintain scroll position when images are recycled in LazyColumn.
+ * We split anything taller than MAX_TEXTURE_SIZE into tiles that each stay within this budget.
  */
+private const val MAX_TEXTURE_SIZE = 2048
+
 object ImageHeightCache {
-    private val heightCache = mutableStateMapOf<String, Dp>()
+    private val heightCache = HashMap<String, Dp>()
 
     fun getHeight(imageUrl: String): Dp? = heightCache[imageUrl]
 
@@ -42,23 +48,46 @@ object ImageHeightCache {
 
 @Composable
 fun WebtoonImage(
-    imageUrl: String,
-    networkHeaders: NetworkHeaders,
-    context: Context,
+    page: ReaderPage,
     index: Int,
     totalImages: Int,
     onTap: () -> Unit,
     onLongPress: () -> Unit
 ) {
     val density = LocalDensity.current
-    val cachedHeight = remember(imageUrl) { ImageHeightCache.getHeight(imageUrl) }
+    val cachedHeight = remember(page.url) { ImageHeightCache.getHeight(page.url) }
 
-    val imageRequest = remember(imageUrl, networkHeaders) {
-        ImageRequest.Builder(context)
-            .data(imageUrl)
-            .httpHeaders(networkHeaders)
-            .crossfade(false)
-            .build()
+
+    val tiles: List<ImageBitmap>? by produceState<List<ImageBitmap>?>(
+        initialValue = null,
+        key1 = page.state,
+    ) {
+        value = when (val state = page.state) {
+            is ReaderPageState.Success -> withContext(Dispatchers.Default) {
+                runCatching {
+                    val src: Bitmap =
+                        BitmapFactory.decodeByteArray(state.bytes, 0, state.bytes.size)
+                            ?: return@runCatching null
+
+                    if (src.height <= MAX_TEXTURE_SIZE) {
+                        listOf(src.asImageBitmap())
+                    } else {
+                        buildList {
+                            var y = 0
+                            while (y < src.height) {
+                                val tileHeight = minOf(MAX_TEXTURE_SIZE, src.height - y)
+                                val tile = Bitmap.createBitmap(src, 0, y, src.width, tileHeight)
+                                add(tile.asImageBitmap())
+                                y += tileHeight
+                            }
+                            src.recycle()
+                        }
+                    }
+                }.getOrNull()
+            }
+
+            else -> null
+        }
     }
 
     val modifier = if (cachedHeight != null) {
@@ -71,9 +100,7 @@ fun WebtoonImage(
             .defaultMinSize(minHeight = 200.dp)
     }
 
-    SubcomposeAsyncImage(
-        model = imageRequest,
-        contentDescription = "Page ${index + 1} of $totalImages",
+    PageContent(
         modifier = modifier
             .combinedClickable(
                 onClick = onTap,
@@ -84,18 +111,60 @@ fun WebtoonImage(
             .onGloballyPositioned { coordinates ->
                 val heightDp = with(density) { coordinates.size.height.toDp() }
                 if (heightDp > 0.dp) {
-                    ImageHeightCache.setHeight(imageUrl, heightDp)
+                    ImageHeightCache.setHeight(page.url, heightDp)
                 }
             },
-        contentScale = ContentScale.FillWidth,
-        loading = {
-            ImageLoadingComposable(
-                index = index,
-                minHeight = cachedHeight ?: 200.dp
-            )
-        },
-        error = {
+        state = page.state,
+        tiles = tiles,
+        index = index,
+        minHeight = cachedHeight ?: 200.dp,
+        totalImages = totalImages,
+    )
+}
+
+@Composable
+private fun PageContent(
+    modifier: Modifier,
+    state: ReaderPageState,
+    tiles: List<ImageBitmap>?,
+    index: Int,
+    minHeight: Dp,
+    totalImages: Int,
+) {
+    when (state) {
+        is ReaderPageState.Loading -> {
+            ImageLoadingComposable(index = index, minHeight = minHeight)
+        }
+
+        is ReaderPageState.Error -> {
             ImageLoadingErrorComposable(index = index)
         }
-    )
+
+        is ReaderPageState.Success -> {
+            when {
+                tiles == null -> ImageLoadingComposable(index = index, minHeight = minHeight)
+
+                tiles.isEmpty() -> ImageLoadingErrorComposable(index = index)
+
+                // Single tile – common case, same as before.
+                tiles.size == 1 -> Image(
+                    bitmap = tiles[0],
+                    contentDescription = "Page ${index + 1} of $totalImages",
+                    modifier = modifier,
+                    contentScale = ContentScale.FillWidth,
+                )
+
+                else -> Column(modifier = modifier) {
+                    tiles.forEachIndexed { tileIndex, tile ->
+                        Image(
+                            bitmap = tile,
+                            contentDescription = if (tileIndex == 0) "Page ${index + 1} of $totalImages" else null,
+                            modifier = Modifier.fillMaxWidth(),
+                            contentScale = ContentScale.FillWidth,
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

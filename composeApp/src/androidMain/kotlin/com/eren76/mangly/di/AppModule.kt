@@ -1,10 +1,12 @@
 package com.eren76.mangly.di
 
 import android.content.Context
+import com.eren76.mangly.DownloadManager
 import com.eren76.mangly.ExtensionManager
 import com.eren76.mangly.FileManager
 import com.eren76.mangly.rooms.dao.ExtensionDao
 import com.eren76.mangly.rooms.dao.HistoryDao
+import com.eren76.mangly.rooms.dao.DownloadsDao
 import com.eren76.mangly.rooms.database.AppDatabase
 import dagger.Module
 import dagger.Provides
@@ -32,6 +34,9 @@ object AppModule {
     fun provideHistoryDao(db: AppDatabase): HistoryDao = db.historyDao()
 
     @Provides
+    fun provideDownloadsDao(db: AppDatabase): DownloadsDao = db.downloadsDao()
+
+    @Provides
     @Singleton
     fun provideExtensionManager(extensionDao: ExtensionDao): ExtensionManager =
         ExtensionManager(extensionDao)
@@ -42,4 +47,11 @@ object AppModule {
         extensionManager: ExtensionManager,
         extensionDao: ExtensionDao
     ): FileManager = FileManager(extensionManager, extensionDao)
+
+    @Provides
+    @Singleton
+    fun provideDownloadManager(
+        fileManager: FileManager,
+        downloadsDao: DownloadsDao
+    ): DownloadManager = DownloadManager(fileManager, downloadsDao)
 }

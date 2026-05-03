@@ -1,5 +1,6 @@
 package com.eren76.mangly.composables.screens.chapterslist
 
+import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -24,8 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.eren76.mangly.Constants
+import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.entities.FavoritesEntity
+import com.eren76.mangly.rooms.relations.DownloadWithChapters
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
+import com.eren76.mangly.viewmodels.DownloadsViewModel
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.FavoritesViewModel
 import com.eren76.mangly.viewmodels.HistoryViewModel
@@ -36,6 +41,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.UUID
 
 @Composable
@@ -45,19 +51,28 @@ fun ChaptersList(
     chaptersListViewModel: ChaptersListViewModel,
     favoritesViewModel: FavoritesViewModel,
     historyViewModel: HistoryViewModel,
-    navHostController: NavHostController
+    downloadsViewModel: DownloadsViewModel,
+    navHostController: NavHostController,
+    showDownloads: Boolean = false
 ) {
     // TODO: Do this some other way, because now this needs to be set before navigating to this screen
     val metadata: ExtensionMetadata? = extensionMetadataViewModel.selectedSingleSource.value
 
+    val downloads = downloadsViewModel.downloads.value
 
-    if (metadata == null) {
+    val relatedDownload: DownloadWithChapters? =
+        downloads.find { it.download.mangaUrl == targetUrl }
+
+    // In downloads mode we must be fully offline-capable.
+    // That means we must NOT require extension metadata (which is normally set before navigation).
+    if (!showDownloads && metadata == null) {
         Text(
             "Something went wrong while loading the chapters list.",
             modifier = Modifier.padding(16.dp)
         )
         return
     }
+
 
     var chapters by remember { mutableStateOf<List<Source.ChapterValue>?>(null) }
     var image by remember { mutableStateOf<ImageForChaptersList?>(null) }
@@ -69,6 +84,14 @@ fun ChaptersList(
     // Local selection state for this screen only
     val selectedChapters = remember { mutableStateListOf<String>() }
     val isSelectionMode = selectedChapters.isNotEmpty()
+    val context = LocalContext.current
+    val downloadsPrefs = remember {
+        context.getSharedPreferences(Constants.READING_SETTING_KEY, Context.MODE_PRIVATE)
+    }
+    val isDownloadModeEnabled = remember(downloadsPrefs) {
+        downloadsPrefs.getBoolean(Constants.MANGLY_ENBALE_DOWNLOADS, false)
+    }
+    var localCoverFile by remember { mutableStateOf<File?>(null) }
 
     BackHandler(enabled = isSelectionMode) {
         selectedChapters.clear()
@@ -81,23 +104,52 @@ fun ChaptersList(
         }
     }
 
-    LaunchedEffect(targetUrl, metadata) {
+    LaunchedEffect(targetUrl, metadata, showDownloads, relatedDownload) {
+        // Download only mode no networking
+        if (showDownloads) {
+            val localChapters: List<Source.ChapterValue> = relatedDownload
+                ?.chapters
+                ?.filter { it.isFullyDownloaded }
+                ?.mapNotNull { downloadedChapter -> mapDownloadedChapter(downloadedChapter) }
+                .orEmpty()
+
+            chapters = localChapters
+            image = null
+            summary = relatedDownload?.download?.mangaSummary.orEmpty()
+            mangaName = relatedDownload?.download?.mangaName ?: targetUrl
+            localCoverFile = relatedDownload?.download?.coverImageFilename?.let { filename ->
+                downloadsViewModel.getCoverFile(filename = filename, context = context)
+            }
+
+            chaptersListViewModel.setChapters(localChapters)
+            chaptersListViewModel.setImage(null)
+            chaptersListViewModel.setSummary(summary)
+            chaptersListViewModel.setName(mangaName)
+            return@LaunchedEffect
+        }
+
+        localCoverFile = null
+
+        // Regular online mode
+        val safeMetadata = metadata ?: return@LaunchedEffect
+
         val fetchedChapters = runCatching {
             withContext(Dispatchers.IO) {
                 if (chaptersListViewModel.getChapters().isEmpty()) {
-                    fetchChapterList(metadata.source, targetUrl)
+                    fetchChapterList(safeMetadata.source, targetUrl)
                 } else {
                     chaptersListViewModel.getChapters()
                 }
             }
         }.getOrNull()
 
+
         val fetchedImage = runCatching {
             withContext(Dispatchers.IO) {
                 if (chaptersListViewModel.getImage() != null) {
                     chaptersListViewModel.getImage()
                 } else {
-                    fetchChapterImage(metadata.source, targetUrl)
+                    fetchChapterImage(safeMetadata.source, targetUrl)
                 }
             }
         }.getOrNull()
@@ -107,7 +159,7 @@ fun ChaptersList(
                 if (chaptersListViewModel.getSummary().isNotBlank()) {
                     chaptersListViewModel.getSummary()
                 } else {
-                    fetchSummary(metadata.source, targetUrl)
+                    fetchSummary(safeMetadata.source, targetUrl)
                 }
             }
         }.getOrDefault("")
@@ -117,7 +169,7 @@ fun ChaptersList(
                 if (chaptersListViewModel.getName().isNotBlank()) {
                     chaptersListViewModel.getName()
                 } else {
-                    fetchMangaTitle(metadata.source, targetUrl)
+                    fetchMangaTitle(safeMetadata.source, targetUrl)
                 }
             }
         }.getOrDefault("")
@@ -150,8 +202,6 @@ fun ChaptersList(
             .padding(horizontal = 16.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        val context = LocalContext.current
-
         val isFavorite = remember(favoritesViewModel.favorites.value, targetUrl) {
             favoritesViewModel.favorites.value.any { it.mangaUrl == targetUrl }
         }
@@ -159,10 +209,11 @@ fun ChaptersList(
         ChaptersHeaderSection(
             targetUrl = targetUrl,
             image = image,
+            localCoverFile = localCoverFile,
             mangaName = mangaName,
             summary = summary,
             isSummaryExpanded = isSummaryExpanded,
-            extensionName = metadata.source.getExtensionName(),
+            extensionName = metadata?.source?.getExtensionName().orEmpty(),
             isFavorite = isFavorite,
             onToggleSummary = { isSummaryExpanded = !isSummaryExpanded },
             onToggleFavorite = {
@@ -185,7 +236,8 @@ fun ChaptersList(
                             mangaUrl = targetUrl,
                             mangaTitle = mangaName,
                             created_at = System.currentTimeMillis(),
-                            extensionId = UUID.fromString(metadata.source.getExtensionId())
+                            // If we reached this code path, we are not in downloads mode and metadata is present.
+                            extensionId = UUID.fromString(metadata!!.source.getExtensionId())
                         )
                         favoritesViewModel.addFavorite(favoriteEntity)
                         Toast.makeText(
@@ -228,23 +280,71 @@ fun ChaptersList(
                                 historyViewModel.ensureHistoryAndAddChapter(
                                     mangaUrl = targetUrl,
                                     mangaName = mangaName,
-                                    extensionId = UUID.fromString(metadata.source.getExtensionId()),
+                                    extensionId = UUID.fromString(metadata!!.source.getExtensionId()),
                                     chapterUrl = chapterUrl
                                 )
                             }
                         }
                         selectedChapters.clear()
                     }
-                }
+                },
+                onDownloadOrDeleteSelection = {
+                    scope.launch {
+                        if (!showDownloads) {
+                            // Download chapters
+                            val selectedList = selectedChapters.toList()
+                            val queueTotal = selectedList.size
+
+                            for ((index, chapterUrl) in selectedList.withIndex()) {
+                                downloadsViewModel.createDownload(
+                                    mangaurl = targetUrl,
+                                    mangaName = mangaName,
+                                    mangaSummary = summary,
+                                    chapterUrl = chapterUrl,
+                                    chapterName = chapters?.find { it.url == chapterUrl }?.title
+                                        ?: chapterUrl,
+                                    extensionMetadata = metadata!!,
+                                    context = context,
+                                    queueIndex = index + 1,
+                                    queueTotal = queueTotal
+                                )
+                            }
+                            selectedChapters.clear()
+                        } else {
+                            // Delete chapters
+                            scope.launch {
+                                val selectedList = selectedChapters.toList()
+                                for (chapterUrl in selectedList) {
+                                    downloadsViewModel.deleteChapter(
+                                        mangaUrl = targetUrl,
+                                        chapterUrl = chapterUrl,
+                                        context = context
+                                    )
+                                }
+                                selectedChapters.clear()
+                                val found = downloadsViewModel.hasDownload(targetUrl)
+                                if (!found) {
+                                    navHostController.popBackStack()
+                                }
+                            }
+
+                        }
+                    }
+                },
+                showDownloadUi = isDownloadModeEnabled,
+                isDownloadMode = showDownloads
             )
         }
 
-        chapters?.let {
-            if (it.isEmpty()) {
-                Text("No chapters found.", style = MaterialTheme.typography.bodySmall)
+        chapters?.let { chapterList: List<Source.ChapterValue> ->
+            if (chapterList.isEmpty()) {
+                Text(
+                    if (showDownloads) "No downloaded chapters found." else "No chapters found.",
+                    style = MaterialTheme.typography.bodySmall
+                )
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    it.forEach { chapter ->
+                    chapterList.forEach { chapter: Source.ChapterValue ->
                         ChapterListItemCard(
                             chapter = chapter,
                             targetUrl = targetUrl,
@@ -253,11 +353,27 @@ fun ChaptersList(
                             navHostController = navHostController,
                             scrollState = scrollState,
                             selectedChapterUrls = selectedChapters,
-                            isSelectionMode = isSelectionMode
+                            isSelectionMode = isSelectionMode,
+                            isDownload = showDownloads
                         )
                     }
                 }
             }
         }
     }
+}
+
+private fun mapDownloadedChapter(downloadedChapter: DownloadedChapterEntity): Source.ChapterValue? {
+    val chapterUrl = downloadedChapter.chapterUrl?.takeIf { it.isNotBlank() } ?: return null
+    val chapterTitle = downloadedChapter.chapterName
+        ?.takeIf { it.isNotBlank() }
+        ?: chapterUrl.substringAfterLast('/')
+            .substringBefore('?')
+            .takeIf { it.isNotBlank() }
+        ?: "Downloaded chapter"
+
+    return Source.ChapterValue(
+        title = chapterTitle,
+        url = chapterUrl
+    )
 }
