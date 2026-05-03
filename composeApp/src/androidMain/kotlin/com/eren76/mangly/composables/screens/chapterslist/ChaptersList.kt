@@ -288,29 +288,47 @@ fun ChaptersList(
                         selectedChapters.clear()
                     }
                 },
-                onDownloadSelection = {
+                onDownloadOrDeleteSelection = {
                     scope.launch {
-                        val selectedList = selectedChapters.toList()
-                        val queueTotal = selectedList.size
+                        if (!showDownloads) {
+                            // Download chapters
+                            val selectedList = selectedChapters.toList()
+                            val queueTotal = selectedList.size
 
-                        for ((index, chapterUrl) in selectedList.withIndex()) {
-                            downloadsViewModel.createDownload(
-                                mangaurl = targetUrl,
-                                mangaName = mangaName,
-                                mangaSummary = summary,
-                                chapterUrl = chapterUrl,
-                                chapterName = chapters?.find { it.url == chapterUrl }?.title
-                                    ?: chapterUrl,
-                                extensionMetadata = metadata!!,
-                                context = context,
-                                queueIndex = index + 1,
-                                queueTotal = queueTotal
-                            )
+                            for ((index, chapterUrl) in selectedList.withIndex()) {
+                                downloadsViewModel.createDownload(
+                                    mangaurl = targetUrl,
+                                    mangaName = mangaName,
+                                    mangaSummary = summary,
+                                    chapterUrl = chapterUrl,
+                                    chapterName = chapters?.find { it.url == chapterUrl }?.title
+                                        ?: chapterUrl,
+                                    extensionMetadata = metadata!!,
+                                    context = context,
+                                    queueIndex = index + 1,
+                                    queueTotal = queueTotal
+                                )
+                            }
+                            selectedChapters.clear()
+                        } else {
+                            // Delete chapters
+                            scope.launch {
+                                val selectedList = selectedChapters.toList()
+                                for (chapterUrl in selectedList) {
+                                    downloadsViewModel.deleteChapter(
+                                        mangaUrl = targetUrl,
+                                        chapterUrl = chapterUrl,
+                                        context = context
+                                    )
+                                }
+                                selectedChapters.clear()
+                            }
+
                         }
-                        selectedChapters.clear()
                     }
                 },
-                showDownloadUi = isDownloadModeEnabled
+                showDownloadUi = isDownloadModeEnabled,
+                isDownloadMode = showDownloads
             )
         }
 

@@ -149,6 +149,38 @@ class DownloadsViewModel
         queueObserver = observer
     }
 
+    suspend fun deleteChapter(
+        mangaUrl: String,
+        chapterUrl: String,
+        context: Context
+    ) {
+        viewModelScope.launch {
+            val downloadWithChapters: DownloadWithChapters? =
+                downloadsDao.getWithChaptersByMangaUrl(mangaUrl)
+            if (downloadWithChapters == null) {
+                return@launch
+            }
+
+            val chapter: DownloadedChapterEntity? =
+                downloadWithChapters.chapters.find { it.chapterUrl == chapterUrl }
+            if (chapter == null) {
+                return@launch
+            }
+
+            // Remove the chapter from the database
+            downloadsDao.deleteDownloadedChapterById(chapter.id)
+
+            // Delete the chapter files
+            fileManager.deleteDirectory(
+                context = context,
+                relativeDir = "$DOWNLOADS_DIRECTORY/${downloadWithChapters.download.downloadId}/${chapter.id}"
+            )
+
+            refresh()
+
+        }
+    }
+
     override fun onCleared() {
         queueObserver?.let { observer ->
             queueWorkInfoLiveData?.removeObserver(observer)
@@ -157,4 +189,6 @@ class DownloadsViewModel
         queueWorkInfoLiveData = null
         super.onCleared()
     }
+
+
 }

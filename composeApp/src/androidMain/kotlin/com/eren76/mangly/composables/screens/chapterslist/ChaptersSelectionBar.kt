@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -23,8 +24,9 @@ fun ChaptersSelectionBar(
     selectedCount: Int,
     modifier: Modifier = Modifier,
     onApplySelection: () -> Unit,
-    onDownloadSelection: () -> Unit,
-    showDownloadUi: Boolean = true
+    onDownloadOrDeleteSelection: () -> Unit,
+    showDownloadUi: Boolean = true,
+    isDownloadMode: Boolean = false
 ) {
     Surface(
         modifier = modifier,
@@ -55,12 +57,16 @@ fun ChaptersSelectionBar(
                     Text(text = "Mark")
                 }
                 if (showDownloadUi) {
-                    TextButton(onClick = onDownloadSelection) {
+                    TextButton(onClick = onDownloadOrDeleteSelection) {
                         Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Apply download selection"
+                            imageVector = (if (!isDownloadMode) Icons.Default.Add else Icons.Default.Delete),
+                            contentDescription = if (!isDownloadMode) {
+                                "Apply download selection"
+                            } else {
+                                "Apply delete selection"
+                            }
                         )
-                        Text(text = "Download")
+                        Text(if (!isDownloadMode) "Download" else "Delete")
                     }
                 }
             }
