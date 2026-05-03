@@ -10,6 +10,7 @@ import coil3.request.ErrorResult
 import coil3.request.ImageRequest
 import coil3.request.ImageResult
 import coil3.request.SuccessResult
+import coil3.request.allowHardware
 import coil3.request.bitmapConfig
 import coil3.request.crossfade
 import coil3.size.Size
@@ -45,22 +46,31 @@ suspend fun loadReaderPagesIncrementally(
                         .memoryCachePolicy(CachePolicy.ENABLED)
                         .diskCachePolicy(CachePolicy.ENABLED)
                         .bitmapConfig(Bitmap.Config.ARGB_8888)
+                        .allowHardware(false)
                         .size(Size.ORIGINAL)
                         .build()
 
                     val result: ImageResult = withContext(Dispatchers.IO) {
                         imageLoader.execute(request)
                     }
+
                     when (result) {
                         is SuccessResult -> {
-                            val bitmap = result.image.toBitmap()
-                            val bytes = withContext(Dispatchers.IO) {
+                            val rawBytes: ByteArray? = withContext(Dispatchers.IO) {
+                                result.diskCacheKey?.let { key ->
+                                    imageLoader.diskCache?.openSnapshot(key)?.use { snapshot ->
+                                        runCatching {
+                                            snapshot.data.toFile().readBytes()
+                                        }.getOrNull()
+                                    }
+                                }
+                            }
+
+                            // fallback to decoding the bitmap and re-encoding it if we can't get the raw bytes from the disk cache
+                            val bytes = rawBytes ?: withContext(Dispatchers.IO) {
+                                val bitmap = result.image.toBitmap()
                                 ByteArrayOutputStream().use { baos ->
-                                    bitmap.compress(
-                                        Bitmap.CompressFormat.PNG,
-                                        100,
-                                        baos
-                                    )
+                                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
                                     baos.toByteArray()
                                 }
                             }
@@ -80,6 +90,3 @@ suspend fun loadReaderPagesIncrementally(
         }
     }.awaitAll()
 }
-
-
-
