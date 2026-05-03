@@ -27,10 +27,7 @@ import com.eren76.mangly.composables.shared.image.ImageLoadingErrorComposable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * We split anything taller than MAX_TEXTURE_SIZE into tiles that each stay within this budget.
- */
-private const val MAX_TEXTURE_SIZE = 2048
+private const val MAX_TEXTURE_SIZE = 4096
 
 object ImageHeightCache {
     private val heightCache = HashMap<String, Dp>()
@@ -57,7 +54,6 @@ fun WebtoonImage(
     val density = LocalDensity.current
     val cachedHeight = remember(page.url) { ImageHeightCache.getHeight(page.url) }
 
-
     val tiles: List<ImageBitmap>? by produceState<List<ImageBitmap>?>(
         initialValue = null,
         key1 = page.state,
@@ -65,20 +61,32 @@ fun WebtoonImage(
         value = when (val state = page.state) {
             is ReaderPageState.Success -> withContext(Dispatchers.Default) {
                 runCatching {
+
+                    val opts = BitmapFactory.Options().apply {
+                        inPreferredConfig = Bitmap.Config.ARGB_8888
+                        inScaled = false
+                    }
+
                     val src: Bitmap =
-                        BitmapFactory.decodeByteArray(state.bytes, 0, state.bytes.size)
+                        BitmapFactory.decodeByteArray(state.bytes, 0, state.bytes.size, opts)
                             ?: return@runCatching null
 
-                    if (src.height <= MAX_TEXTURE_SIZE) {
+                    if (src.height <= MAX_TEXTURE_SIZE && src.width <= MAX_TEXTURE_SIZE) {
                         listOf(src.asImageBitmap())
                     } else {
                         buildList {
                             var y = 0
                             while (y < src.height) {
-                                val tileHeight = minOf(MAX_TEXTURE_SIZE, src.height - y)
-                                val tile = Bitmap.createBitmap(src, 0, y, src.width, tileHeight)
-                                add(tile.asImageBitmap())
-                                y += tileHeight
+                                val tileH = minOf(MAX_TEXTURE_SIZE, src.height - y)
+                                var x = 0
+                                while (x < src.width) {
+                                    val tileW = minOf(MAX_TEXTURE_SIZE, src.width - x)
+                                    val tile =
+                                        Bitmap.createBitmap(src, x, y, tileW, tileH)
+                                    add(tile.asImageBitmap())
+                                    x += tileW
+                                }
+                                y += tileH
                             }
                             src.recycle()
                         }
