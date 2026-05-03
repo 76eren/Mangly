@@ -3,7 +3,9 @@ package com.eren76.mangly.workers
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -119,6 +121,15 @@ class ChapterDownloadWorker(
         }
     }
 
+
+    private fun cancelQueuePendingIntent(): PendingIntent {
+        val intent = Intent(applicationContext, CancelDownloadReceiver::class.java).apply {
+            action = CancelDownloadReceiver.ACTION_CANCEL_DOWNLOADS
+        }
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        return PendingIntent.getBroadcast(applicationContext, 0, intent, flags)
+    }
+
     private fun createForegroundInfo(
         mangaName: String,
         progressChapter: Int,
@@ -149,6 +160,11 @@ class ChapterDownloadWorker(
             .setOnlyAlertOnce(true)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .addAction(
+                android.R.drawable.ic_menu_close_clear_cancel,
+                "Cancel queue",
+                cancelQueuePendingIntent()
+            )
 
         if (totalChapters > 0) {
             val clampedProgress = progressChapter.coerceIn(0, totalChapters)
@@ -225,7 +241,6 @@ class ChapterDownloadWorker(
         manager.createNotificationChannel(channel)
     }
 
-
     private fun notificationIdForWork(): Int {
         return DOWNLOAD_QUEUE_NOTIFICATION_ID
     }
@@ -241,6 +256,9 @@ class ChapterDownloadWorker(
         const val DEFAULT_DOWNLOADS_DIR = "downloads"
         const val KEY_QUEUE_INDEX = "queue_index"
         const val KEY_QUEUE_TOTAL = "queue_total"
+
+        // Shared with DownloadsViewModel so both refer to the same unique work chain
+        const val DOWNLOAD_QUEUE_WORK_NAME = "chapter_download_queue"
 
         private const val CHANNEL_ID = "chapter_downloads"
         private const val CHANNEL_NAME = "Chapter downloads"

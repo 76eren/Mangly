@@ -31,11 +31,10 @@ class DownloadsViewModel
     private val fileManager: FileManager
 ) : ViewModel() {
     private val DOWNLOADS_DIRECTORY = "downloads"
-    private val DOWNLOAD_QUEUE_WORK_NAME = "chapter_download_queue"
+    private val DOWNLOAD_QUEUE_WORK_NAME = ChapterDownloadWorker.DOWNLOAD_QUEUE_WORK_NAME
 
     companion object {
         val DOWNLOADS_COVERS_DIRECTORY = "download_covers"
-
     }
 
     val downloads = mutableStateOf<List<DownloadWithChapters>>(emptyList())
@@ -54,9 +53,7 @@ class DownloadsViewModel
                     downloadWithChapters.copy(
                         chapters = downloadWithChapters.chapters
                             .sortedWith(
-                                compareBy<
-                                        DownloadedChapterEntity
-                                        >(
+                                compareBy<DownloadedChapterEntity>(
                                     { it.chapterIndex == null },
                                     { it.chapterIndex },
                                     { it.chapterName?.lowercase() }
@@ -176,7 +173,6 @@ class DownloadsViewModel
         refresh()
 
         deleteDownloadEntityIfNoChaptersRemaining(mangaUrl, context)
-
     }
 
     suspend fun deleteDownloadEntityIfNoChaptersRemaining(mangaUrl: String, context: Context) {
@@ -218,6 +214,4 @@ class DownloadsViewModel
         queueWorkInfoLiveData = null
         super.onCleared()
     }
-
-
 }
