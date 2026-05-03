@@ -322,6 +322,10 @@ fun ChaptersList(
                                     )
                                 }
                                 selectedChapters.clear()
+                                val found = downloadsViewModel.hasDownload(targetUrl)
+                                if (!found) {
+                                    navHostController.popBackStack()
+                                }
                             }
 
                         }

@@ -154,31 +154,60 @@ class DownloadsViewModel
         chapterUrl: String,
         context: Context
     ) {
-        viewModelScope.launch {
-            val downloadWithChapters: DownloadWithChapters? =
-                downloadsDao.getWithChaptersByMangaUrl(mangaUrl)
-            if (downloadWithChapters == null) {
-                return@launch
+        val downloadWithChapters: DownloadWithChapters? =
+            downloadsDao.getWithChaptersByMangaUrl(mangaUrl)
+        if (downloadWithChapters == null) {
+            return
+        }
+
+        val chapter: DownloadedChapterEntity? =
+            downloadWithChapters.chapters.find { it.chapterUrl == chapterUrl }
+        if (chapter == null) {
+            return
+        }
+
+        downloadsDao.deleteDownloadedChapterById(chapter.id)
+
+        fileManager.deleteDirectory(
+            context = context,
+            relativeDir = "$DOWNLOADS_DIRECTORY/${downloadWithChapters.download.downloadId}/${chapter.id}"
+        )
+
+        refresh()
+
+        deleteDownloadEntityIfNoChaptersRemaining(mangaUrl, context)
+
+    }
+
+    suspend fun deleteDownloadEntityIfNoChaptersRemaining(mangaUrl: String, context: Context) {
+        val downloadWithChapters: DownloadWithChapters? =
+            downloadsDao.getWithChaptersByMangaUrl(mangaUrl)
+        if (downloadWithChapters == null) {
+            return
+        }
+
+        if (downloadWithChapters.chapters.isEmpty()) {
+            downloadsDao.deleteDownloadById(downloadWithChapters.download.downloadId)
+
+            downloadWithChapters.download.coverImageFilename?.let { filename ->
+                fileManager.deleteFileInDir(
+                    context = context,
+                    relativeDir = DOWNLOADS_COVERS_DIRECTORY,
+                    fileName = filename
+                )
             }
 
-            val chapter: DownloadedChapterEntity? =
-                downloadWithChapters.chapters.find { it.chapterUrl == chapterUrl }
-            if (chapter == null) {
-                return@launch
-            }
-
-            // Remove the chapter from the database
-            downloadsDao.deleteDownloadedChapterById(chapter.id)
-
-            // Delete the chapter files
             fileManager.deleteDirectory(
                 context = context,
-                relativeDir = "$DOWNLOADS_DIRECTORY/${downloadWithChapters.download.downloadId}/${chapter.id}"
+                relativeDir = "$DOWNLOADS_DIRECTORY/${downloadWithChapters.download.downloadId}"
             )
-
-            refresh()
-
         }
+
+        refresh()
+    }
+
+    suspend fun hasDownload(mangaUrl: String): Boolean {
+        return downloadsDao.getWithChaptersByMangaUrl(mangaUrl) != null
     }
 
     override fun onCleared() {
