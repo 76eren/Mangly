@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -47,7 +46,7 @@ import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import com.eren76.mangly.composables.shared.skeleton.SkeletonBlock
+import com.eren76.mangly.composables.shared.image.ImageLoadingComposable
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.SearchViewModel
 import com.eren76.manglyextension.plugins.ExtensionMetadata
@@ -277,15 +276,7 @@ fun SearchResultImage(
         modifier = modifier,
         contentScale = ContentScale.Crop,
         loading = {
-            SkeletonBlock(
-                modifier = Modifier.fillMaxSize(),
-                shape = RoundedCornerShape(
-                    topStart = 12.dp,
-                    topEnd = 12.dp,
-                    bottomStart = 0.dp,
-                    bottomEnd = 0.dp
-                )
-            )
+            ImageLoadingComposable()
         }
     )
 }
