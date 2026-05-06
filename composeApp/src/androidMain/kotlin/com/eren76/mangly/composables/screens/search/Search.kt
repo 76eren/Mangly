@@ -1,4 +1,4 @@
-package com.eren76.mangly.composables.screens
+package com.eren76.mangly.composables.screens.search
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -29,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -40,16 +42,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.eren76.mangly.composables.shared.skeleton.SkeletonBlock
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.SearchViewModel
 import com.eren76.manglyextension.plugins.ExtensionMetadata
 import com.eren76.manglyextension.plugins.Source
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -84,10 +86,11 @@ fun Search(
     navHostController: NavHostController,
     searchViewModel: SearchViewModel
 ) {
-    val scope = CoroutineScope(Dispatchers.IO)
+    val scope = rememberCoroutineScope()
 
     var textFieldState = remember { TextFieldState(searchViewModel.searchQuery) }
     var searchResults by searchViewModel::searchResults
+    var isLoading by remember { mutableStateOf(false) }
 
 
     Column(
@@ -101,12 +104,18 @@ fun Search(
             textFieldState = textFieldState,
             onSearch = { query ->
                 scope.launch {
-                    val results = querySearchFromSource(query, extensionMetadataViewModel)
-                    searchResults = results
-                    searchViewModel.updateSearchViewModel(results, query)
+                    isLoading = true
+                    try {
+                        val results = querySearchFromSource(query, extensionMetadataViewModel)
+                        searchResults = results
+                        searchViewModel.updateSearchViewModel(results, query)
+                    } finally {
+                        isLoading = false
+                    }
                 }
             },
             searchResults = searchResults,
+            isLoading = isLoading,
             navHostController = navHostController,
             extensionMetadataViewModel = extensionMetadataViewModel,
             modifier = Modifier.fillMaxWidth()
@@ -120,6 +129,7 @@ fun SimpleSearchBar(
     textFieldState: TextFieldState,
     onSearch: (String) -> Unit,
     searchResults: HashMap<ExtensionMetadata, List<Source.SearchResult>>,
+    isLoading: Boolean,
     navHostController: NavHostController,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
     modifier: Modifier = Modifier
@@ -156,51 +166,55 @@ fun SimpleSearchBar(
             expanded = expanded,
             onExpandedChange = { expanded = it },
         ) {
-            if (searchTriggered || searchResults.isNotEmpty()) {
+            if (isLoading || searchTriggered || searchResults.isNotEmpty()) {
                 Column(
                     Modifier
                         .verticalScroll(rememberScrollState())
                         .padding(8.dp)
                 ) {
-                    searchResults.forEach { (extensionMetadata: ExtensionMetadata, results: List<Source.SearchResult>) ->
-                        Text(
-                            text = extensionMetadata.source.getExtensionName(),
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-
-                        if (results.isEmpty()) {
+                    if (isLoading) {
+                        SearchResultsSkeleton()
+                    } else {
+                        searchResults.forEach { (extensionMetadata: ExtensionMetadata, results: List<Source.SearchResult>) ->
                             Text(
-                                text = "No results found or an error occurred.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(bottom = 8.dp)
+                                text = extensionMetadata.source.getExtensionName(),
+                                style = MaterialTheme.typography.titleLarge,
+                                modifier = Modifier.padding(vertical = 8.dp)
                             )
-                        } else {
-                            val listState = rememberLazyListState()
 
-                            LaunchedEffect(searchTriggered) {
-                                if (searchTriggered) {
-                                    listState.scrollToItem(0)
+                            if (results.isEmpty()) {
+                                Text(
+                                    text = "No results found or an error occurred.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+                            } else {
+                                val listState = rememberLazyListState()
+
+                                LaunchedEffect(searchTriggered) {
+                                    if (searchTriggered) {
+                                        listState.scrollToItem(0)
+                                    }
                                 }
-                            }
 
-                            LazyRow(
-                                state = listState,
-                                contentPadding = PaddingValues(horizontal = 8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                items(results) { result ->
-                                    SearchResultCard(
-                                        searchResult = result,
-                                        onClick = {
-                                            onItemClick(
-                                                result.url,
-                                                navHostController,
-                                                extensionMetadataViewModel,
-                                                extensionMetadata
-                                            )
-                                        }
-                                    )
+                                LazyRow(
+                                    state = listState,
+                                    contentPadding = PaddingValues(horizontal = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(results) { result ->
+                                        SearchResultCard(
+                                            searchResult = result,
+                                            onClick = {
+                                                onItemClick(
+                                                    result.url,
+                                                    navHostController,
+                                                    extensionMetadataViewModel,
+                                                    extensionMetadata
+                                                )
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -257,11 +271,22 @@ fun SearchResultImage(
         .crossfade(true)
         .build()
 
-    AsyncImage(
+    SubcomposeAsyncImage(
         model = imageRequest,
         contentDescription = searchResult.title,
         modifier = modifier,
-        contentScale = ContentScale.Crop
+        contentScale = ContentScale.Crop,
+        loading = {
+            SkeletonBlock(
+                modifier = Modifier.fillMaxSize(),
+                shape = RoundedCornerShape(
+                    topStart = 12.dp,
+                    topEnd = 12.dp,
+                    bottomStart = 0.dp,
+                    bottomEnd = 0.dp
+                )
+            )
+        }
     )
 }
 

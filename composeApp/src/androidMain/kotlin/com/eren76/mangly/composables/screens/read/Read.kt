@@ -1,4 +1,4 @@
-package com.eren76.mangly.composables.screens
+package com.eren76.mangly.composables.screens.read
 
 import android.content.Context
 import android.util.Log
@@ -53,6 +53,7 @@ fun Read(
     var url by remember(targetUrl) { mutableStateOf(targetUrl) }
     var chapterImages by remember { mutableStateOf<Source.ChapterImages?>(null) }
     val pages = remember(url) { mutableStateListOf<ReaderPage>() }
+    var isLoadingChapter by remember(url, download) { mutableStateOf(true) }
 
     val relatedDownload: DownloadWithChapters? = remember(
         downloadsViewModel.downloads.value,
@@ -106,9 +107,12 @@ fun Read(
         if (download) return@LaunchedEffect
         val safeMetadata = metadata ?: return@LaunchedEffect
 
+        chapterImages = null
+        isLoadingChapter = true
         chapterImages = withContext(Dispatchers.IO) {
             getChapterImages(url, safeMetadata)
         }
+        isLoadingChapter = false
     }
 
     // Online mode: load pages through Coi
@@ -142,6 +146,9 @@ fun Read(
     LaunchedEffect(url, relatedDownload, download) {
         if (!download) return@LaunchedEffect
 
+        isLoadingChapter = true
+        pages.clear()
+
         val chapter: DownloadedChapterEntity? = relatedDownload
             ?.chapters
             ?.firstOrNull { it.isFullyDownloaded && it.chapterUrl == url }
@@ -149,6 +156,7 @@ fun Read(
         val chapterPath: String? = chapter?.filePath
         if (chapterPath.isNullOrBlank()) {
             pages.clear()
+            isLoadingChapter = false
             return@LaunchedEffect
         }
 
@@ -189,12 +197,20 @@ fun Read(
 
         pages.clear()
         pages.addAll(loadedPages)
+        isLoadingChapter = false
     }
 
-    val canRender =
-        if (download) pages.isNotEmpty() else (chapterImages != null && chapterImages!!.images.isNotEmpty())
+    val hasImageUrls = !download && chapterImages?.images?.isNotEmpty() == true
+    val canRender = if (download) {
+        pages.isNotEmpty()
+    } else {
+        hasImageUrls && pages.isNotEmpty()
+    }
+    val isLoading = isLoadingChapter || (hasImageUrls && pages.isEmpty())
 
-    if (canRender) {
+    if (isLoading) {
+        ReadLoadingSkeleton()
+    } else if (canRender) {
         readerMode.Content(
             pages = pages,
             headers = if (download) emptyList() else chapterImages!!.headers,
@@ -234,7 +250,7 @@ fun Read(
 
     } else {
         Text(
-            text = "Loading images or no images available...",
+            text = "No images available for this chapter.",
             modifier = Modifier.padding(16.dp)
         )
     }

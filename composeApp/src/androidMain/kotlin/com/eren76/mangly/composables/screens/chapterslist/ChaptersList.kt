@@ -206,137 +206,141 @@ fun ChaptersList(
             favoritesViewModel.favorites.value.any { it.mangaUrl == targetUrl }
         }
 
-        ChaptersHeaderSection(
-            targetUrl = targetUrl,
-            image = image,
-            localCoverFile = localCoverFile,
-            mangaName = mangaName,
-            summary = summary,
-            isSummaryExpanded = isSummaryExpanded,
-            extensionName = metadata?.source?.getExtensionName().orEmpty(),
-            isFavorite = isFavorite,
-            onToggleSummary = { isSummaryExpanded = !isSummaryExpanded },
-            onToggleFavorite = {
-                scope.launch {
-                    if (isFavorite) {
-                        for (favoriteItem in favoritesViewModel.favorites.value) {
-                            if (favoriteItem.mangaUrl == targetUrl) {
-                                favoritesViewModel.removeFavorite(favoriteItem.id, context)
-                                Toast.makeText(
-                                    context,
-                                    "Removed from favorites",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                break
+        if (chapters == null) {
+            ChaptersListSkeleton()
+        } else {
+            val chapterList = chapters.orEmpty()
+
+            ChaptersHeaderSection(
+                targetUrl = targetUrl,
+                image = image,
+                localCoverFile = localCoverFile,
+                mangaName = mangaName,
+                summary = summary,
+                isSummaryExpanded = isSummaryExpanded,
+                extensionName = metadata?.source?.getExtensionName().orEmpty(),
+                isFavorite = isFavorite,
+                onToggleSummary = { isSummaryExpanded = !isSummaryExpanded },
+                onToggleFavorite = {
+                    scope.launch {
+                        if (isFavorite) {
+                            for (favoriteItem in favoritesViewModel.favorites.value) {
+                                if (favoriteItem.mangaUrl == targetUrl) {
+                                    favoritesViewModel.removeFavorite(favoriteItem.id, context)
+                                    Toast.makeText(
+                                        context,
+                                        "Removed from favorites",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    break
+                                }
                             }
+                        } else {
+                            val favoriteEntity = FavoritesEntity(
+                                id = UUID.randomUUID(),
+                                mangaUrl = targetUrl,
+                                mangaTitle = mangaName,
+                                created_at = System.currentTimeMillis(),
+                                // If we reached this code path, we are not in downloads mode and metadata is present.
+                                extensionId = UUID.fromString(metadata!!.source.getExtensionId())
+                            )
+                            favoritesViewModel.addFavorite(favoriteEntity)
+                            Toast.makeText(
+                                context,
+                                "Added to favorites",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
-                    } else {
-                        val favoriteEntity = FavoritesEntity(
-                            id = UUID.randomUUID(),
-                            mangaUrl = targetUrl,
-                            mangaTitle = mangaName,
-                            created_at = System.currentTimeMillis(),
-                            // If we reached this code path, we are not in downloads mode and metadata is present.
-                            extensionId = UUID.fromString(metadata!!.source.getExtensionId())
-                        )
-                        favoritesViewModel.addFavorite(favoriteEntity)
-                        Toast.makeText(
-                            context,
-                            "Added to favorites",
-                            Toast.LENGTH_SHORT
-                        ).show()
                     }
                 }
-            }
-        )
+            )
 
-        Text(
-            text = "${chapters?.size ?: 0} chapters",
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(top = 8.dp)
-        )
+            Text(
+                text = "${chapterList.size} chapters",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(top = 8.dp)
+            )
 
-        if (isSelectionMode) {
-            ChaptersSelectionBar(
-                selectedCount = selectedChapters.size,
-                modifier = Modifier.fillMaxWidth(),
-                onApplySelection = {
-                    scope.launch {
-                        for (chapterUrl: String in selectedChapters.toList()) {
-                            // Remove from history
-                            if (historyViewModel.isChapterInHistory(
-                                    mangaUrl = targetUrl,
-                                    chapterUrl = chapterUrl
-                                )
-                            ) {
-                                historyViewModel.deleteChapterFromHistory(
-                                    targetUrl,
-                                    chapterUrl,
-                                    context
-                                )
-                            }
-                            // Add to history
-                            else {
-                                historyViewModel.ensureHistoryAndAddChapter(
-                                    mangaUrl = targetUrl,
-                                    mangaName = mangaName,
-                                    extensionId = UUID.fromString(metadata!!.source.getExtensionId()),
-                                    chapterUrl = chapterUrl
-                                )
-                            }
-                        }
-                        selectedChapters.clear()
-                    }
-                },
-                onDownloadOrDeleteSelection = {
-                    scope.launch {
-                        if (!showDownloads) {
-                            // Download chapters
-                            val selectedList = selectedChapters.toList()
-                            val queueTotal = selectedList.size
-
-                            for ((index, chapterUrl) in selectedList.withIndex()) {
-                                downloadsViewModel.createDownload(
-                                    mangaurl = targetUrl,
-                                    mangaName = mangaName,
-                                    mangaSummary = summary,
-                                    chapterUrl = chapterUrl,
-                                    chapterName = chapters?.find { it.url == chapterUrl }?.title
-                                        ?: chapterUrl,
-                                    extensionMetadata = metadata!!,
-                                    context = context,
-                                    queueIndex = index + 1,
-                                    queueTotal = queueTotal
-                                )
+            if (isSelectionMode) {
+                ChaptersSelectionBar(
+                    selectedCount = selectedChapters.size,
+                    modifier = Modifier.fillMaxWidth(),
+                    onApplySelection = {
+                        scope.launch {
+                            for (chapterUrl: String in selectedChapters.toList()) {
+                                // Remove from history
+                                if (historyViewModel.isChapterInHistory(
+                                        mangaUrl = targetUrl,
+                                        chapterUrl = chapterUrl
+                                    )
+                                ) {
+                                    historyViewModel.deleteChapterFromHistory(
+                                        targetUrl,
+                                        chapterUrl,
+                                        context
+                                    )
+                                }
+                                // Add to history
+                                else {
+                                    historyViewModel.ensureHistoryAndAddChapter(
+                                        mangaUrl = targetUrl,
+                                        mangaName = mangaName,
+                                        extensionId = UUID.fromString(metadata!!.source.getExtensionId()),
+                                        chapterUrl = chapterUrl
+                                    )
+                                }
                             }
                             selectedChapters.clear()
-                        } else {
-                            // Delete chapters
-                            scope.launch {
+                        }
+                    },
+                    onDownloadOrDeleteSelection = {
+                        scope.launch {
+                            if (!showDownloads) {
+                                // Download chapters
                                 val selectedList = selectedChapters.toList()
-                                for (chapterUrl in selectedList) {
-                                    downloadsViewModel.deleteChapter(
-                                        mangaUrl = targetUrl,
+                                val queueTotal = selectedList.size
+
+                                for ((index, chapterUrl) in selectedList.withIndex()) {
+                                    downloadsViewModel.createDownload(
+                                        mangaurl = targetUrl,
+                                        mangaName = mangaName,
+                                        mangaSummary = summary,
                                         chapterUrl = chapterUrl,
-                                        context = context
+                                        chapterName = chapterList.find { it.url == chapterUrl }?.title
+                                            ?: chapterUrl,
+                                        extensionMetadata = metadata!!,
+                                        context = context,
+                                        queueIndex = index + 1,
+                                        queueTotal = queueTotal
                                     )
                                 }
                                 selectedChapters.clear()
-                                val found = downloadsViewModel.hasDownload(targetUrl)
-                                if (!found) {
-                                    navHostController.popBackStack()
+                            } else {
+                                // Delete chapters
+                                scope.launch {
+                                    val selectedList = selectedChapters.toList()
+                                    for (chapterUrl in selectedList) {
+                                        downloadsViewModel.deleteChapter(
+                                            mangaUrl = targetUrl,
+                                            chapterUrl = chapterUrl,
+                                            context = context
+                                        )
+                                    }
+                                    selectedChapters.clear()
+                                    val found = downloadsViewModel.hasDownload(targetUrl)
+                                    if (!found) {
+                                        navHostController.popBackStack()
+                                    }
                                 }
+
                             }
-
                         }
-                    }
-                },
-                showDownloadUi = isDownloadModeEnabled,
-                isDownloadMode = showDownloads
-            )
-        }
+                    },
+                    showDownloadUi = isDownloadModeEnabled,
+                    isDownloadMode = showDownloads
+                )
+            }
 
-        chapters?.let { chapterList: List<Source.ChapterValue> ->
             if (chapterList.isEmpty()) {
                 Text(
                     if (showDownloads) "No downloaded chapters found." else "No chapters found.",
