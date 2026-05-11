@@ -2,6 +2,10 @@ package com.eren76.mangly.composables.screens
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -42,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,11 +57,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.navigation.NavHostController
+import com.eren76.mangly.BackupManager
 import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.home.HomeSorting
 import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
 import com.eren76.mangly.composables.screens.readviewer.ReaderModeType
+import com.eren76.mangly.di.FileManagersEntryPoint
 import com.eren76.mangly.themes.setAppTheme
+import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -65,12 +74,20 @@ fun Settings(
 ) {
     val scrollState = rememberScrollState()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     val downloadsPrefs = remember {
         context.getSharedPreferences(
             Constants.READING_SETTING_KEY,
             Context.MODE_PRIVATE
         )
+    }
+
+    val backupManager: BackupManager = remember {
+        val appContext = context.applicationContext
+        val entryPoint =
+            EntryPointAccessors.fromApplication(appContext, FileManagersEntryPoint::class.java)
+        entryPoint.backupManager()
     }
 
     var isDownloadModeEnabled by remember {
@@ -140,7 +157,87 @@ fun Settings(
             )
         }
 
+        HorizontalDivider(
+            modifier = Modifier.padding(top = 10.dp, bottom = 10.dp),
+        )
 
+        BackupExportSetting(
+            onExportRequested = { uri ->
+                coroutineScope.launch {
+                    runCatching {
+                        backupManager.export(
+                            outputUri = uri,
+                        )
+                    }.onSuccess {
+                        Toast.makeText(context, "Backup exported", Toast.LENGTH_LONG).show()
+                    }.onFailure { e ->
+                        Toast.makeText(
+                            context,
+                            "Failed to export backup: ${e.message ?: "Unknown error"}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            }
+        )
+
+
+    }
+}
+
+@Composable
+private fun BackupExportSetting(
+    onExportRequested: (Uri) -> Unit,
+) {
+
+    val createBackupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/zip"),
+        onResult = { uri: Uri? ->
+            if (uri != null) onExportRequested(uri)
+        }
+    )
+
+    ElevatedCard(
+        modifier = Modifier
+            .padding(top = 16.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
+            ) {
+                Text(
+                    text = "Export settings and data",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Creates a .manglybackup file you can restore later",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            FilledTonalButton(
+                onClick = {
+                    val suggestedName = "mangly_${System.currentTimeMillis()}.manglybackup"
+                    createBackupLauncher.launch(suggestedName)
+                },
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Text("Export")
+            }
+        }
     }
 }
 
