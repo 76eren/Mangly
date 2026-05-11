@@ -34,6 +34,12 @@ class BackupExportManager @Inject constructor(
     companion object {
         private const val BUFFER_SIZE = 64 * 1024
         private const val FORMAT_VERSION = 2
+
+        // TODO: make this dynamic
+        private val EXCLUDED_DIRECTORIES = setOf(
+            "favorite_covers",
+            "history_cover",
+        )
     }
 
     private val gson: Gson = GsonBuilder()
@@ -75,19 +81,23 @@ class BackupExportManager @Inject constructor(
                         database.openHelper.readableDatabase.version
                     }.getOrNull()
 
-                    // Force WAL checkpoint so all pending transactions are flushed into the main database file.
                     runCatching {
-                        database.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)")
+                        database.openHelper
+                            .writableDatabase
+                            .query("PRAGMA wal_checkpoint(FULL)")
                             .close()
                     }
 
 
-                    //Ensure no active Room transaction is running while copying.
+                    //Ensure Room finishes ongoing transactions.
+
                     database.withTransaction {
                         Unit
                     }
 
-                    val dbDir = context.getDatabasePath(databaseName).parentFile
+                    val dbDir = context
+                        .getDatabasePath(databaseName)
+                        .parentFile
 
                     val dbFiles = dbDir
                         ?.listFiles()
@@ -117,9 +127,9 @@ class BackupExportManager @Inject constructor(
                         contentHashes += hash
                     }
 
-                    val prefsJson: String = exportSharedPreferencesAsJson()
+                    val prefsJson = exportSharedPreferencesAsJson()
 
-                    val prefsHash: String = addBytesToZip(
+                    val prefsHash = addBytesToZip(
                         zos = zos,
                         bytes = prefsJson.toByteArray(Charsets.UTF_8),
                         entryName = "preferences.json",
@@ -127,16 +137,10 @@ class BackupExportManager @Inject constructor(
 
                     contentHashes += prefsHash
 
-                    val filesRoot = context.filesDir
-
-                    if (filesRoot.exists()) {
-                        zipDirectory(
-                            zos = zos,
-                            rootDir = filesRoot,
-                            zipPrefix = "files/",
-                            contentHashes = contentHashes,
-                        )
-                    }
+                    exportFilesDirectory(
+                        zos = zos,
+                        contentHashes = contentHashes,
+                    )
 
                     val overallContentSha256 = sha256Hex(
                         stableJsonArray(contentHashes)
@@ -156,7 +160,7 @@ class BackupExportManager @Inject constructor(
                         includedRoots = buildList {
                             addAll(databaseHashes.keys)
                             add("preferences.json")
-                            add("files/")
+                            add("files/* excluding favorite_covers and history_cover")
                         }
                     )
 
@@ -173,6 +177,48 @@ class BackupExportManager @Inject constructor(
             ?: error("Unable to open output stream")
     }
 
+    private fun exportFilesDirectory(
+        zos: ZipOutputStream,
+        contentHashes: MutableList<String>,
+    ) {
+
+        val filesRoot = context.filesDir
+
+        if (!filesRoot.exists()) {
+            return
+        }
+
+        filesRoot
+            .listFiles()
+            ?.filterNot { file ->
+                file.isDirectory &&
+                        file.name in EXCLUDED_DIRECTORIES
+            }
+            ?.sortedBy { it.name.lowercase(Locale.US) }
+            ?.forEach { file ->
+
+                if (file.isDirectory) {
+
+                    zipDirectory(
+                        zos = zos,
+                        rootDir = file,
+                        zipPrefix = "files/${file.name}/",
+                        contentHashes = contentHashes,
+                    )
+
+                } else {
+
+                    val hash = addFileToZip(
+                        zos = zos,
+                        file = file,
+                        entryName = "files/${file.name}",
+                    )
+
+                    contentHashes += hash
+                }
+            }
+    }
+
     private fun exportSharedPreferencesAsJson(): String {
 
         val prefsDir = File(
@@ -183,7 +229,10 @@ class BackupExportManager @Inject constructor(
         val names = prefsDir
             .listFiles()
             ?.asSequence()
-            ?.filter { it.isFile && it.extension.equals("xml", true) }
+            ?.filter {
+                it.isFile &&
+                        it.extension.equals("xml", true)
+            }
             ?.map { it.nameWithoutExtension }
             ?.sorted()
             ?.toList()
@@ -287,7 +336,9 @@ class BackupExportManager @Inject constructor(
 
         val digest = MessageDigest.getInstance("SHA-256")
 
-        zos.putNextEntry(ZipEntry(entryName))
+        zos.putNextEntry(
+            ZipEntry(entryName)
+        )
 
         DigestInputStream(input, digest).use { digestStream ->
             digestStream.copyTo(zos, BUFFER_SIZE)
@@ -301,7 +352,10 @@ class BackupExportManager @Inject constructor(
     private fun stableJsonArray(
         values: List<String>,
     ): String {
-        return gson.toJson(values.sorted())
+
+        return gson.toJson(
+            values.sorted()
+        )
     }
 
     private fun sha256Hex(
@@ -335,12 +389,20 @@ class BackupExportManager @Inject constructor(
     private fun OutputStream.buffered(
         size: Int,
     ): BufferedOutputStream {
-        return BufferedOutputStream(this, size)
+
+        return BufferedOutputStream(
+            this,
+            size
+        )
     }
 
     private fun InputStream.buffered(
         size: Int,
     ): BufferedInputStream {
-        return BufferedInputStream(this, size)
+
+        return BufferedInputStream(
+            this,
+            size
+        )
     }
 }
