@@ -214,6 +214,7 @@ class BackupImportManager @Inject constructor(
         }
     }
 
+
     private fun restoreSharedPreferencesFromJson(
         prefsJsonBytes: ByteArray,
     ) {
@@ -221,9 +222,9 @@ class BackupImportManager @Inject constructor(
             context.applicationInfo.dataDir,
             "shared_prefs"
         )
+
         if (!prefsDir.exists()) prefsDir.mkdirs()
 
-        // This is intentionally destructive: it removes existing shared_prefs files.
         prefsDir.listFiles()?.forEach { file ->
             if (file.isFile && file.extension.equals("xml", true)) {
                 file.delete()
@@ -250,20 +251,52 @@ class BackupImportManager @Inject constructor(
             prefs.edit().clear().apply()
             val editor = prefs.edit()
 
-            for ((key, value) in values) {
-                when (value) {
-                    null -> editor.remove(key)
-                    is Boolean -> editor.putBoolean(key, value)
-                    is Float -> editor.putFloat(key, value)
-                    is Double -> editor.putFloat(key, value.toFloat())
-                    is Number -> editor.putLong(key, value.toLong())
-                    is String -> editor.putString(key, value)
-                    is List<*> -> {
-                        val set = value.filterIsInstance<String>().toSet()
-                        editor.putStringSet(key, set)
+            for ((key, wrappedAny) in values) {
+                @Suppress("UNCHECKED_CAST")
+                val wrapped = wrappedAny as? Map<String, Any?> ?: continue
+
+                val type = wrapped["type"] as? String ?: continue
+                val value = wrapped["value"]
+
+                when (type) {
+                    "null" -> editor.remove(key)
+
+                    "boolean" -> {
+                        if (value is Boolean) {
+                            editor.putBoolean(key, value)
+                        }
                     }
 
-                    else -> editor.putString(key, value.toString())
+                    "int" -> {
+                        if (value is Number) {
+                            editor.putInt(key, value.toInt())
+                        }
+                    }
+
+                    "long" -> {
+                        if (value is Number) {
+                            editor.putLong(key, value.toLong())
+                        }
+                    }
+
+                    "float" -> {
+                        if (value is Number) {
+                            editor.putFloat(key, value.toFloat())
+                        }
+                    }
+
+                    "string" -> {
+                        editor.putString(key, value?.toString())
+                    }
+
+                    "string_set" -> {
+                        val set = (value as? List<*>)
+                            ?.filterIsInstance<String>()
+                            ?.toSet()
+                            ?: emptySet()
+
+                        editor.putStringSet(key, set)
+                    }
                 }
             }
 
