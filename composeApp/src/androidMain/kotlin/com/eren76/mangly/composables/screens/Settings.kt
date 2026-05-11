@@ -3,6 +3,7 @@ package com.eren76.mangly.composables.screens
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -108,12 +109,46 @@ fun Settings(
     var extensionConflictSelections by remember {
         mutableStateOf<Map<String, BackupImportManager.ConflictResolution>>(emptyMap())
     }
+
     val importBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri: Uri? ->
-            if (uri != null) {
-                pendingImportUri = uri
+            if (uri == null) return@rememberLauncherForActivityResult
+
+            val fileName = runCatching {
+                context.contentResolver.query(
+                    uri,
+                    arrayOf(OpenableColumns.DISPLAY_NAME),
+                    null,
+                    null,
+                    null
+                )?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        cursor.getString(
+                            cursor.getColumnIndexOrThrow(
+                                OpenableColumns.DISPLAY_NAME
+                            )
+                        )
+                    } else {
+                        null
+                    }
+                }
+            }.getOrNull()
+
+            val isValidBackup =
+                fileName?.endsWith(".manglybackup", ignoreCase = true) == true
+
+            if (!isValidBackup) {
+                Toast.makeText(
+                    context,
+                    "Please select a valid .manglybackup file",
+                    Toast.LENGTH_LONG
+                ).show()
+
+                return@rememberLauncherForActivityResult
             }
+
+            pendingImportUri = uri
         }
     )
 
@@ -210,7 +245,7 @@ fun Settings(
 
         BackupImportSetting(
             onImportRequested = {
-                importBackupLauncher.launch(arrayOf("application/zip", "*/*"))
+                importBackupLauncher.launch(arrayOf("*/*"))
             }
         )
 
@@ -261,7 +296,7 @@ private fun BackupExportSetting(
 ) {
 
     val createBackupLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/zip"),
+        contract = ActivityResultContracts.CreateDocument("*/*"),
         onResult = { uri: Uri? ->
             if (uri != null) onExportRequested(uri)
         }
