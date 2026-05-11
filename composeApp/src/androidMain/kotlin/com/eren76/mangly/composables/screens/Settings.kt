@@ -58,10 +58,13 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.navigation.NavHostController
 import com.eren76.mangly.BackupExportManager
+import com.eren76.mangly.BackupImportManager
 import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.home.HomeSorting
 import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
 import com.eren76.mangly.composables.screens.readviewer.ReaderModeType
+import com.eren76.mangly.composables.shared.dialogs.BackupExtensionConflictResolutionDialog
+import com.eren76.mangly.composables.shared.dialogs.BackupImportConfirmDialog
 import com.eren76.mangly.di.FileManagersEntryPoint
 import com.eren76.mangly.themes.setAppTheme
 import dagger.hilt.android.EntryPointAccessors
@@ -89,6 +92,30 @@ fun Settings(
             EntryPointAccessors.fromApplication(appContext, FileManagersEntryPoint::class.java)
         entryPoint.backupManager()
     }
+
+    val backupImportManager: BackupImportManager = remember {
+        val appContext = context.applicationContext
+        val entryPoint =
+            EntryPointAccessors.fromApplication(appContext, FileManagersEntryPoint::class.java)
+        entryPoint.backupImportManager()
+    }
+    var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
+
+    var pendingImportToken by remember { mutableStateOf<String?>(null) }
+    var pendingExtensionConflicts by remember {
+        mutableStateOf<List<BackupImportManager.ExtensionZipConflict>>(emptyList())
+    }
+    var extensionConflictSelections by remember {
+        mutableStateOf<Map<String, BackupImportManager.ConflictResolution>>(emptyMap())
+    }
+    val importBackupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri: Uri? ->
+            if (uri != null) {
+                pendingImportUri = uri
+            }
+        }
+    )
 
     var isDownloadModeEnabled by remember {
         mutableStateOf(
@@ -181,9 +208,52 @@ fun Settings(
             }
         )
 
+        BackupImportSetting(
+            onImportRequested = {
+                importBackupLauncher.launch(arrayOf("application/zip", "*/*"))
+            }
+        )
+
 
     }
+
+    BackupImportConfirmDialog(
+        context = context,
+        coroutineScope = coroutineScope,
+        backupImportManager = backupImportManager,
+        pendingImportUri = pendingImportUri,
+        onDismiss = { pendingImportUri = null },
+        onStarted = { token, conflicts ->
+            // Triggers re-composition which then triggers the conflict resolution to be shown
+            // It also is used to "pass" variables to the conflict resolution dialog
+            // I am not sure if this is the best way to do this or if this is mega cursed but it works
+            pendingImportToken = token
+            pendingExtensionConflicts = conflicts
+            extensionConflictSelections =
+                conflicts.associate { it.fileName to BackupImportManager.ConflictResolution.KEEP_OLD }
+        },
+    )
+
+    BackupExtensionConflictResolutionDialog(
+        context = context,
+        coroutineScope = coroutineScope,
+        backupImportManager = backupImportManager,
+
+        // These values get set in BackupImportConfirmDialog.OnStarted
+        token = pendingImportToken,
+        conflicts = pendingExtensionConflicts,
+        selections = extensionConflictSelections,
+
+        onSelectionsChanged = { extensionConflictSelections = it },
+        onDismiss = {
+            // Triggers re-composition which then hides the conflict resolution dialog
+            pendingImportToken = null
+            pendingExtensionConflicts = emptyList()
+            extensionConflictSelections = emptyMap()
+        },
+    )
 }
+
 
 @Composable
 private fun BackupExportSetting(
@@ -754,5 +824,50 @@ fun EnablePagination() {
             checked = isDisabled,
             onCheckedChange = { updateSetting(it) }
         )
+    }
+}
+
+@Composable
+private fun BackupImportSetting(
+    onImportRequested: () -> Unit,
+) {
+    ElevatedCard(
+        modifier = Modifier
+            .padding(top = 16.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
+            ) {
+                Text(
+                    text = "Import settings and data",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Restores from a .manglybackup file (overwrites everything)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            FilledTonalButton(
+                onClick = onImportRequested,
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Text("Import")
+            }
+        }
     }
 }
