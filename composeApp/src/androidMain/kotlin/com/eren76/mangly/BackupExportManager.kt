@@ -59,6 +59,11 @@ class BackupExportManager @Inject constructor(
         val includedRoots: List<String>,
     )
 
+    private data class PreferenceValue(
+        val type: String,
+        val value: Any?,
+    )
+
     suspend fun export(
         outputUri: Uri,
         databaseName: String = "app_database",
@@ -127,11 +132,11 @@ class BackupExportManager @Inject constructor(
                         contentHashes += hash
                     }
 
-                    val prefsJson = exportSharedPreferencesAsJson()
+                    val prefsJson: ByteArray = exportSharedPreferences()
 
                     val prefsHash = addBytesToZip(
                         zos = zos,
-                        bytes = prefsJson.toByteArray(Charsets.UTF_8),
+                        bytes = prefsJson,
                         entryName = "preferences.json",
                     )
 
@@ -219,38 +224,48 @@ class BackupExportManager @Inject constructor(
             }
     }
 
-    private fun exportSharedPreferencesAsJson(): String {
-
+    private fun exportSharedPreferences(): ByteArray {
         val prefsDir = File(
             context.applicationInfo.dataDir,
             "shared_prefs"
         )
 
-        val names = prefsDir
-            .listFiles()
-            ?.asSequence()
-            ?.filter {
-                it.isFile &&
-                        it.extension.equals("xml", true)
-            }
-            ?.map { it.nameWithoutExtension }
-            ?.sorted()
-            ?.toList()
-            .orEmpty()
+        val result = mutableMapOf<String, MutableMap<String, PreferenceValue>>()
 
-        val result = linkedMapOf<String, Any?>()
+        prefsDir.listFiles()?.forEach { file ->
+            if (!file.isFile || file.extension != "xml") return@forEach
 
-        for (name in names) {
-
+            val prefsName = file.nameWithoutExtension
             val prefs = context.getSharedPreferences(
-                name,
+                prefsName,
                 Context.MODE_PRIVATE
             )
 
-            result[name] = prefs.all.toSortedMap()
+            val values = mutableMapOf<String, PreferenceValue>()
+
+            for ((key, value) in prefs.all) {
+                val wrapped = when (value) {
+                    null -> PreferenceValue("null", null)
+                    is Int -> PreferenceValue("int", value)
+                    is Long -> PreferenceValue("long", value)
+                    is Float -> PreferenceValue("float", value)
+                    is Boolean -> PreferenceValue("boolean", value)
+                    is String -> PreferenceValue("string", value)
+                    is Set<*> -> PreferenceValue(
+                        "string_set",
+                        value.filterIsInstance<String>()
+                    )
+
+                    else -> PreferenceValue("string", value.toString())
+                }
+
+                values[key] = wrapped
+            }
+
+            result[prefsName] = values
         }
 
-        return gson.toJson(result)
+        return gson.toJson(result).toByteArray(Charsets.UTF_8)
     }
 
     private fun zipDirectory(
