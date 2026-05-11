@@ -1,6 +1,6 @@
 package com.eren76.mangly.di
 
-import com.eren76.mangly.BackupManager
+import com.eren76.mangly.BackupExportManager
 import com.eren76.mangly.ExtensionManager
 import com.eren76.mangly.FileManager
 import dagger.hilt.EntryPoint
@@ -13,6 +13,6 @@ interface FileManagersEntryPoint {
     // Methods that can be called from places Hilt does not own
     fun fileManager(): FileManager
     fun extensionManager(): ExtensionManager
-    fun backupManager(): BackupManager
+    fun backupManager(): BackupExportManager
 }
 

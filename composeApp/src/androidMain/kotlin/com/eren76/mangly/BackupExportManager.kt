@@ -26,7 +26,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class BackupManager @Inject constructor(
+class BackupExportManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: AppDatabase,
 ) {

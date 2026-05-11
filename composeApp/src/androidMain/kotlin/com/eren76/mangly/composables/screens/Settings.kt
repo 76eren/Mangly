@@ -57,7 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.navigation.NavHostController
-import com.eren76.mangly.BackupManager
+import com.eren76.mangly.BackupExportManager
 import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.home.HomeSorting
 import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
@@ -83,7 +83,7 @@ fun Settings(
         )
     }
 
-    val backupManager: BackupManager = remember {
+    val backupExportManager: BackupExportManager = remember {
         val appContext = context.applicationContext
         val entryPoint =
             EntryPointAccessors.fromApplication(appContext, FileManagersEntryPoint::class.java)
@@ -165,7 +165,7 @@ fun Settings(
             onExportRequested = { uri ->
                 coroutineScope.launch {
                     runCatching {
-                        backupManager.export(
+                        backupExportManager.export(
                             outputUri = uri,
                         )
                     }.onSuccess {
