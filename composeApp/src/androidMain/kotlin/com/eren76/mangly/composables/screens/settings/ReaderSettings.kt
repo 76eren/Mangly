@@ -1,0 +1,202 @@
+package com.eren76.mangly.composables.screens.settings
+
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
+import com.eren76.mangly.Constants
+import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
+import com.eren76.mangly.composables.screens.readviewer.ReaderModeType
+
+@Composable
+internal fun ReaderSettingsSection() {
+    ReadViewerSettings()
+
+    SettingsDivider()
+
+    SettingDisableImageSavingOnHold()
+}
+
+@Composable
+private fun ReadViewerSettings() {
+    val context = LocalContext.current
+    val prefs = remember {
+        context.getSharedPreferences(
+            Constants.READING_SETTING_KEY,
+            Context.MODE_PRIVATE
+        )
+    }
+
+    var selectedMode by remember {
+        mutableStateOf(
+            prefs.getString(
+                ReaderModePrefs.KEY_READER_MODE,
+                ReaderModePrefs.DEFAULT_READER_MODE_VALUE
+            ) ?: ReaderModePrefs.DEFAULT_READER_MODE_VALUE
+        )
+    }
+
+    Text(
+        text = "Reader mode",
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier.padding(top = 24.dp)
+    )
+
+    val readerModeOptions = ReaderModeType.entries
+
+    SingleChoiceSegmentedButtonRow {
+        readerModeOptions.forEachIndexed { index, modeType ->
+            SegmentedButton(
+                selected = selectedMode == modeType.prefValue,
+                onClick = {
+                    selectedMode = modeType.prefValue
+                    prefs.edit { putString(ReaderModePrefs.KEY_READER_MODE, modeType.prefValue) }
+                },
+                shape = SegmentedButtonDefaults.itemShape(index, readerModeOptions.size)
+            ) {
+                Text(modeType.displayName)
+            }
+        }
+    }
+
+    if (selectedMode == ReaderModeType.WEBTOON.prefValue) {
+        ReadImagePreloadSetting(sharedPreferences = prefs)
+    }
+}
+
+@Composable
+private fun ReadImagePreloadSetting(sharedPreferences: SharedPreferences) {
+    val minAmount = 0
+    val maxAmount = 7
+    val settingKey = ReaderModePrefs.IMAGE_PRELOAD_AMOUNT
+
+    var preloadAmount by rememberSaveable {
+        mutableStateOf(sharedPreferences.getInt(settingKey, 2))
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Image preload",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = "Controls how many images are loaded ahead while reading. " +
+                    "Higher values use more memory but reduce loading delays.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Preload: $preloadAmount image${if (preloadAmount == 1) "" else "s"}",
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        Slider(
+            value = preloadAmount.toFloat(),
+            onValueChange = { preloadAmount = it.toInt() },
+            onValueChangeFinished = {
+                sharedPreferences.edit {
+                    putInt(settingKey, preloadAmount)
+                }
+            },
+            valueRange = minAmount.toFloat()..maxAmount.toFloat(),
+            steps = maxAmount - minAmount - 1
+        )
+    }
+}
+
+@Composable
+private fun SettingDisableImageSavingOnHold() {
+    val context = LocalContext.current
+
+    val sharedPreferences = remember {
+        context.getSharedPreferences(
+            Constants.READING_SETTING_KEY,
+            Context.MODE_PRIVATE
+        )
+    }
+
+    var isDisabled by remember {
+        mutableStateOf(
+            sharedPreferences.getBoolean(
+                ReaderModePrefs.DISABLE_IMAGE_SAVING_ON_HOLD_SETTING_KEY,
+                false
+            )
+        )
+    }
+
+    fun updateSetting(value: Boolean) {
+        isDisabled = value
+        sharedPreferences.edit {
+            putBoolean(
+                ReaderModePrefs.DISABLE_IMAGE_SAVING_ON_HOLD_SETTING_KEY,
+                value
+            )
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { updateSetting(!isDisabled) }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = "Disable image saving on hold",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text = "When enabled, long-pressing an image in the reader will not show the save option. This helps prevent accidental saves.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            )
+        }
+
+        Switch(
+            checked = isDisabled,
+            onCheckedChange = { updateSetting(it) }
+        )
+    }
+}
