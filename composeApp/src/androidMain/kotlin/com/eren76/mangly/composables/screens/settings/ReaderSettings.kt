@@ -1,7 +1,6 @@
 package com.eren76.mangly.composables.screens.settings
 
 import android.content.Context
-import android.content.SharedPreferences
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,14 +12,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,61 +78,6 @@ private fun ReadViewerSettings() {
                 Text(modeType.displayName)
             }
         }
-    }
-
-    if (selectedMode == ReaderModeType.WEBTOON.prefValue) {
-        ReadImagePreloadSetting(sharedPreferences = prefs)
-    }
-}
-
-@Composable
-private fun ReadImagePreloadSetting(sharedPreferences: SharedPreferences) {
-    val minAmount = 0
-    val maxAmount = 7
-    val settingKey = ReaderModePrefs.IMAGE_PRELOAD_AMOUNT
-
-    var preloadAmount by rememberSaveable {
-        mutableStateOf(sharedPreferences.getInt(settingKey, 2))
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Image preload",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = "Controls how many images are loaded ahead while reading. " +
-                    "Higher values use more memory but reduce loading delays.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "Preload: $preloadAmount image${if (preloadAmount == 1) "" else "s"}",
-            style = MaterialTheme.typography.bodyMedium
-        )
-
-        Slider(
-            value = preloadAmount.toFloat(),
-            onValueChange = { preloadAmount = it.toInt() },
-            onValueChangeFinished = {
-                sharedPreferences.edit {
-                    putInt(settingKey, preloadAmount)
-                }
-            },
-            valueRange = minAmount.toFloat()..maxAmount.toFloat(),
-            steps = maxAmount - minAmount - 1
-        )
     }
 }
 

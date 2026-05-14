@@ -81,9 +81,7 @@ fun Settings(
                 downloadsPrefs.edit { putBoolean(Constants.MANGLY_ENBALE_DOWNLOADS, it) }
             }
         )
-
-        SettingsDivider()
-
+        
         BackupSettingsSection(
             onExportRequested = backupSettingsState::exportBackup,
             onImportRequested = {
