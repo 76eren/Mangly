@@ -22,6 +22,14 @@ internal fun BackupSettingsSection(
     onExportRequested: (Uri) -> Unit,
     onImportRequested: () -> Unit,
 ) {
+
+    Text(
+        text = "Backup and import",
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier.padding(top = 24.dp)
+    )
+
     BackupExportSetting(
         onExportRequested = onExportRequested
     )
