@@ -54,13 +54,14 @@ fun BackupImportConfirmDialog(
                         when (result) {
                             is BackupImportManager.StartImportResult.Ready -> {
                                 backupImportManager.continueImport(token = result.token)
+
                             }
 
                             is BackupImportManager.StartImportResult.NeedsExtensionConflictResolution -> {
                                 onStarted(result.token, result.conflicts)
                             }
                         }
-                        
+
                     } catch (e: Exception) {
                         Toast.makeText(
                             context,
@@ -99,6 +100,8 @@ fun BackupExtensionConflictResolutionDialog(
             tonalElevation = AlertDialogDefaults.TonalElevation,
             color = AlertDialogDefaults.containerColor,
         ) {
+
+
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = "Extension conflicts",
@@ -195,11 +198,7 @@ fun BackupExtensionConflictResolutionDialog(
                                         token = token,
                                         overwriteAllConflicts = true,
                                     )
-                                    Toast.makeText(
-                                        context,
-                                        "Backup imported. Restart the app if you see inconsistent state.",
-                                        Toast.LENGTH_LONG
-                                    ).show()
+
                                 } catch (e: Exception) {
                                     Toast.makeText(
                                         context,
@@ -222,11 +221,7 @@ fun BackupExtensionConflictResolutionDialog(
                                         token = token,
                                         skipAllConflicts = true,
                                     )
-                                    Toast.makeText(
-                                        context,
-                                        "Backup imported. Restart the app if you see inconsistent state.",
-                                        Toast.LENGTH_LONG
-                                    ).show()
+
                                 } catch (e: Exception) {
                                     Toast.makeText(
                                         context,
@@ -255,11 +250,7 @@ fun BackupExtensionConflictResolutionDialog(
                                         token = token,
                                         conflictResolutions = selections,
                                     )
-                                    Toast.makeText(
-                                        context,
-                                        "Backup imported. Restart the app if you see inconsistent state.",
-                                        Toast.LENGTH_LONG
-                                    ).show()
+
                                 } catch (e: Exception) {
                                     Toast.makeText(
                                         context,

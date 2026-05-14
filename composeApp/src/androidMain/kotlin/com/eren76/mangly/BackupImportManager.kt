@@ -1,6 +1,8 @@
 package com.eren76.mangly
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.room.withTransaction
 import com.eren76.mangly.rooms.database.AppDatabase
@@ -190,6 +192,9 @@ class BackupImportManager @Inject constructor(
             overwriteAllConflicts = overwriteAllConflicts,
             skipAllConflicts = skipAllConflicts,
         )
+
+        // TODO: Probably not the best idea to stop the flow from here
+        restartApp()
     }
 
     private fun restoreDatabaseFiles(
@@ -436,6 +441,27 @@ class BackupImportManager @Inject constructor(
 
     private fun OutputStream.buffered(size: Int): BufferedOutputStream =
         BufferedOutputStream(this, size)
+
+    private fun restartApp() {
+        val packageManager = context.packageManager
+        val intent = packageManager.getLaunchIntentForPackage(context.packageName)
+
+        intent?.apply {
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TASK
+            )
+        }
+
+        context.startActivity(intent)
+
+        if (context is Activity) {
+            context.finishAffinity()
+        }
+
+        Runtime.getRuntime().exit(0)
+
+    }
 }
 
 
