@@ -174,7 +174,7 @@ fun Settings(
         backupImportManager = backupSettingsState.backupImportManager,
         pendingImportUri = backupSettingsState.pendingImportUri,
         onDismiss = backupSettingsState::dismissImportConfirmation,
-        onStarted = backupSettingsState::startConflictResolution,
+        onStartBackupConflictResolution = backupSettingsState::startConflictResolution,
     )
 
     BackupExtensionConflictResolutionDialog(

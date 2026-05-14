@@ -37,7 +37,7 @@ fun BackupImportConfirmDialog(
     backupImportManager: BackupImportManager,
     pendingImportUri: Uri?,
     onDismiss: () -> Unit,
-    onStarted: (token: String, conflicts: List<BackupImportManager.ExtensionZipConflict>) -> Unit,
+    onStartBackupConflictResolution: (token: String, conflicts: List<BackupImportManager.ExtensionZipConflict>) -> Unit,
 ) {
     pendingImportUri?.let { uri ->
         ConfirmDialog(
@@ -58,7 +58,7 @@ fun BackupImportConfirmDialog(
                             }
 
                             is BackupImportManager.StartImportResult.NeedsExtensionConflictResolution -> {
-                                onStarted(result.token, result.conflicts)
+                                onStartBackupConflictResolution(result.token, result.conflicts)
                             }
                         }
 
