@@ -261,8 +261,7 @@ class BackupImportManager @Inject constructor(
                 Context.MODE_PRIVATE
             )
 
-            prefs.edit().clear().apply()
-            val editor = prefs.edit()
+            val editor = prefs.edit().clear()
 
             for ((key, wrappedAny) in values) {
                 @Suppress("UNCHECKED_CAST")
@@ -313,7 +312,9 @@ class BackupImportManager @Inject constructor(
                 }
             }
 
-            editor.apply()
+            check(editor.commit()) {
+                "Failed to restore shared preferences: $prefsName"
+            }
         }
     }
 
