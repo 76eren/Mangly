@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.room.withTransaction
+import com.eren76.mangly.rooms.database.APP_DATABASE_VERSION
 import com.eren76.mangly.rooms.database.AppDatabase
 import com.eren76.manglyextension.plugins.PluginMetadata
 import com.google.gson.Gson
@@ -111,6 +112,13 @@ class BackupImportManager @Inject constructor(
 
         require(metadata.formatVersion == SUPPORTED_FORMAT_VERSION) {
             "Unsupported backup format version ${metadata.formatVersion}"
+        }
+
+        metadata.databaseUserVersion?.let { backupDatabaseVersion ->
+            require(backupDatabaseVersion <= APP_DATABASE_VERSION) {
+                "This backup was created by a newer version of Mangly. " +
+                        "Please update the app before importing it."
+            }
         }
 
         for (dbEntry in metadata.databaseFiles) {
