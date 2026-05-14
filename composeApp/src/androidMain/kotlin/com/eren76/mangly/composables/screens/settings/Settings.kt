@@ -1,10 +1,8 @@
-package com.eren76.mangly.composables.screens
+package com.eren76.mangly.composables.screens.settings
 
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
-import android.provider.OpenableColumns
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -47,7 +45,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -58,18 +55,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.navigation.NavHostController
-import com.eren76.mangly.BackupExportManager
-import com.eren76.mangly.BackupImportManager
 import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.home.HomeSorting
 import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
 import com.eren76.mangly.composables.screens.readviewer.ReaderModeType
 import com.eren76.mangly.composables.shared.dialogs.BackupExtensionConflictResolutionDialog
 import com.eren76.mangly.composables.shared.dialogs.BackupImportConfirmDialog
-import com.eren76.mangly.di.FileManagersEntryPoint
 import com.eren76.mangly.themes.setAppTheme
-import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.launch
 
 
 @Composable
@@ -78,7 +70,7 @@ fun Settings(
 ) {
     val scrollState = rememberScrollState()
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
+    val backupSettingsState = rememberBackupSettingsState()
 
     val downloadsPrefs = remember {
         context.getSharedPreferences(
@@ -87,69 +79,9 @@ fun Settings(
         )
     }
 
-    val backupExportManager: BackupExportManager = remember {
-        val appContext = context.applicationContext
-        val entryPoint =
-            EntryPointAccessors.fromApplication(appContext, FileManagersEntryPoint::class.java)
-        entryPoint.backupManager()
-    }
-
-    val backupImportManager: BackupImportManager = remember {
-        val appContext = context.applicationContext
-        val entryPoint =
-            EntryPointAccessors.fromApplication(appContext, FileManagersEntryPoint::class.java)
-        entryPoint.backupImportManager()
-    }
-    var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
-
-    var pendingImportToken by remember { mutableStateOf<String?>(null) }
-    var pendingExtensionConflicts by remember {
-        mutableStateOf<List<BackupImportManager.ExtensionZipConflict>>(emptyList())
-    }
-    var extensionConflictSelections by remember {
-        mutableStateOf<Map<String, BackupImportManager.ConflictResolution>>(emptyMap())
-    }
-
     val importBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
-        onResult = { uri: Uri? ->
-            if (uri == null) return@rememberLauncherForActivityResult
-
-            val fileName = runCatching {
-                context.contentResolver.query(
-                    uri,
-                    arrayOf(OpenableColumns.DISPLAY_NAME),
-                    null,
-                    null,
-                    null
-                )?.use { cursor ->
-                    if (cursor.moveToFirst()) {
-                        cursor.getString(
-                            cursor.getColumnIndexOrThrow(
-                                OpenableColumns.DISPLAY_NAME
-                            )
-                        )
-                    } else {
-                        null
-                    }
-                }
-            }.getOrNull()
-
-            val isValidBackup =
-                fileName?.endsWith(".manglybackup", ignoreCase = true) == true
-
-            if (!isValidBackup) {
-                Toast.makeText(
-                    context,
-                    "Please select a valid .manglybackup file",
-                    Toast.LENGTH_LONG
-                ).show()
-
-                return@rememberLauncherForActivityResult
-            }
-
-            pendingImportUri = uri
-        }
+        onResult = backupSettingsState::selectImportBackup
     )
 
     var isDownloadModeEnabled by remember {
@@ -224,23 +156,7 @@ fun Settings(
         )
 
         BackupExportSetting(
-            onExportRequested = { uri ->
-                coroutineScope.launch {
-                    runCatching {
-                        backupExportManager.export(
-                            outputUri = uri,
-                        )
-                    }.onSuccess {
-                        Toast.makeText(context, "Backup exported", Toast.LENGTH_LONG).show()
-                    }.onFailure { e ->
-                        Toast.makeText(
-                            context,
-                            "Failed to export backup: ${e.message ?: "Unknown error"}",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                }
-            }
+            onExportRequested = backupSettingsState::exportBackup
         )
 
         BackupImportSetting(
@@ -253,39 +169,23 @@ fun Settings(
     }
 
     BackupImportConfirmDialog(
-        context = context,
-        coroutineScope = coroutineScope,
-        backupImportManager = backupImportManager,
-        pendingImportUri = pendingImportUri,
-        onDismiss = { pendingImportUri = null },
-        onStarted = { token, conflicts ->
-            // Triggers re-composition which then triggers the conflict resolution to be shown
-            // It also is used to "pass" variables to the conflict resolution dialog
-            // I am not sure if this is the best way to do this or if this is mega cursed but it works
-            pendingImportToken = token
-            pendingExtensionConflicts = conflicts
-            extensionConflictSelections =
-                conflicts.associate { it.fileName to BackupImportManager.ConflictResolution.KEEP_OLD }
-        },
+        context = backupSettingsState.context,
+        coroutineScope = backupSettingsState.coroutineScope,
+        backupImportManager = backupSettingsState.backupImportManager,
+        pendingImportUri = backupSettingsState.pendingImportUri,
+        onDismiss = backupSettingsState::dismissImportConfirmation,
+        onStarted = backupSettingsState::startConflictResolution,
     )
 
     BackupExtensionConflictResolutionDialog(
-        context = context,
-        coroutineScope = coroutineScope,
-        backupImportManager = backupImportManager,
-
-        // These values get set in BackupImportConfirmDialog.OnStarted
-        token = pendingImportToken,
-        conflicts = pendingExtensionConflicts,
-        selections = extensionConflictSelections,
-
-        onSelectionsChanged = { extensionConflictSelections = it },
-        onDismiss = {
-            // Triggers re-composition which then hides the conflict resolution dialog
-            pendingImportToken = null
-            pendingExtensionConflicts = emptyList()
-            extensionConflictSelections = emptyMap()
-        },
+        context = backupSettingsState.context,
+        coroutineScope = backupSettingsState.coroutineScope,
+        backupImportManager = backupSettingsState.backupImportManager,
+        token = backupSettingsState.pendingImportToken,
+        conflicts = backupSettingsState.pendingExtensionConflicts,
+        selections = backupSettingsState.extensionConflictSelections,
+        onSelectionsChanged = backupSettingsState::updateExtensionConflictSelections,
+        onDismiss = backupSettingsState::dismissConflictResolution,
     )
 }
 
