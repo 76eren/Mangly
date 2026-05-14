@@ -27,6 +27,8 @@ import com.eren76.mangly.rooms.entities.FavoritesEntity
 import com.eren76.mangly.rooms.entities.HistoryChapterEntity
 import com.eren76.mangly.rooms.entities.HistoryEntity
 
+const val APP_DATABASE_VERSION = 13
+
 @Database(
     entities = [
         ExtensionEntity::class,
@@ -36,7 +38,7 @@ import com.eren76.mangly.rooms.entities.HistoryEntity
         DownloadsEntity::class,
         DownloadedChapterEntity::class
     ],
-    version = 13,
+    version = APP_DATABASE_VERSION,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

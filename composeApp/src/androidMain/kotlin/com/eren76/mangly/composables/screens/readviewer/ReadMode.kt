@@ -38,9 +38,6 @@ object ReaderModePrefs {
     const val KEY_READER_MODE: String = "readmode"
     const val DEFAULT_READER_MODE_VALUE: String = "webtoon"
 
-    // Settings that are shared between reading modes can be added here
-    const val IMAGE_PRELOAD_AMOUNT: String =
-        "read_image_preload_amount" // Currently this is only used by webtoon mode, but I plan to re-use this for the other reading modes in the future
     const val DISABLE_IMAGE_SAVING_ON_HOLD_SETTING_KEY =
         "mangly_disable_image_saving_on_hold_setting"
 
