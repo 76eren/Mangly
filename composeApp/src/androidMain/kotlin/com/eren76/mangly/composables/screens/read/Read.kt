@@ -276,15 +276,10 @@ fun Read(
 
 
 suspend fun getChapterImages(url: String, metadata: ExtensionMetadata): Source.ChapterImages {
-    try {
-        val data = metadata.source.getChapterImages(url)
-        return data
-    } catch (_: Exception) {
-        return Source.ChapterImages(emptyList(), emptyList())
-    }
     return metadata.source.getChapterImages(url)
 }
 
+private fun formatReadSourceError(error: Throwable): String {
     val message = error.message
         ?.takeIf { it.isNotBlank() }
         ?: error::class.java.simpleName
