@@ -4,31 +4,53 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.eren76.mangly.search.SearchQueryResult
+import com.eren76.mangly.search.querySearchSources
 import com.eren76.manglyextension.plugins.ExtensionMetadata
 import com.eren76.manglyextension.plugins.Source
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class SearchViewModel @Inject constructor() : ViewModel() {
-    var searchResults by mutableStateOf(HashMap<ExtensionMetadata, List<Source.SearchResult>>())
-    var searchErrors by mutableStateOf(HashMap<ExtensionMetadata, String>())
-    var searchQuery by mutableStateOf("")
+    var uiState by mutableStateOf(SearchUiState())
+        private set
 
-    fun updateSearchViewModel(
-        results: HashMap<ExtensionMetadata, List<Source.SearchResult>>,
-        errors: HashMap<ExtensionMetadata, String>,
-        searchQuery: String
-    ) {
-        this.searchResults = results
-        this.searchErrors = errors
-        this.searchQuery = searchQuery
+    private var searchJob: Job? = null
+
+    fun search(query: String, sources: List<ExtensionMetadata>) {
+        searchJob?.cancel()
+
+        uiState = uiState.copy(
+            query = query,
+            isLoading = true,
+            hasSearched = true
+        )
+
+        searchJob = viewModelScope.launch {
+            val searchResult: SearchQueryResult =
+                querySearchSources(query = query, sources = sources)
+            uiState = uiState.copy(
+                results = searchResult.results,
+                errors = searchResult.errors,
+                isLoading = false
+            )
+        }
     }
 
     fun clearSearchResults() {
-        this.searchResults.clear()
-        this.searchErrors.clear()
-        this.searchQuery = ""
+        searchJob?.cancel()
+        uiState = SearchUiState()
     }
-
 }
+
+data class SearchUiState(
+    val query: String = "",
+    val results: Map<ExtensionMetadata, List<Source.SearchResult>> = emptyMap(),
+    val errors: Map<ExtensionMetadata, String> = emptyMap(),
+    val isLoading: Boolean = false,
+    val hasSearched: Boolean = false
+)
