@@ -57,12 +57,18 @@ import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
+data class SearchQueryResult(
+    val results: HashMap<ExtensionMetadata, List<Source.SearchResult>>,
+    val errors: HashMap<ExtensionMetadata, String>
+)
+
 suspend fun querySearchFromSource(
     query: String,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
-): HashMap<ExtensionMetadata, List<Source.SearchResult>> {
+): SearchQueryResult {
 
     val results = HashMap<ExtensionMetadata, List<Source.SearchResult>>()
+    val errors = HashMap<ExtensionMetadata, String>()
 
     withContext(Dispatchers.IO) {
         for (metadata in extensionMetadataViewModel.getAllSources()) {
@@ -70,13 +76,13 @@ suspend fun querySearchFromSource(
                 val searchResult = metadata.source.search(query)
                 results[metadata] = searchResult
             } catch (e: Exception) {
-                // This can trigger if the source itself does not have proper error handling
                 results[metadata] = emptyList()
+                errors[metadata] = formatExtensionError(e)
             }
         }
     }
 
-    return results
+    return SearchQueryResult(results = results, errors = errors)
 }
 
 @Composable
@@ -89,6 +95,7 @@ fun Search(
 
     var textFieldState = remember { TextFieldState(searchViewModel.searchQuery) }
     var searchResults by searchViewModel::searchResults
+    var searchErrors by searchViewModel::searchErrors
     var isLoading by remember { mutableStateOf(false) }
 
 
@@ -105,15 +112,21 @@ fun Search(
                 scope.launch {
                     isLoading = true
                     try {
-                        val results = querySearchFromSource(query, extensionMetadataViewModel)
-                        searchResults = results
-                        searchViewModel.updateSearchViewModel(results, query)
+                        val searchResult = querySearchFromSource(query, extensionMetadataViewModel)
+                        searchResults = searchResult.results
+                        searchErrors = searchResult.errors
+                        searchViewModel.updateSearchViewModel(
+                            searchResult.results,
+                            searchResult.errors,
+                            query
+                        )
                     } finally {
                         isLoading = false
                     }
                 }
             },
             searchResults = searchResults,
+            searchErrors = searchErrors,
             isLoading = isLoading,
             navHostController = navHostController,
             extensionMetadataViewModel = extensionMetadataViewModel,
@@ -128,6 +141,7 @@ fun SimpleSearchBar(
     textFieldState: TextFieldState,
     onSearch: (String) -> Unit,
     searchResults: HashMap<ExtensionMetadata, List<Source.SearchResult>>,
+    searchErrors: HashMap<ExtensionMetadata, String>,
     isLoading: Boolean,
     navHostController: NavHostController,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
@@ -181,9 +195,17 @@ fun SimpleSearchBar(
                                 modifier = Modifier.padding(vertical = 8.dp)
                             )
 
-                            if (results.isEmpty()) {
+                            val error = searchErrors[extensionMetadata]
+                            if (error != null) {
                                 Text(
-                                    text = "No results found or an error occurred.",
+                                    text = "Extension error: $error",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+                            } else if (results.isEmpty()) {
+                                Text(
+                                    text = "No results found.",
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
@@ -222,6 +244,14 @@ fun SimpleSearchBar(
             }
         }
     }
+}
+
+private fun formatExtensionError(error: Throwable): String {
+    val message = error.message
+        ?.takeIf { it.isNotBlank() }
+        ?: error::class.java.simpleName
+
+    return "${error::class.java.simpleName}: $message"
 }
 
 @Composable

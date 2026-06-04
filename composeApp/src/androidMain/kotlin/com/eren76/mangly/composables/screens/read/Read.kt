@@ -5,6 +5,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +55,7 @@ fun Read(
     var chapterImages by remember { mutableStateOf<Source.ChapterImages?>(null) }
     val pages = remember(url) { mutableStateListOf<ReaderPage>() }
     var isLoadingChapter by remember(url, download) { mutableStateOf(true) }
+    var chapterImageError by remember(url, download) { mutableStateOf<String?>(null) }
 
     val relatedDownload: DownloadWithChapters? = remember(
         downloadsViewModel.downloads.value,
@@ -108,9 +110,19 @@ fun Read(
         val safeMetadata = metadata ?: return@LaunchedEffect
 
         chapterImages = null
+        chapterImageError = null
         isLoadingChapter = true
-        chapterImages = withContext(Dispatchers.IO) {
-            getChapterImages(url, safeMetadata)
+        try {
+            chapterImages = withContext(Dispatchers.IO) {
+                getChapterImages(url, safeMetadata)
+            }
+        } catch (error: Exception) {
+            chapterImageError =
+                "Failed to load chapter images from ${safeMetadata.source.getExtensionName()}: ${
+                    formatReadSourceError(
+                        error
+                    )
+                }"
         }
         isLoadingChapter = false
     }
@@ -210,6 +222,12 @@ fun Read(
 
     if (isLoading) {
         ReadLoadingSkeleton()
+    } else if (chapterImageError != null) {
+        Text(
+            text = chapterImageError.orEmpty(),
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(16.dp)
+        )
     } else if (canRender) {
         readerMode.Content(
             pages = pages,
@@ -264,4 +282,12 @@ suspend fun getChapterImages(url: String, metadata: ExtensionMetadata): Source.C
     } catch (_: Exception) {
         return Source.ChapterImages(emptyList(), emptyList())
     }
+    return metadata.source.getChapterImages(url)
+}
+
+    val message = error.message
+        ?.takeIf { it.isNotBlank() }
+        ?: error::class.java.simpleName
+
+    return "${error::class.java.simpleName}: $message"
 }

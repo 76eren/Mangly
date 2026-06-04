@@ -12,18 +12,22 @@ import javax.inject.Inject
 @HiltViewModel
 class SearchViewModel @Inject constructor() : ViewModel() {
     var searchResults by mutableStateOf(HashMap<ExtensionMetadata, List<Source.SearchResult>>())
+    var searchErrors by mutableStateOf(HashMap<ExtensionMetadata, String>())
     var searchQuery by mutableStateOf("")
 
     fun updateSearchViewModel(
         results: HashMap<ExtensionMetadata, List<Source.SearchResult>>,
+        errors: HashMap<ExtensionMetadata, String>,
         searchQuery: String
     ) {
         this.searchResults = results
+        this.searchErrors = errors
         this.searchQuery = searchQuery
     }
 
     fun clearSearchResults() {
         this.searchResults.clear()
+        this.searchErrors.clear()
         this.searchQuery = ""
     }
 
