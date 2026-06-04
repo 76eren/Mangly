@@ -21,8 +21,7 @@ fun Search(
     navHostController: NavHostController,
     searchViewModel: SearchViewModel
 ) {
-    val uiState = searchViewModel.uiState
-    val textFieldState = remember { TextFieldState(uiState.query) }
+    val textFieldState = remember { TextFieldState(searchViewModel.uiState.value.query) }
 
     Column(
         modifier = Modifier
@@ -39,7 +38,7 @@ fun Search(
                     sources = extensionMetadataViewModel.getAllSources()
                 )
             },
-            uiState = uiState,
+            uiState = searchViewModel.uiState.value,
             onResultClick = { result, extensionMetadata ->
                 navigateToSearchResult(
                     url = result.url,

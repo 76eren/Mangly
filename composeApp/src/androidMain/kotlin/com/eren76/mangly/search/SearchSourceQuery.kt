@@ -1,17 +1,15 @@
 package com.eren76.mangly.search
 
+import androidx.compose.runtime.MutableState
+import com.eren76.mangly.viewmodels.SearchUiState
 import com.eren76.manglyextension.plugins.ExtensionMetadata
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-
-internal data class SearchQueryResult(
-    val results: Map<ExtensionMetadata, List<Source.SearchResult>>,
-    val errors: Map<ExtensionMetadata, String>
-)
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withContext
 
 private data class ExtensionSearchResult(
     val metadata: ExtensionMetadata,
@@ -21,43 +19,63 @@ private data class ExtensionSearchResult(
 
 internal suspend fun querySearchSources(
     query: String,
-    sources: List<ExtensionMetadata>
-): SearchQueryResult = coroutineScope {
-    val sourceResults: List<ExtensionSearchResult> = sources.map { metadata ->
-        async(Dispatchers.IO) {
-            try {
-                ExtensionSearchResult(
-                    metadata = metadata,
-                    results = metadata.source.search(query),
-                    error = null
-                )
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                ExtensionSearchResult(
-                    metadata = metadata,
-                    results = emptyList(),
-                    error = formatExtensionError(error)
-                )
-            }
-        }
-    }.awaitAll()
-
-    val results = mutableMapOf<ExtensionMetadata, List<Source.SearchResult>>()
-    val errors = mutableMapOf<ExtensionMetadata, String>()
-
-    for (sourceResult in sourceResults) {
-        results[sourceResult.metadata] = sourceResult.results
-
-        val error = sourceResult.error
-        if (error != null) {
-            errors[sourceResult.metadata] = error
+    sources: List<ExtensionMetadata>,
+    uiState: MutableState<SearchUiState>
+) = supervisorScope {
+    val jobs = mutableListOf<Job>()
+    sources.forEach { source ->
+        jobs += launch {
+            val result: ExtensionSearchResult = querySource(query = query, source = source)
+            addSearchResultToUiState(
+                query = query,
+                result = result,
+                uiState = uiState
+            )
         }
     }
+}
 
-    return@coroutineScope SearchQueryResult(
-        results = results,
-        errors = errors
+private suspend fun querySource(
+    query: String,
+    source: ExtensionMetadata
+): ExtensionSearchResult = withContext(Dispatchers.IO) {
+    try {
+        ExtensionSearchResult(
+            metadata = source,
+            results = source.source.search(query),
+            error = null
+        )
+    } catch (error: CancellationException) {
+        throw error
+    } catch (error: Exception) {
+        ExtensionSearchResult(
+            metadata = source,
+            results = emptyList(),
+            error = formatExtensionError(error)
+        )
+    }
+}
+
+private fun addSearchResultToUiState(
+    query: String,
+    result: ExtensionSearchResult,
+    uiState: MutableState<SearchUiState>
+) {
+    val currentState = uiState.value
+
+    if (currentState.query != query) {
+        return
+    }
+
+    // Force re-composition of the entire source section by creating new collections, which is why I didn't make it a mutable map
+    uiState.value = currentState.copy(
+        results = currentState.results + (result.metadata to result.results),
+        errors = if (result.error == null) {
+            currentState.errors - result.metadata
+        } else {
+            currentState.errors + (result.metadata to result.error)
+        },
+        loadingSources = currentState.loadingSources - result.metadata
     )
 }
 

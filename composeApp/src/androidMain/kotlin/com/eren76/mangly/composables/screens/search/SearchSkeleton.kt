@@ -17,26 +17,13 @@ import androidx.compose.ui.unit.dp
 import com.eren76.mangly.composables.shared.skeleton.SkeletonBlock
 
 @Composable
-fun SearchResultsSkeleton() {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+fun SearchResultCardsSkeleton() {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        repeat(3) {
-            SkeletonBlock(
-                modifier = Modifier
-                    .fillMaxWidth(0.42f)
-                    .height(26.dp)
-            )
-
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(4) {
-                    SearchResultCardSkeleton()
-                }
-            }
+        items(4) {
+            SearchResultCardSkeleton()
         }
     }
 }

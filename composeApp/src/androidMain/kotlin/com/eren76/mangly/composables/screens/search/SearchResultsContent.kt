@@ -29,11 +29,12 @@ fun SearchResultsContent(
     Column(
         modifier = modifier.verticalScroll(rememberScrollState())
     ) {
-        if (uiState.isLoading) {
-            SearchResultsSkeleton()
-        } else {
-            uiState.results.forEach { (extensionMetadata, results) ->
-                key(extensionMetadata.source.getExtensionId()) {
+        uiState.sourceOrder.forEach { extensionMetadata ->
+            key(extensionMetadata.source.getExtensionId()) {
+                val results = uiState.results[extensionMetadata]
+                if (results == null && extensionMetadata in uiState.loadingSources) {
+                    SearchSourceLoading(extensionMetadata = extensionMetadata)
+                } else if (results != null) {
                     SearchSourceResults(
                         extensionMetadata = extensionMetadata,
                         results = results,
@@ -103,4 +104,17 @@ private fun SearchSourceResults(
             }
         }
     }
+}
+
+@Composable
+private fun SearchSourceLoading(
+    extensionMetadata: ExtensionMetadata
+) {
+    Text(
+        text = extensionMetadata.source.getExtensionName(),
+        style = MaterialTheme.typography.titleLarge,
+        modifier = Modifier.padding(vertical = 8.dp)
+    )
+
+    SearchResultCardsSkeleton()
 }
