@@ -20,6 +20,7 @@ import dalvik.system.DexClassLoader
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.UUID
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import javax.inject.Inject
@@ -38,6 +39,11 @@ class ExtensionManager @Inject constructor(
 
         val metadata =
             Gson().fromJson(jsonBytes.toString(Charsets.UTF_8), PluginMetadata::class.java)
+                ?: throw IllegalArgumentException("Invalid meta/plugin.json")
+
+        require(metadata.entryClass.isNotBlank()) { "Plugin entryClass is blank" }
+        require(metadata.name.isNotBlank()) { "Plugin name is blank" }
+        require(metadata.version.isNotBlank()) { "Plugin version is blank" }
 
         val vectorImageBytes = zipContents["meta/icon.svg"]
             ?: throw IllegalArgumentException("Missing meta/icon.svg")
@@ -47,13 +53,16 @@ class ExtensionManager @Inject constructor(
         val dex = zipContents["dex/classes.dex"]
             ?: throw IllegalArgumentException("Missing dex/classes.dex")
 
+        val source = loadPluginSource(metadata.entryClass, dex, context)
+        require(source.getExtensionName().isNotBlank()) { "Extension name is blank" }
+
         return ExtensionMetadata(
             entryClass = metadata.entryClass,
             name = metadata.name,
             version = metadata.version,
             icon = bitmapPainter,
             dexFile = dex,
-            loadPluginSource(metadata.entryClass, dex, context)
+            source = source
         )
     }
 
@@ -85,6 +94,12 @@ class ExtensionManager @Inject constructor(
             .newInstance(null) as Source
 
         val settingsKey: String = sourceWithoutPrefs.getExtensionId()
+        require(settingsKey.isNotBlank()) { "Extension ID is blank" }
+        try {
+            UUID.fromString(settingsKey)
+        } catch (error: IllegalArgumentException) {
+            throw IllegalArgumentException("Extension ID is not a valid UUID: $settingsKey", error)
+        }
 
         val settingsSharedPreferences: SharedPreferences = context.getSharedPreferences(
             settingsKey,
