@@ -1,30 +1,52 @@
 package com.eren76.mangly.viewmodels
 
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.eren76.mangly.search.querySearchSources
 import com.eren76.manglyextension.plugins.ExtensionMetadata
 import com.eren76.manglyextension.plugins.Source
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class SearchViewModel @Inject constructor() : ViewModel() {
-    var searchResults by mutableStateOf(HashMap<ExtensionMetadata, List<Source.SearchResult>>())
-    var searchQuery by mutableStateOf("")
+    var uiState = mutableStateOf(SearchUiState())
+        private set
 
-    fun updateSearchViewModel(
-        results: HashMap<ExtensionMetadata, List<Source.SearchResult>>,
-        searchQuery: String
-    ) {
-        this.searchResults = results
-        this.searchQuery = searchQuery
+    private var searchJob: Job? = null
+
+    fun search(query: String, sources: List<ExtensionMetadata>) {
+        searchJob?.cancel()
+
+        uiState.value = SearchUiState(
+            query = query,
+            sourceOrder = sources,
+            loadingSources = sources.toSet(),
+            hasSearched = true
+        )
+
+        searchJob = viewModelScope.launch {
+            querySearchSources(query = query, sources = sources, uiState = uiState)
+        }
     }
 
     fun clearSearchResults() {
-        this.searchResults.clear()
-        this.searchQuery = ""
+        searchJob?.cancel()
+        uiState.value = SearchUiState()
     }
+}
 
+data class SearchUiState(
+    val query: String = "",
+    val sourceOrder: List<ExtensionMetadata> = emptyList(),
+    val results: Map<ExtensionMetadata, List<Source.SearchResult>> = emptyMap(),
+    val errors: Map<ExtensionMetadata, String> = emptyMap(),
+    val loadingSources: Set<ExtensionMetadata> = emptySet(),
+    val hasSearched: Boolean = false
+) {
+    val isLoading: Boolean
+        get() = loadingSources.isNotEmpty()
 }

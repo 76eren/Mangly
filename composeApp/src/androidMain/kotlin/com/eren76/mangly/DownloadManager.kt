@@ -10,6 +10,7 @@ import com.eren76.mangly.viewmodels.DownloadsViewModel
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
@@ -24,8 +25,12 @@ class DownloadManager @Inject constructor(
     suspend fun downloadImage(
         imageUrl: String,
         headers: List<Source.Header>
-    ): ByteArray? {
-        return runCatching { CoverCache.downloadImage(imageUrl, headers)?.bytes }.getOrNull()
+    ): ByteArray {
+        val bytes = CoverCache.downloadImage(imageUrl, headers)?.bytes
+        if (bytes == null || bytes.isEmpty()) {
+            throw IOException("Failed to download image: $imageUrl")
+        }
+        return bytes
     }
 
     suspend fun downloadChapter(
@@ -48,6 +53,9 @@ class DownloadManager @Inject constructor(
             }?.id
 
             val chapterImages: Source.ChapterImages = source.getChapterImages(chapterUrl)
+            if (chapterImages.images.isEmpty()) {
+                throw IOException("Extension returned no images for chapter: $chapterUrl")
+            }
             val normalizedSummary = mangaSummary.takeIf { it.isNotBlank() }
 
             val downloadEntity = DownloadsEntity(
@@ -92,21 +100,18 @@ class DownloadManager @Inject constructor(
             var savedImages = 0
             for ((pageIndexZeroBased, imageUrl) in chapterImages.images.withIndex()) {
                 val imageBytes = downloadImage(imageUrl, chapterImages.headers)
-                if (imageBytes != null) {
+                val pageNumber = pageIndexZeroBased + 1
 
-                    val pageNumber = pageIndexZeroBased + 1
+                val extension = getDownloadExtension(imageUrl)
+                val fileName = "$pageNumber.$extension"
+                fileManager.saveBytesToStorage(
+                    context = context,
+                    relativeDir = chapterDir,
+                    fileName = fileName,
+                    bytes = imageBytes
+                )
 
-                    val extension = getDownloadExtension(imageUrl)
-                    val fileName = "$pageNumber.$extension"
-                    fileManager.saveBytesToStorage(
-                        context = context,
-                        relativeDir = chapterDir,
-                        fileName = fileName,
-                        bytes = imageBytes
-                    )
-
-                    savedImages++
-                }
+                savedImages++
             }
 
             val isFullyDownloaded = savedImages == chapterImages.images.size && savedImages > 0
@@ -116,6 +121,12 @@ class DownloadManager @Inject constructor(
                 filePath = chapterDir,
                 downloadedAt = if (isFullyDownloaded) System.currentTimeMillis() else null
             )
+
+            if (!isFullyDownloaded) {
+                throw IOException(
+                    "Downloaded $savedImages/${chapterImages.images.size} pages for chapter: $chapterUrl"
+                )
+            }
 
         }
     }

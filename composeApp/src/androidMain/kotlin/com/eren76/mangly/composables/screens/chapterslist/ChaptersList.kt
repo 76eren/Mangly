@@ -79,6 +79,7 @@ fun ChaptersList(
     var summary by remember { mutableStateOf("") }
     var isSummaryExpanded by remember { mutableStateOf(false) }
     var mangaName by remember { mutableStateOf("") }
+    var loadError by remember { mutableStateOf<String?>(null) }
     val scrollState = rememberScrollState()
 
     // Local selection state for this screen only
@@ -117,6 +118,7 @@ fun ChaptersList(
             image = null
             summary = relatedDownload?.download?.mangaSummary.orEmpty()
             mangaName = relatedDownload?.download?.mangaName ?: targetUrl
+            loadError = null
             localCoverFile = relatedDownload?.download?.coverImageFilename?.let { filename ->
                 downloadsViewModel.getCoverFile(filename = filename, context = context)
             }
@@ -129,6 +131,7 @@ fun ChaptersList(
         }
 
         localCoverFile = null
+        loadError = null
 
         // Regular online mode
         val safeMetadata = metadata ?: return@LaunchedEffect
@@ -141,6 +144,8 @@ fun ChaptersList(
                     chaptersListViewModel.getChapters()
                 }
             }
+        }.onFailure { error ->
+            loadError = "Failed to load chapters from ${safeMetadata.source.getExtensionName()}: ${formatSourceError(error)}"
         }.getOrNull()
 
 
@@ -174,7 +179,7 @@ fun ChaptersList(
             }
         }.getOrDefault("")
 
-        chapters = fetchedChapters
+        chapters = fetchedChapters ?: emptyList()
         image = fetchedImage
         summary = fetchedSummary
         mangaName = fetchedMangaName
@@ -210,6 +215,14 @@ fun ChaptersList(
             ChaptersListSkeleton()
         } else {
             val chapterList = chapters.orEmpty()
+
+            loadError?.let { error ->
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
 
             ChaptersHeaderSection(
                 targetUrl = targetUrl,
@@ -365,6 +378,14 @@ fun ChaptersList(
             }
         }
     }
+}
+
+private fun formatSourceError(error: Throwable): String {
+    val message = error.message
+        ?.takeIf { it.isNotBlank() }
+        ?: error::class.java.simpleName
+
+    return "${error::class.java.simpleName}: $message"
 }
 
 private fun mapDownloadedChapter(downloadedChapter: DownloadedChapterEntity): Source.ChapterValue? {
