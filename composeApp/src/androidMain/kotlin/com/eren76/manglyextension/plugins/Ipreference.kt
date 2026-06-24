@@ -1,12 +1,13 @@
 package com.eren76.manglyextension.plugins
 
-import android.content.Context
-import android.content.SharedPreferences
-
 abstract class IPreferences(settingsPreferences: Any?, ctx: Any?) {
-    var settings: SharedPreferences = settingsPreferences as SharedPreferences
-
-    var context: Context = ctx as Context
+    /*
+     * Making the variables under here type Any? was an active choice I purposefully made, a choice I might regret later on some might say
+     * The reason I have done this is so I can keep these variables as undefined in the extensions project
+     * because not all extensions have to rely on android-specific code which is nice when developing a extension as it means you can directly run it rather than having to import it in android first
+     */
+    var settings: Any? = settingsPreferences // of type SharedPreferences
+    var context: Any? = ctx // of type Context
 
     abstract fun getBoolean(key: String, defaultValue: Boolean): Boolean
     abstract fun setBoolean(key: String, value: Boolean, uiElement: PreferenceUi? = null)
