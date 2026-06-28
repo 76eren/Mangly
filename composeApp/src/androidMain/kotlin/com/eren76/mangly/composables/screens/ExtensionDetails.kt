@@ -1,5 +1,6 @@
 package com.eren76.mangly.composables.screens
 
+import android.content.SharedPreferences
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -219,10 +220,11 @@ fun seedSettings(cardData: CardData): List<Source.SettingGen>? {
         val rawSettings = cardData.source.generateSettings()
         val preferences: PreferenceImplementation =
             cardData.source.preferences as PreferenceImplementation
+        val storedSettings = preferences.settings as SharedPreferences
 
         // If the UI settings aren't present yet, we initialize them
         for (setting in rawSettings) {
-            if (!preferences.settings.contains(setting.key)) {
+            if (!storedSettings.contains(setting.key)) {
                 when (val settingUnknownType = setting.defaultValue) {
                     is Boolean -> preferences.setBoolean(
                         key = setting.key,
