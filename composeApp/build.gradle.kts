@@ -58,8 +58,8 @@ android {
         applicationId = "com.eren76.mangly"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 6
-        versionName = "1.2.3"
+        versionCode = 7
+        versionName = "1.2.4"
     }
     packaging {
         resources {
