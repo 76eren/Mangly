@@ -44,6 +44,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 
+// TODO: This is a very large composable function, needs to be refactored in the future.
 @Composable
 fun ChaptersList(
     targetUrl: String,
