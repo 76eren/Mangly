@@ -145,7 +145,9 @@ fun ChaptersList(
                 }
             }
         }.onFailure { error ->
-            loadError = "Failed to load chapters from ${safeMetadata.source.getExtensionName()}: ${formatSourceError(error)}"
+            loadError = "Failed to load chapters from ${safeMetadata.source.getExtensionName()}: ${
+                formatSourceError(error)
+            }"
         }.getOrNull()
 
 
@@ -216,6 +218,29 @@ fun ChaptersList(
         } else {
             val chapterList = chapters.orEmpty()
 
+            val continueReadingChapter: Source.ChapterValue? = remember(
+                historyViewModel.historyWithChapters.value,
+                targetUrl,
+                chapterList,
+                showDownloads
+            ) {
+                val availableChapterUrls: Set<String> =
+                    chapterList.map { chapter -> chapter.url }.toSet()
+                val latestReadChapter = if (showDownloads) {
+                    historyViewModel.getLatestReadChapter(targetUrl, availableChapterUrls)
+                } else {
+                    historyViewModel.getLatestReadChapter(targetUrl)
+                }
+
+                latestReadChapter?.chapterUrl?.let { chapterUrl ->
+                    chapterList.firstOrNull { chapter -> chapter.url == chapterUrl }
+                        ?: Source.ChapterValue(
+                            title = fallbackChapterTitle(chapterUrl),
+                            url = chapterUrl
+                        )
+                }
+            }
+
             loadError?.let { error ->
                 Text(
                     text = error,
@@ -233,6 +258,7 @@ fun ChaptersList(
                 isSummaryExpanded = isSummaryExpanded,
                 extensionName = metadata?.source?.getExtensionName().orEmpty(),
                 isFavorite = isFavorite,
+                isContinueReadingEnabled = continueReadingChapter != null,
                 onToggleSummary = { isSummaryExpanded = !isSummaryExpanded },
                 onToggleFavorite = {
                     scope.launch {
@@ -264,6 +290,19 @@ fun ChaptersList(
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
+                    }
+                },
+                onContinueReading = {
+                    continueReadingChapter?.let { chapter: Source.ChapterValue ->
+                        onChapterClick(
+                            navHostController = navHostController,
+                            mangaUrl = chapter.url,
+                            chaptersListViewModel = chaptersListViewModel,
+                            scrollPosition = scrollState.value,
+                            chapterTitle = chapter.title,
+                            chapterUrl = targetUrl,
+                            isDownload = showDownloads
+                        )
                     }
                 }
             )
@@ -407,4 +446,12 @@ private fun mapDownloadedChapter(downloadedChapter: DownloadedChapterEntity): So
         title = chapterTitle,
         url = chapterUrl
     )
+}
+
+// Because there is the risk that the chapter title is not available (meaning it got source changed the url or title) we need to fallback to a title based on the chapter url.
+private fun fallbackChapterTitle(chapterUrl: String): String {
+    return chapterUrl.substringAfterLast('/')
+        .substringBefore('?')
+        .takeIf { it.isNotBlank() }
+        ?: "Last read chapter"
 }
