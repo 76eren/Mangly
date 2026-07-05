@@ -78,6 +78,7 @@ interface HistoryDao {
     @Query("UPDATE HistoryEntity SET cover_image_filename = :filename WHERE id = :id")
     suspend fun updateCoverFilename(id: UUID, filename: String?)
 
+    // Notice: cascading is enabled meaning that when a HistoryEntity is deleted, all associated HistoryReadChapterEntity entries will also be deleted automatically.
     @Query("DELETE FROM HistoryEntity WHERE id = :id")
     suspend fun deleteHistoryById(id: UUID)
 }

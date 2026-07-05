@@ -51,6 +51,7 @@ interface DownloadsDao {
     @Query("DELETE FROM DownloadedChapterEntity WHERE id = :chapterId")
     suspend fun deleteDownloadedChapterById(chapterId: UUID)
 
+    // Cascade is enabled for DownloadsEntity, so deleting a download will also delete its associated chapters
     @Query("DELETE FROM DownloadsEntity WHERE download_id = :downloadId")
     suspend fun deleteDownloadById(downloadId: UUID)
 

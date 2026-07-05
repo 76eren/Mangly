@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eren76.mangly.FileManager
 import com.eren76.mangly.HistoryManager
+import com.eren76.mangly.rooms.entities.HistoryEntity
 import com.eren76.mangly.rooms.entities.HistoryWithReadChapters
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -73,6 +74,21 @@ class HistoryViewModel
                 }
             }
 
+            refresh()
+        }
+    }
+
+    fun deleteWholeHistoryByHistoryEntity(historyEntity: HistoryEntity, context: Context) {
+        viewModelScope.launch {
+            historyEntity.coverImageFilename?.let { filename ->
+                fileManager.deleteFileInDir(
+                    context = context,
+                    relativeDir = coverDir,
+                    fileName = filename
+                )
+            }
+
+            historyManager.deleteHistoryById(historyEntity.id)
             refresh()
         }
     }

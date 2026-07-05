@@ -119,7 +119,10 @@ fun ShowDownloadsInList(
                         text = "Delete all",
                         onDeleteClick = {
                             isMenuExpanded = false
-                            downloadsViewModel.deleteDownload(item.download.downloadId, context)
+                            downloadsViewModel.deleteWholeMangaDownloadByDownloadEntityId(
+                                item.download.downloadId,
+                                context
+                            )
                             Toast.makeText(context, "Download deleted", Toast.LENGTH_SHORT).show()
                         }
                     )

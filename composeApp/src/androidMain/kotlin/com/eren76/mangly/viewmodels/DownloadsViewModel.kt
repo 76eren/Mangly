@@ -203,7 +203,7 @@ class DownloadsViewModel
         refresh()
     }
 
-    fun deleteDownload(downloadId: UUID, context: Context) {
+    fun deleteWholeMangaDownloadByDownloadEntityId(downloadId: UUID, context: Context) {
         viewModelScope.launch {
             val downloadWithChapters: DownloadWithChapters =
                 downloadsDao.getWithChaptersByDownloadId(downloadId)
