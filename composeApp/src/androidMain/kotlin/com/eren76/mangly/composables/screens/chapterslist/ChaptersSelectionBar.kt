@@ -1,6 +1,7 @@
 package com.eren76.mangly.composables.screens.chapterslist
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -8,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +25,7 @@ import androidx.compose.ui.unit.dp
 fun ChaptersSelectionBar(
     selectedCount: Int,
     modifier: Modifier = Modifier,
+    onSelectAll: () -> Unit,
     onApplySelection: () -> Unit,
     onDownloadOrDeleteSelection: () -> Unit,
     showDownloadUi: Boolean = true,
@@ -33,12 +36,11 @@ fun ChaptersSelectionBar(
         shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.secondaryContainer
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Text(
                 text = "$selectedCount selected",
@@ -46,9 +48,17 @@ fun ChaptersSelectionBar(
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
             Row(
-                horizontalArrangement = Arrangement.spacedBy(0.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                TextButton(onClick = onSelectAll) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Select all chapters"
+                    )
+                    Text(text = "Select all")
+                }
                 TextButton(onClick = onApplySelection) {
                     Icon(
                         imageVector = Icons.Default.Check,
@@ -70,8 +80,6 @@ fun ChaptersSelectionBar(
                     }
                 }
             }
-
-
         }
     }
 }

@@ -1,7 +1,8 @@
 package com.eren76.mangly.composables.screens.home
 
+import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
+import com.eren76.mangly.composables.shared.dropdowns.DeleteDropdownMenu
 import com.eren76.mangly.composables.shared.image.CoverCache
 import com.eren76.mangly.composables.shared.image.CoverImageRequests
 import com.eren76.mangly.composables.shared.image.ImageLoadingComposable
@@ -45,11 +47,17 @@ fun FavoriteCard(
     favoritesViewModel: FavoritesViewModel,
     onClick: () -> Unit,
 ) {
+    val context = LocalContext.current
+    var isDeleteDropdownMenuExpanded by remember(favorite.id) { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .width(160.dp)
             .height(220.dp)
-            .clickable { onClick() },
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { isDeleteDropdownMenuExpanded = true }
+            ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -73,6 +81,19 @@ fun FavoriteCard(
                     color = Color.White,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                DeleteDropdownMenu(
+                    expanded = isDeleteDropdownMenuExpanded,
+                    onDismissRequest = { isDeleteDropdownMenuExpanded = false },
+                    text = "Delete favorite",
+                    onDeleteClick = {
+                        isDeleteDropdownMenuExpanded = false
+                        favoritesViewModel.removeFavorite(favorite.id, context)
+                        Toast.makeText(context, "Favorite deleted", Toast.LENGTH_SHORT).show()
+                    }
                 )
             }
         }

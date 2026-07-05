@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eren76.mangly.FileManager
 import com.eren76.mangly.HistoryManager
+import com.eren76.mangly.rooms.entities.HistoryChapterEntity
+import com.eren76.mangly.rooms.entities.HistoryEntity
 import com.eren76.mangly.rooms.entities.HistoryWithReadChapters
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -75,6 +77,37 @@ class HistoryViewModel
 
             refresh()
         }
+    }
+
+    fun deleteWholeHistoryByHistoryEntity(historyEntity: HistoryEntity, context: Context) {
+        viewModelScope.launch {
+            historyEntity.coverImageFilename?.let { filename ->
+                fileManager.deleteFileInDir(
+                    context = context,
+                    relativeDir = coverDir,
+                    fileName = filename
+                )
+            }
+
+            historyManager.deleteHistoryById(historyEntity.id)
+            refresh()
+        }
+    }
+
+    fun getLatestReadChapter(
+        mangaUrl: String,
+        availableChapterUrls: Set<String>? = null
+    ): HistoryChapterEntity? {
+        val history: HistoryWithReadChapters = historyWithChapters.value
+            .firstOrNull { item -> item.history.mangaUrl == mangaUrl }
+            ?: return null
+
+        // In download mode we only want to consider chapters that are available by the downloads
+        val readChapters = availableChapterUrls?.let { chapterUrls ->
+            history.readChapters.filter { chapter -> chapter.chapterUrl in chapterUrls }
+        } ?: history.readChapters
+
+        return readChapters.maxByOrNull { chapter -> chapter.readAt ?: Long.MIN_VALUE }
     }
 
     suspend fun isChapterInHistory(mangaUrl: String, chapterUrl: String): Boolean {

@@ -13,6 +13,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,8 +42,10 @@ fun ChaptersHeaderSection(
     isSummaryExpanded: Boolean,
     extensionName: String,
     isFavorite: Boolean,
+    isContinueReadingEnabled: Boolean,
     onToggleSummary: () -> Unit,
-    onToggleFavorite: () -> Unit
+    onToggleFavorite: () -> Unit,
+    onContinueReading: () -> Unit
 ) {
     var isCoverPreviewVisible by remember { mutableStateOf(false) }
 
@@ -109,6 +113,18 @@ fun ChaptersHeaderSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
+                FilledTonalButton(
+                    onClick = onContinueReading,
+                    enabled = isContinueReadingEnabled,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Continue reading")
+                }
             }
         }
 
