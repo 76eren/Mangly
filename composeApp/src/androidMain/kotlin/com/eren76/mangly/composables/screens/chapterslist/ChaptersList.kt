@@ -278,6 +278,12 @@ fun ChaptersList(
                 ChaptersSelectionBar(
                     selectedCount = selectedChapters.size,
                     modifier = Modifier.fillMaxWidth(),
+                    onSelectAll = {
+                        selectedChapters.clear()
+                        selectedChapters.addAll(
+                            chapterList.map { chapter -> chapter.url }.distinct()
+                        )
+                    },
                     onApplySelection = {
                         scope.launch {
                             for (chapterUrl: String in selectedChapters.toList()) {
@@ -349,7 +355,7 @@ fun ChaptersList(
                             }
                         }
                     },
-                    showDownloadUi = isDownloadModeEnabled,
+                    showDownloadUi = isDownloadModeEnabled || showDownloads,
                     isDownloadMode = showDownloads
                 )
             }
