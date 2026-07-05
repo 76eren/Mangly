@@ -1,5 +1,6 @@
 package com.eren76.mangly.composables.screens.home
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
@@ -47,7 +48,7 @@ fun FavoriteCard(
     onClick: () -> Unit,
 ) {
     val context = LocalContext.current
-    var isMenuExpanded by remember(favorite.id) { mutableStateOf(false) }
+    var isDeleteDropdownMenuExpanded by remember(favorite.id) { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
@@ -55,7 +56,7 @@ fun FavoriteCard(
             .height(220.dp)
             .combinedClickable(
                 onClick = onClick,
-                onLongClick = { isMenuExpanded = true }
+                onLongClick = { isDeleteDropdownMenuExpanded = true }
             ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -85,12 +86,13 @@ fun FavoriteCard(
 
             Box(modifier = Modifier.align(Alignment.TopEnd)) {
                 DeleteDropdownMenu(
-                    expanded = isMenuExpanded,
-                    onDismissRequest = { isMenuExpanded = false },
+                    expanded = isDeleteDropdownMenuExpanded,
+                    onDismissRequest = { isDeleteDropdownMenuExpanded = false },
                     text = "Delete favorite",
                     onDeleteClick = {
-                        isMenuExpanded = false
+                        isDeleteDropdownMenuExpanded = false
                         favoritesViewModel.removeFavorite(favorite.id, context)
+                        Toast.makeText(context, "Favorite deleted", Toast.LENGTH_SHORT).show()
                     }
                 )
             }

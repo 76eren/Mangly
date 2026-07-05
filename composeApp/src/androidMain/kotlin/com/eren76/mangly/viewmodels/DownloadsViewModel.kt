@@ -22,6 +22,7 @@ import com.eren76.manglyextension.plugins.ExtensionMetadata
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.io.File
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -200,6 +201,30 @@ class DownloadsViewModel
         }
 
         refresh()
+    }
+
+    fun deleteDownload(downloadId: UUID, context: Context) {
+        viewModelScope.launch {
+            val downloadWithChapters: DownloadWithChapters =
+                downloadsDao.getWithChaptersByDownloadId(downloadId)
+                    ?: return@launch
+
+            downloadWithChapters.download.coverImageFilename?.let { filename ->
+                fileManager.deleteFileInDir(
+                    context = context,
+                    relativeDir = DOWNLOADS_COVERS_DIRECTORY,
+                    fileName = filename
+                )
+            }
+
+            fileManager.deleteDirectory(
+                context = context,
+                relativeDir = "$DOWNLOADS_DIRECTORY/$downloadId"
+            )
+
+            downloadsDao.deleteDownloadById(downloadId)
+            refresh()
+        }
     }
 
     suspend fun hasDownload(mangaUrl: String): Boolean {
