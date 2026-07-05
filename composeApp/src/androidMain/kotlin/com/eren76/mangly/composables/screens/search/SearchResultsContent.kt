@@ -12,7 +12,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -81,25 +80,23 @@ private fun SearchSourceResults(
         }
 
         else -> {
-            val listState = rememberLazyListState()
+            key(query) {
+                val listState = rememberLazyListState()
 
-            LaunchedEffect(query) {
-                listState.scrollToItem(0)
-            }
-
-            LazyRow(
-                state = listState,
-                contentPadding = PaddingValues(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                itemsIndexed(
-                    items = results,
-                    key = { index, result -> "${result.url}-$index" }
-                ) { _, result ->
-                    SearchResultCard(
-                        searchResult = result,
-                        onClick = { onResultClick(result, extensionMetadata) }
-                    )
+                LazyRow(
+                    state = listState,
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    itemsIndexed(
+                        items = results,
+                        key = { index, result -> "${result.url}-$index" }
+                    ) { _, result ->
+                        SearchResultCard(
+                            searchResult = result,
+                            onClick = { onResultClick(result, extensionMetadata) }
+                        )
+                    }
                 }
             }
         }
