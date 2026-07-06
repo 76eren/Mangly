@@ -57,6 +57,12 @@ fun Home(
         sortFavorites(favorites, sorting, historyViewModel)
     }
     val downloads = downloadsViewModel.downloads.value
+    val isPaginationEnabled: Boolean =
+        paginationPreferences.getBoolean(Constants.PAGINATION_ENABLED_KEY, false)
+    val pageSize: Int = paginationPreferences.getInt(
+        Constants.MANGLY_PAGINATION_SIZE_KEY.toString(),
+        Constants.MANGLY_PAGINATION_SIZE_KEY
+    )
 
     Column(
         modifier = Modifier
@@ -80,13 +86,22 @@ fun Home(
                     modifier = Modifier.padding(16.dp)
                 )
             } else {
-                ShowDownloadsInList(
-                    downloads = downloads,
-                    extensionMetadataViewModel = extensionMetadataViewModel,
-                    navHostController = navHostController,
-                    downloadsViewModel = downloadsViewModel
-
-                )
+                if (!isPaginationEnabled) {
+                    ShowDownloadsInLazyGrid(
+                        downloads = downloads,
+                        extensionMetadataViewModel = extensionMetadataViewModel,
+                        navHostController = navHostController,
+                        downloadsViewModel = downloadsViewModel
+                    )
+                } else {
+                    PaginatedDownloads(
+                        pageSize = pageSize,
+                        downloads = downloads,
+                        extensionMetadataViewModel = extensionMetadataViewModel,
+                        downloadsViewModel = downloadsViewModel,
+                        navHostController = navHostController
+                    )
+                }
             }
         } else if (sortedFavorites.isEmpty()) {
             Text(
@@ -95,7 +110,7 @@ fun Home(
                 modifier = Modifier.padding(16.dp)
             )
         } else {
-            if (!paginationPreferences.getBoolean(Constants.PAGINATION_ENABLED_KEY, false)) {
+            if (!isPaginationEnabled) {
                 ShowItemsInLazyGrid(
                     sortedFavorites = sortedFavorites,
                     extensionMetadataViewModel = extensionMetadataViewModel,
@@ -103,10 +118,6 @@ fun Home(
                     navHostController = navHostController
                 )
             } else {
-                val pageSize = paginationPreferences.getInt(
-                    Constants.MANGLY_PAGINATION_SIZE_KEY.toString(), 6
-                )
-
                 PaginatedFavorites(
                     pageSize = pageSize,
                     sortedFavorites = sortedFavorites,
