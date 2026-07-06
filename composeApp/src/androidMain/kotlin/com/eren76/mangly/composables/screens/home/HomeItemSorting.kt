@@ -27,6 +27,7 @@ fun sortFavorites(
     )
 }
 
+// TODO: currently the sort by favorites option is broken for downloads, that sorts by latest read in the downloads list
 fun sortDownloads(
     downloads: List<DownloadWithChapters>,
     sorting: HomeSorting,
