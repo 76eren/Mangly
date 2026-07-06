@@ -2,17 +2,8 @@ package com.eren76.mangly.composables.screens.home
 
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,10 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
-import com.eren76.mangly.composables.shared.dropdowns.DeleteDropdownMenu
 import com.eren76.mangly.composables.shared.image.CoverCache
 import com.eren76.mangly.composables.shared.image.CoverImageRequests
 import com.eren76.mangly.composables.shared.image.ImageLoadingComposable
@@ -48,57 +36,25 @@ fun FavoriteCard(
     onClick: () -> Unit,
 ) {
     val context = LocalContext.current
-    var isDeleteDropdownMenuExpanded by remember(favorite.id) { mutableStateOf(false) }
 
-    Card(
-        modifier = Modifier
-            .width(160.dp)
-            .height(220.dp)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = { isDeleteDropdownMenuExpanded = true }
-            ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+    HomeMangaCard(
+        title = favorite.mangaTitle,
+        menuKey = favorite.id,
+        menuText = "Delete favorite",
+        onClick = onClick,
+        onDelete = {
+            favoritesViewModel.removeFavorite(favorite.id, context)
+            Toast.makeText(context, "Favorite deleted", Toast.LENGTH_SHORT).show()
+        },
+        imageContent = { modifier ->
             FavoriteImage(
                 favorite = favorite,
                 extensionMetadataViewModel = extensionMetadataViewModel,
                 favoritesViewModel = favoritesViewModel,
-                modifier = Modifier.fillMaxSize()
+                modifier = modifier
             )
-
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .background(Color.Black.copy(alpha = 0.6f))
-                    .padding(horizontal = 6.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = favorite.mangaTitle,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = Color.White,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Box(modifier = Modifier.align(Alignment.TopEnd)) {
-                DeleteDropdownMenu(
-                    expanded = isDeleteDropdownMenuExpanded,
-                    onDismissRequest = { isDeleteDropdownMenuExpanded = false },
-                    text = "Delete favorite",
-                    onDeleteClick = {
-                        isDeleteDropdownMenuExpanded = false
-                        favoritesViewModel.removeFavorite(favorite.id, context)
-                        Toast.makeText(context, "Favorite deleted", Toast.LENGTH_SHORT).show()
-                    }
-                )
-            }
         }
-
-    }
+    )
 }
 
 @Composable

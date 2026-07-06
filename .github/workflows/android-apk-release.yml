@@ -3,6 +3,8 @@ name: Build & Release Signed Android APK
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -10,7 +12,55 @@ permissions:
   pull-requests: read
 
 jobs:
+  check-pr-version:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v4
+
+      - name: Ensure app version changed
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const { owner, repo } = context.repo;
+            const path = "composeApp/build.gradle.kts";
+            const parseVersionName = (contents) => {
+              const match = contents.match(/^\s*versionName\s*=\s*"([^"]+)"/m);
+              return match?.[1];
+            };
+
+            const prVersion = parseVersionName(fs.readFileSync(path, "utf8"));
+            if (!prVersion) {
+              core.setFailed(`Could not read versionName from ${path}`);
+              return;
+            }
+
+            const baseFile = await github.rest.repos.getContent({
+              owner,
+              repo,
+              path,
+              ref: context.payload.pull_request.base.sha
+            });
+
+            const baseContents = Buffer.from(baseFile.data.content, "base64").toString("utf8");
+            const baseVersion = parseVersionName(baseContents);
+            if (!baseVersion) {
+              core.setFailed(`Could not read base versionName from ${path}`);
+              return;
+            }
+
+            if (prVersion === baseVersion) {
+              core.setFailed(`versionName is still ${prVersion}. Update versionName in ${path} before merging this release PR.`);
+              return;
+            }
+
+            core.info(`versionName changed from ${baseVersion} to ${prVersion}.`);
+
   build-android:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
@@ -36,6 +86,63 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
+      - name: Read app version
+        id: app_version
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const buildGradle = fs.readFileSync("composeApp/build.gradle.kts", "utf8");
+            const match = buildGradle.match(/^\s*versionName\s*=\s*"([^"]+)"/m);
+
+            if (!match) {
+              core.setFailed("Could not read versionName from composeApp/build.gradle.kts");
+              return;
+            }
+
+            const versionName = match[1];
+            core.setOutput("version_name", versionName);
+            core.setOutput("release_tag", `v${versionName}`);
+
+      - name: Ensure release version is new
+        uses: actions/github-script@v7
+        env:
+          RELEASE_TAG: ${{ steps.app_version.outputs.release_tag }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const releaseTag = process.env.RELEASE_TAG;
+
+            try {
+              const latestRelease = await github.rest.repos.getLatestRelease({
+                owner,
+                repo
+              });
+
+              if (latestRelease.data.tag_name === releaseTag) {
+                core.setFailed(`Latest release already uses ${releaseTag}. Update versionName in composeApp/build.gradle.kts before releasing.`);
+                return;
+              }
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
+
+            try {
+              await github.rest.repos.getReleaseByTag({
+                owner,
+                repo,
+                tag: releaseTag
+              });
+
+              core.setFailed(`Release ${releaseTag} already exists. Update versionName in composeApp/build.gradle.kts before releasing.`);
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
+
       - name: Restore keystore from base64
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -48,7 +155,6 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_ALIAS_PASSWORD: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
-          GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: |
           ./gradlew :composeApp:assembleRelease \
             -Pandroid.injected.signing.store.file="$ANDROID_KEYSTORE_PATH" \
@@ -60,7 +166,7 @@ jobs:
       - name: Find and rename generated release APK
         id: find_apk
         env:
-          RUN_NUMBER: ${{ github.run_number }}
+          VERSION_NAME: ${{ steps.app_version.outputs.version_name }}
         run: |
           APK_PATH=$(find composeApp -type f -name "*-release.apk" | head -n 1)
 
@@ -70,7 +176,7 @@ jobs:
           fi
 
           DIR_NAME=$(dirname "$APK_PATH")
-          NEW_APK_PATH="$DIR_NAME/Mangly-v${RUN_NUMBER}.apk"
+          NEW_APK_PATH="$DIR_NAME/Mangly-v${VERSION_NAME}.apk"
 
           mv "$APK_PATH" "$NEW_APK_PATH"
 
@@ -101,8 +207,8 @@ jobs:
       - name: Create GitHub Release and upload APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.run_number }}
-          name: Mangly v${{ github.run_number }}
+          tag_name: ${{ steps.app_version.outputs.release_tag }}
+          name: Mangly ${{ steps.app_version.outputs.release_tag }}
           body: ${{ steps.pr.outputs.body }}
           draft: false
           prerelease: false
