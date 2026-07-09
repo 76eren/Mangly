@@ -1,8 +1,9 @@
-package com.eren76.mangly.composables.shared.downloads
+package com.eren76.mangly.downloads
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -86,7 +87,7 @@ fun DownloadQueuePanel(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = EXPANDED_QUEUE_MAX_HEIGHT),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    contentPadding = PaddingValues(
                         horizontal = 14.dp,
                         vertical = 8.dp
                     ),
