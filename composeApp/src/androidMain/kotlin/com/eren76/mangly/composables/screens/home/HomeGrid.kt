@@ -36,13 +36,12 @@ import kotlinx.coroutines.flow.map
 fun <T> ShowHomeItemsInLazyGrid(
     homeItems: List<T>,
     key: ((T) -> Any)? = null,
+    modifier: Modifier = Modifier.fillMaxSize(),
     itemContent: @Composable (T) -> Unit
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(8.dp),
+        modifier = modifier.padding(8.dp),
         contentPadding = PaddingValues(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -62,6 +61,7 @@ fun <T> PaginatedHomeGrid(
     pageSize: Int,
     homeItems: List<T>,
     onPageStartIndexChanged: ((Int) -> Unit)? = null,
+    modifier: Modifier = Modifier.fillMaxSize(),
     itemContent: @Composable (T) -> Unit
 ) {
     val safePageSize = remember(pageSize) { maxOf(1, pageSize) }
@@ -92,9 +92,7 @@ fun <T> PaginatedHomeGrid(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+        modifier = modifier.padding(16.dp)
     ) {
         Spacer(modifier = Modifier.height(8.dp))
 

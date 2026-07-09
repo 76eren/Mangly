@@ -1,249 +1,26 @@
 package com.eren76.mangly.workers
 
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
-import android.content.pm.ServiceInfo
-import android.os.Build
-import androidx.core.app.NotificationCompat
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
-import com.eren76.mangly.DownloadManager
-import com.eren76.mangly.ExtensionManager
-import com.eren76.mangly.R
-import com.eren76.mangly.permissions.NotificationPermissionHandling
-import com.eren76.mangly.rooms.dao.ExtensionDao
-import dagger.hilt.EntryPoint
-import dagger.hilt.InstallIn
-import dagger.hilt.android.EntryPointAccessors
-import dagger.hilt.components.SingletonComponent
+import com.eren76.mangly.downloads.DownloadStorage
+import com.eren76.mangly.downloads.models.DownloadWorkerRequest
+import com.eren76.mangly.rooms.entities.ExtensionEntity
+import com.eren76.manglyextension.plugins.ExtensionMetadata
+import kotlinx.coroutines.CancellationException
 import java.io.File
 import java.io.IOException
 import java.util.UUID
+
+private const val TAG = "ChapterDownloadWorker"
+private const val MAX_TRANSIENT_RETRIES = 2
 
 class ChapterDownloadWorker(
     appContext: Context,
     workerParams: WorkerParameters
 ) : CoroutineWorker(appContext, workerParams) {
-
-    @EntryPoint
-    @InstallIn(SingletonComponent::class)
-    interface WorkerDependencies {
-        fun downloadManager(): DownloadManager
-        fun extensionDao(): ExtensionDao
-        fun extensionManager(): ExtensionManager
-    }
-
-    private val deps: WorkerDependencies by lazy {
-        EntryPointAccessors.fromApplication(applicationContext, WorkerDependencies::class.java)
-    }
-
-    override suspend fun doWork(): Result {
-        val mangaUrl = inputData.getString(KEY_MANGA_URL) ?: return Result.failure()
-        val mangaName = inputData.getString(KEY_MANGA_NAME) ?: return Result.failure()
-        val mangaSummary = inputData.getString(KEY_MANGA_SUMMARY).orEmpty()
-        val chapterUrl = inputData.getString(KEY_CHAPTER_URL) ?: return Result.failure()
-        val chapterName = inputData.getString(KEY_CHAPTER_NAME).orEmpty()
-        val extensionIdValue = inputData.getString(KEY_EXTENSION_ID) ?: return Result.failure()
-        val downloadsDirectory = inputData.getString(KEY_DOWNLOADS_DIR) ?: DEFAULT_DOWNLOADS_DIR
-        val queueIndex = inputData.getInt(KEY_QUEUE_INDEX, 1).coerceAtLeast(1)
-        val queueTotal = inputData.getInt(KEY_QUEUE_TOTAL, 1).coerceAtLeast(queueIndex)
-
-        val extensionId = runCatching { UUID.fromString(extensionIdValue) }
-            .getOrElse { return Result.failure() }
-
-        val extensionEntry = deps.extensionDao().getById(extensionId) ?: return Result.failure()
-
-        createNotificationChannelIfNeeded()
-        try {
-            setForeground(
-                createForegroundInfo(
-                    mangaName = mangaName,
-                    progressChapter = queueIndex,
-                    totalChapters = queueTotal
-                )
-            )
-        } catch (e: Exception) {
-            return Result.retry()
-        }
-
-        return try {
-            val metadata = deps.extensionManager().extractExtensionMetadata(
-                zipBytes = File(extensionEntry.filePath).readBytes(),
-                context = applicationContext
-            )
-
-            updateProgressNotification(
-                mangaName = mangaName,
-                progressChapter = queueIndex,
-                totalChapters = queueTotal
-            )
-
-            deps.downloadManager().downloadChapter(
-                mangaurl = mangaUrl,
-                mangaName = mangaName,
-                mangaSummary = mangaSummary,
-                chapterUrl = chapterUrl,
-                chapterName = chapterName,
-                source = metadata.source,
-                extensionId = extensionId,
-                context = applicationContext,
-                downloadsDirectory = downloadsDirectory,
-            )
-
-            showFinalNotification(
-                mangaName = mangaName,
-                isSuccess = true,
-                finishedChapters = queueIndex,
-                totalChapters = queueTotal
-            )
-            Result.success()
-        } catch (_: IOException) {
-            showFinalNotification(
-                mangaName = mangaName,
-                isSuccess = false,
-                finishedChapters = (queueIndex - 1).coerceAtLeast(0),
-                totalChapters = queueTotal
-            )
-            Result.retry()
-        } catch (_: Exception) {
-            showFinalNotification(
-                mangaName = mangaName,
-                isSuccess = false,
-                finishedChapters = (queueIndex - 1).coerceAtLeast(0),
-                totalChapters = queueTotal
-            )
-            Result.failure()
-        }
-    }
-
-
-    private fun cancelQueuePendingIntent(): PendingIntent {
-        val intent = Intent(applicationContext, CancelDownloadReceiver::class.java).apply {
-            action = CancelDownloadReceiver.ACTION_CANCEL_DOWNLOADS
-        }
-        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        return PendingIntent.getBroadcast(applicationContext, 0, intent, flags)
-    }
-
-    private fun createForegroundInfo(
-        mangaName: String,
-        progressChapter: Int,
-        totalChapters: Int
-    ): ForegroundInfo {
-        val notification = buildProgressNotification(mangaName, progressChapter, totalChapters)
-        val notificationId = notificationIdForWork()
-
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ForegroundInfo(
-                notificationId,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            )
-        } else {
-            ForegroundInfo(notificationId, notification)
-        }
-    }
-
-    private fun buildProgressNotification(
-        mangaName: String,
-        progressChapter: Int,
-        totalChapters: Int
-    ): Notification {
-        val builder = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setSmallIcon(R.drawable.icon)
-            .setContentTitle("Downloading $mangaName")
-            .setOnlyAlertOnce(true)
-            .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .addAction(
-                android.R.drawable.ic_menu_close_clear_cancel,
-                "Cancel queue",
-                cancelQueuePendingIntent()
-            )
-
-        if (totalChapters > 0) {
-            val clampedProgress = progressChapter.coerceIn(0, totalChapters)
-            builder
-                .setContentText("Progress $clampedProgress/$totalChapters chapters")
-                .setProgress(totalChapters, clampedProgress, false)
-        } else {
-            builder
-                .setContentText("Preparing download...")
-                .setProgress(0, 0, true)
-        }
-
-        return builder.build()
-    }
-
-    private fun updateProgressNotification(
-        mangaName: String,
-        progressChapter: Int,
-        totalChapters: Int
-    ) {
-        if (!NotificationPermissionHandling.canPostNotifications(applicationContext)) return
-
-        val notification = buildProgressNotification(mangaName, progressChapter, totalChapters)
-        val manager =
-            applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(notificationIdForWork(), notification)
-    }
-
-    private fun showFinalNotification(
-        mangaName: String,
-        isSuccess: Boolean,
-        finishedChapters: Int,
-        totalChapters: Int
-    ) {
-        if (!NotificationPermissionHandling.canPostNotifications(applicationContext)) return
-
-        val progressText = if (totalChapters > 0) {
-            val clampedFinished = finishedChapters.coerceIn(0, totalChapters)
-            "$clampedFinished/$totalChapters chapters finished downloading"
-        } else {
-            "Download interrupted"
-        }
-
-        val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setSmallIcon(R.drawable.icon)
-            .setContentTitle(mangaName)
-            .setContentText(if (isSuccess) progressText else "$progressText (interrupted)")
-            .setOngoing(false)
-            .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .build()
-
-        val manager =
-            applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(notificationIdForWork(), notification)
-    }
-
-    private fun createNotificationChannelIfNeeded() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-
-        val manager =
-            applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val existing = manager.getNotificationChannel(CHANNEL_ID)
-        if (existing != null) return
-
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            CHANNEL_NAME,
-            NotificationManager.IMPORTANCE_LOW
-        ).apply {
-            description = "Shows ongoing manga chapter download progress"
-        }
-
-        manager.createNotificationChannel(channel)
-    }
-
-    private fun notificationIdForWork(): Int {
-        return DOWNLOAD_QUEUE_NOTIFICATION_ID
-    }
 
     companion object {
         const val KEY_MANGA_URL = "manga_url"
@@ -253,21 +30,197 @@ class ChapterDownloadWorker(
         const val KEY_CHAPTER_NAME = "chapter_name"
         const val KEY_EXTENSION_ID = "extension_id"
         const val KEY_DOWNLOADS_DIR = "downloads_dir"
-        const val DEFAULT_DOWNLOADS_DIR = "downloads"
+        const val DEFAULT_DOWNLOADS_DIR = DownloadStorage.DOWNLOADS_DIRECTORY
         const val KEY_QUEUE_INDEX = "queue_index"
         const val KEY_QUEUE_TOTAL = "queue_total"
+        const val KEY_QUEUE_BATCH_ID = "queue_batch_id"
+        const val KEY_QUEUED_AT = "queued_at"
+        const val KEY_QUEUE_KEY = "queue_key"
+        const val KEY_QUEUE_STATUS = "queue_status"
+        const val KEY_QUEUE_MESSAGE = "queue_message"
+
+        const val STATUS_RUNNING = "running"
+        const val STATUS_RETRYING = "retrying"
+        const val STATUS_SUCCEEDED = "succeeded"
+        const val STATUS_FAILED = "failed"
 
         // Shared with DownloadsViewModel so both refer to the same unique work chain
         const val DOWNLOAD_QUEUE_WORK_NAME = "chapter_download_queue"
+        const val DOWNLOAD_QUEUE_TAG = "mangly_download_queue"
+        const val TAG_MANGA_NAME_PREFIX = "mangly_queue:manga_name="
+        const val TAG_CHAPTER_NAME_PREFIX = "mangly_queue:chapter_name="
+        const val TAG_QUEUE_INDEX_PREFIX = "mangly_queue:index="
+        const val TAG_QUEUE_TOTAL_PREFIX = "mangly_queue:total="
+        const val TAG_QUEUE_BATCH_PREFIX = "mangly_queue:batch="
+        const val TAG_QUEUED_AT_PREFIX = "mangly_queue:queued_at="
+        const val TAG_QUEUE_KEY_PREFIX = "mangly_queue:key="
 
-        private const val CHANNEL_ID = "chapter_downloads"
-        private const val CHANNEL_NAME = "Chapter downloads"
-        private const val DOWNLOAD_QUEUE_NOTIFICATION_ID = 1001
+        private const val MAX_QUEUE_TAG_VALUE_LENGTH = 120
+        private val queueTagWhitespace = Regex("\\s+")
+
+        fun queueMetadataTag(prefix: String, value: String): String {
+            val normalized = value.replace(queueTagWhitespace, " ").trim()
+            return prefix + normalized.take(MAX_QUEUE_TAG_VALUE_LENGTH)
+        }
+    }
+
+    override suspend fun doWork(): Result {
+        val request: DownloadWorkerRequest =
+            ChapterDownloadWorkerRequestReader.readFromInputData(inputData)
+        Log.i(
+            TAG,
+            "Starting work id=$id chapter=${request.queueIndex}/${request.queueTotal} " +
+                    "name=${request.chapterName} attempt=$runAttemptCount"
+        )
+
+        if (request.missingFields.isNotEmpty()) {
+            val message = "Download request missing ${request.missingFields.joinToString(", ")}"
+            Log.e(TAG, "Rejecting work id=$id: $message")
+            return failedResult(message)
+        }
+
+        val extensionId: UUID = runCatching { UUID.fromString(request.extensionIdValue) }
+            .getOrElse {
+                Log.e(TAG, "Rejecting work id=$id: invalid extension id")
+                return failedResult("Invalid extension id for this download")
+            }
+
+        notifications.createNotificationChannelIfNeeded()
+        setProgress(
+            ChapterDownloadWorkerQueueData.progressData(
+                request = request,
+                status = STATUS_RUNNING
+            )
+        )
+        foregroundSetup.prepareForegroundExecution(request)
+
+        val extensionEntry: ExtensionEntity = dependencies.extensionDao().getById(extensionId)
+            ?: run {
+                Log.e(TAG, "Extension $extensionId missing for work id=$id")
+                return failedResult("Extension is no longer installed")
+            }
+
+        return try {
+            val metadata: ExtensionMetadata =
+                dependencies.extensionManager().extractExtensionMetadata(
+                    zipBytes = File(extensionEntry.filePath).readBytes(),
+                    context = applicationContext
+                )
+
+            notifications.updateProgressNotification(
+                mangaName = request.mangaName,
+                progressChapter = request.queueIndex,
+                totalChapters = request.queueTotal
+            )
+
+            Log.i(TAG, "Downloading work id=$id chapter=${request.chapterName}")
+            dependencies.downloadManager().downloadChapter(
+                mangaurl = request.mangaUrl,
+                mangaName = request.mangaName,
+                mangaSummary = request.mangaSummary,
+                chapterUrl = request.chapterUrl,
+                chapterName = request.chapterName,
+                source = metadata.source,
+                extensionId = extensionId,
+                context = applicationContext,
+                downloadsDirectory = request.downloadsDirectory,
+            )
+
+            notifications.showFinalNotification(
+                mangaName = request.mangaName,
+                isSuccess = true,
+                finishedChapters = request.queueIndex,
+                totalChapters = request.queueTotal
+            )
+            Log.i(TAG, "Completed work id=$id chapter=${request.chapterName}")
+            Result.success(
+                ChapterDownloadWorkerQueueData.resultData(status = STATUS_SUCCEEDED)
+            )
+        } catch (error: CancellationException) {
+            Log.i(TAG, "Cancelled work id=$id chapter=${request.chapterName}")
+            notifications.showFinalNotification(
+                mangaName = request.mangaName,
+                isSuccess = false,
+                finishedChapters = (request.queueIndex - 1).coerceAtLeast(0),
+                totalChapters = request.queueTotal
+            )
+            throw error
+        } catch (error: IOException) {
+            handleDownloadFailure(request = request, error = error, canRetry = true)
+        } catch (error: Exception) {
+            handleDownloadFailure(request = request, error = error, canRetry = false)
+        }
+    }
+
+    private val dependencies: ChapterDownloadWorkerDependencies by lazy {
+        ChapterDownloadWorkerDependencyProvider.from(applicationContext)
+    }
+
+    private val notifications: ChapterDownloadWorkerNotifications by lazy {
+        ChapterDownloadWorkerNotifications(applicationContext)
+    }
+
+    private val foregroundSetup: ChapterDownloadWorkerForegroundSetup by lazy {
+        ChapterDownloadWorkerForegroundSetup(
+            applicationContext = applicationContext,
+            notifications = notifications,
+            workIdProvider = { id.toString() },
+            setForegroundInfo = { foregroundInfo -> setForeground(foregroundInfo) },
+            setProgressData = { data -> setProgress(data) }
+        )
+    }
+
+
+    private suspend fun handleDownloadFailure(
+        request: DownloadWorkerRequest,
+        error: Exception,
+        canRetry: Boolean
+    ): Result {
+        val message = ChapterDownloadWorkerQueueData.errorMessage(error)
+        if (canRetry && shouldRetryTransientFailure()) {
+            Log.w(
+                TAG,
+                "Retrying work id=$id chapter=${request.chapterName} attempt=$runAttemptCount",
+                error
+            )
+            runCatching {
+                setProgress(
+                    ChapterDownloadWorkerQueueData.progressData(
+                        request = request,
+                        status = STATUS_RETRYING,
+                        message = message
+                    )
+                )
+            }
+            return Result.retry()
+        }
+
+        Log.e(TAG, "Download failed for work id=$id chapter=${request.chapterName}", error)
+        notifications.showFinalNotification(
+            mangaName = request.mangaName,
+            isSuccess = false,
+            finishedChapters = (request.queueIndex - 1).coerceAtLeast(0),
+            totalChapters = request.queueTotal
+        )
+        return failedResult(message)
+    }
+
+    private fun failedResult(message: String): Result {
+        return Result.success(
+            ChapterDownloadWorkerQueueData.resultData(
+                status = STATUS_FAILED,
+                message = message
+            )
+        )
+    }
+
+    private fun shouldRetryTransientFailure(): Boolean {
+        return runAttemptCount < MAX_TRANSIENT_RETRIES
     }
 
     override suspend fun getForegroundInfo(): ForegroundInfo {
-        createNotificationChannelIfNeeded()
-        return createForegroundInfo(
+        notifications.createNotificationChannelIfNeeded()
+        return notifications.createForegroundInfo(
             mangaName = inputData.getString(KEY_MANGA_NAME) ?: "Manga",
             progressChapter = inputData.getInt(KEY_QUEUE_INDEX, 1),
             totalChapters = inputData.getInt(KEY_QUEUE_TOTAL, 1)

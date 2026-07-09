@@ -1,9 +1,9 @@
 package com.eren76.mangly.di
 
 import android.content.Context
-import com.eren76.mangly.DownloadManager
 import com.eren76.mangly.ExtensionManager
 import com.eren76.mangly.FileManager
+import com.eren76.mangly.downloads.DownloadManager
 import com.eren76.mangly.rooms.dao.ExtensionDao
 import com.eren76.mangly.rooms.dao.HistoryDao
 import com.eren76.mangly.rooms.dao.DownloadsDao
