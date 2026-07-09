@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.eren76.mangly.Constants
+import com.eren76.mangly.downloads.models.DownloadChapterQueueRequest
 import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.entities.FavoritesEntity
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
@@ -356,23 +357,29 @@ fun ChaptersList(
                         scope.launch {
                             if (!showDownloads) {
                                 // Download chapters
-                                val selectedList = selectedChapters.toList()
-                                val queueTotal = selectedList.size
-
-                                for ((index, chapterUrl) in selectedList.withIndex()) {
-                                    downloadsViewModel.createDownload(
-                                        mangaurl = targetUrl,
-                                        mangaName = mangaName,
-                                        mangaSummary = summary,
-                                        chapterUrl = chapterUrl,
-                                        chapterName = chapterList.find { it.url == chapterUrl }?.title
-                                            ?: chapterUrl,
-                                        extensionMetadata = metadata!!,
-                                        context = context,
-                                        queueIndex = index + 1,
-                                        queueTotal = queueTotal
-                                    )
+                                val selectedList: List<String> = selectedChapters.toList()
+                                val chaptersToQueue: List<DownloadChapterQueueRequest> =
+                                    selectedList.map { chapterUrl ->
+                                        DownloadChapterQueueRequest(
+                                            chapterUrl = chapterUrl,
+                                            chapterName = chapterList.find { it.url == chapterUrl }?.title
+                                                ?: chapterUrl
+                                        )
+                                    }
+                                val enqueuedCount: Int = downloadsViewModel.queueDownloads(
+                                    mangaurl = targetUrl,
+                                    mangaName = mangaName,
+                                    mangaSummary = summary,
+                                    chapters = chaptersToQueue,
+                                    extensionMetadata = metadata!!,
+                                    context = context
+                                )
+                                val toastText = if (enqueuedCount == 0) {
+                                    "Selected chapters are already in the queue"
+                                } else {
+                                    "$enqueuedCount chapters added to the queue"
                                 }
+                                Toast.makeText(context, toastText, Toast.LENGTH_SHORT).show()
                                 selectedChapters.clear()
                             } else {
                                 // Delete chapters

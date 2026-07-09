@@ -48,6 +48,48 @@ class FileManager @Inject constructor(
         return dir.deleteRecursively()
     }
 
+    fun replaceDirectory(
+        context: Context,
+        sourceRelativeDir: String,
+        targetRelativeDir: String
+    ): Boolean {
+        val source = File(context.filesDir, sourceRelativeDir)
+        if (!source.exists() || !source.isDirectory) return false
+
+        val target = File(context.filesDir, targetRelativeDir)
+        target.parentFile?.let { parent ->
+            if (!parent.exists()) parent.mkdirs()
+        }
+
+        val backup = if (target.exists()) {
+            File(target.parentFile, "${target.name}.backup-${System.currentTimeMillis()}")
+        } else {
+            null
+        }
+
+        if (backup != null && !target.renameTo(backup)) return false
+
+        if (source.renameTo(target)) {
+            backup?.deleteRecursively()
+            return true
+        }
+
+        val copied = runCatching {
+            source.copyRecursively(target, overwrite = true)
+            source.deleteRecursively()
+            true
+        }.getOrDefault(false)
+
+        if (copied) {
+            backup?.deleteRecursively()
+            return true
+        }
+
+        target.deleteRecursively()
+        backup?.renameTo(target)
+        return false
+    }
+
     // TOOD: This is not SRP
     suspend fun saveAndInsertEntry(
         context: Context,

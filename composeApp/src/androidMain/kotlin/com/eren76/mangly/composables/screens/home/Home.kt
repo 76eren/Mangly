@@ -3,12 +3,15 @@ package com.eren76.mangly.composables.screens.home
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.eren76.mangly.Constants
+import com.eren76.mangly.composables.shared.downloads.DownloadQueuePanel
 import com.eren76.mangly.viewmodels.DownloadsViewModel
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.FavoritesViewModel
@@ -54,7 +58,14 @@ fun Home(
 
     val favorites = favoritesViewModel.favorites.value
     val downloads = downloadsViewModel.downloads.value
+    val downloadQueue = downloadsViewModel.downloadQueue.value
     val historyWithChapters = historyViewModel.historyWithChapters.value
+
+    LaunchedEffect(showDownloads, context) {
+        if (showDownloads) {
+            downloadsViewModel.observeDownloadQueue(context)
+        }
+    }
 
     val sortedFavorites = remember(favorites, sorting, historyWithChapters) {
         sortFavorites(favorites, sorting, historyViewModel)
@@ -85,19 +96,34 @@ fun Home(
 
         // I kinda hate this but for now it works, needs to be refactored at some point
         if (showDownloads) {
+            DownloadQueuePanel(
+                queueItems = downloadQueue,
+                onCancelQueue = { downloadsViewModel.cancelDownloadQueue(context) }
+            )
+
             if (sortedDownloads.isEmpty()) {
-                Text(
-                    text = "No downloads yet.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(16.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    Text(
+                        text = "No downloads yet.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
             } else {
                 if (!isPaginationEnabled) {
                     ShowDownloadsInLazyGrid(
                         downloads = sortedDownloads,
                         extensionMetadataViewModel = extensionMetadataViewModel,
                         navHostController = navHostController,
-                        downloadsViewModel = downloadsViewModel
+                        downloadsViewModel = downloadsViewModel,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
                     )
                 } else {
                     PaginatedDownloads(
@@ -105,23 +131,36 @@ fun Home(
                         downloads = sortedDownloads,
                         extensionMetadataViewModel = extensionMetadataViewModel,
                         downloadsViewModel = downloadsViewModel,
-                        navHostController = navHostController
+                        navHostController = navHostController,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
                     )
                 }
             }
         } else if (sortedFavorites.isEmpty()) {
-            Text(
-                text = "No favorites yet.",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(16.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Text(
+                    text = "No favorites yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
         } else {
             if (!isPaginationEnabled) {
                 ShowItemsInLazyGrid(
                     sortedFavorites = sortedFavorites,
                     extensionMetadataViewModel = extensionMetadataViewModel,
                     favoritesViewModel = favoritesViewModel,
-                    navHostController = navHostController
+                    navHostController = navHostController,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
                 )
             } else {
                 PaginatedFavorites(
@@ -129,7 +168,10 @@ fun Home(
                     sortedFavorites = sortedFavorites,
                     extensionMetadataViewModel = extensionMetadataViewModel,
                     favoritesViewModel = favoritesViewModel,
-                    navHostController = navHostController
+                    navHostController = navHostController,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
                 )
             }
         }
