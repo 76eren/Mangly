@@ -37,14 +37,16 @@ import com.eren76.mangly.downloads.models.DownloadQueueStatus
 fun DownloadQueuePanel(
     queueItems: List<DownloadQueueItem>,
     onCancelQueue: () -> Unit,
+    onDismissQueueItem: (DownloadQueueItem) -> Unit = {},
     modifier: Modifier = Modifier,
     initiallyExpanded: Boolean = false
 ) {
     if (queueItems.isEmpty()) return
 
-    var isExpanded by rememberSaveable { mutableStateOf(initiallyExpanded) }
-    val activeCount = queueItems.count { it.isActive }
-    val failedCount = queueItems.count { it.status == DownloadQueueStatus.Failed }
+    var isExpanded: Boolean by rememberSaveable { mutableStateOf(initiallyExpanded) }
+    val activeCount: Int = queueItems.count { it.isActive }
+    val failedCount: Int = queueItems.count { it.status == DownloadQueueStatus.Failed }
+    val cancelledCount: Int = queueItems.count { it.status == DownloadQueueStatus.Cancelled }
 
     Surface(
         modifier = modifier
@@ -57,6 +59,7 @@ fun DownloadQueuePanel(
             QueueHeader(
                 activeCount = activeCount,
                 failedCount = failedCount,
+                cancelledCount = cancelledCount,
                 isExpanded = isExpanded,
                 onToggleExpanded = { isExpanded = !isExpanded },
                 onCancelQueue = onCancelQueue
@@ -83,8 +86,15 @@ fun DownloadQueuePanel(
                     items(
                         items = queueItems,
                         key = { it.workId }
-                    ) { item ->
-                        DownloadQueueRow(item = item)
+                    ) { item: DownloadQueueItem ->
+                        DownloadQueueRow(
+                            item = item,
+                            onDismiss = if (item.isActive) {
+                                null
+                            } else {
+                                { onDismissQueueItem(item) }
+                            }
+                        )
                     }
                 }
             }
@@ -96,6 +106,7 @@ fun DownloadQueuePanel(
 private fun QueueHeader(
     activeCount: Int,
     failedCount: Int,
+    cancelledCount: Int,
     isExpanded: Boolean,
     onToggleExpanded: () -> Unit,
     onCancelQueue: () -> Unit
@@ -117,7 +128,7 @@ private fun QueueHeader(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = queueSummary(activeCount, failedCount),
+                text = queueSummary(activeCount, failedCount, cancelledCount),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                 maxLines = 1,
@@ -152,7 +163,10 @@ private fun QueueHeader(
 }
 
 @Composable
-private fun DownloadQueueRow(item: DownloadQueueItem) {
+private fun DownloadQueueRow(
+    item: DownloadQueueItem,
+    onDismiss: (() -> Unit)?
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -176,6 +190,14 @@ private fun DownloadQueueRow(item: DownloadQueueItem) {
                 color = statusColor(item.status),
                 maxLines = 1
             )
+            if (onDismiss != null) {
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Dismiss download queue item"
+                    )
+                }
+            }
         }
 
         Text(
@@ -206,10 +228,15 @@ private fun statusColor(status: DownloadQueueStatus) = when (status) {
     else -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
-private fun queueSummary(activeCount: Int, failedCount: Int): String {
+private fun queueSummary(
+    activeCount: Int,
+    failedCount: Int,
+    cancelledCount: Int
+): String {
     return buildList {
         if (activeCount > 0) add("$activeCount active")
         if (failedCount > 0) add("$failedCount failed")
+        if (cancelledCount > 0) add("$cancelledCount cancelled")
         if (isEmpty()) add("No active downloads")
     }.joinToString(" - ")
 }

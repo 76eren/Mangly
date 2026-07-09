@@ -100,6 +100,20 @@ class DownloadsViewModel
         DownloadQueueManager.cancel(context)
     }
 
+    fun dismissDownloadQueueItem(
+        context: Context,
+        item: DownloadQueueItem
+    ) {
+        if (item.isActive) return
+
+        DownloadQueueManager.dismissQueueItem(context, item.workId)
+
+        // Makes the UI update immediately instead of waiting for the observer to trigger
+        queueWorkInfoLiveData?.value?.let { workInfos: List<WorkInfo> ->
+            downloadQueue.value = DownloadQueueManager.queueItems(context, workInfos)
+        }
+    }
+
     // Because the downloading happens in a worker, the view model won't automatically know when to refresh the downloads list.
     // This observer ensures that whenever there's a change in the download queue, the view model refreshes its data and queue snapshot.
     private fun ensureQueueObserver(context: Context) {
@@ -108,7 +122,7 @@ class DownloadsViewModel
         val liveData: LiveData<List<WorkInfo>> = DownloadQueueManager.observe(context)
 
         val observer: Observer<List<WorkInfo>> = Observer<List<WorkInfo>> { workInfos ->
-            downloadQueue.value = DownloadQueueManager.queueItems(workInfos)
+            downloadQueue.value = DownloadQueueManager.queueItems(context, workInfos)
             if (workInfos.isNotEmpty()) {
                 refresh()
             }

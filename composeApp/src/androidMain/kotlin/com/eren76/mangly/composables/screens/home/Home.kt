@@ -98,7 +98,10 @@ fun Home(
         if (showDownloads) {
             DownloadQueuePanel(
                 queueItems = downloadQueue,
-                onCancelQueue = { downloadsViewModel.cancelDownloadQueue(context) }
+                onCancelQueue = { downloadsViewModel.cancelDownloadQueue(context) },
+                onDismissQueueItem = { item ->
+                    downloadsViewModel.dismissDownloadQueueItem(context, item)
+                }
             )
 
             if (sortedDownloads.isEmpty()) {

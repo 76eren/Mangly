@@ -2,6 +2,7 @@ package com.eren76.mangly.downloads
 
 import android.content.Context
 import android.util.Log
+import androidx.core.content.edit
 import androidx.lifecycle.LiveData
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
@@ -23,6 +24,10 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 object DownloadQueueManager {
+    private const val TAG = "DownloadQueue"
+    private const val QUEUE_PREFERENCES_NAME = "download_queue_preferences"
+    private const val KEY_DISMISSED_WORK_IDS = "dismissed_work_ids"
+
     fun enqueue(
         context: Context,
         mangaUrl: String,
@@ -68,7 +73,7 @@ object DownloadQueueManager {
             Log.d(
                 TAG,
                 "Queued work id=${request.id} chapter=${index + 1}/${requests.size} " +
-                    "name=${uniqueChapters[index].chapterName}"
+                        "name=${uniqueChapters[index].chapterName}"
             )
         }
 
@@ -98,16 +103,39 @@ object DownloadQueueManager {
             .cancelUniqueWork(ChapterDownloadWorker.DOWNLOAD_QUEUE_WORK_NAME)
     }
 
-    fun queueItems(workInfos: List<WorkInfo>): List<DownloadQueueItem> {
-        return workInfos.mapNotNull(::queueItem)
-            .sortedWith(
-                compareBy<DownloadQueueItem>(
-                    { if (it.isActive) 0 else 1 },
-                    { it.queuedAt.takeIf { queuedAt -> queuedAt > 0 } ?: Long.MAX_VALUE },
-                    { it.queueIndex },
-                    { it.workId.toString() }
-                )
+    // We track the dismissed work IDs in shared preferences so that they can be filtered out from the queue items list.
+    fun dismissQueueItem(context: Context, workId: UUID) {
+        queuePreferences(context).edit {
+            putStringSet(
+                KEY_DISMISSED_WORK_IDS,
+                dismissedQueueWorkIds(context) + workId.toString()
             )
+        }
+    }
+
+    fun queueItems(
+        context: Context,
+        workInfos: List<WorkInfo>
+    ): List<DownloadQueueItem> {
+        val dismissedWorkIds: Set<String> = dismissedQueueWorkIds(context)
+        val queueItems: List<DownloadQueueItem> = workInfos.mapNotNull(::queueItem)
+
+        val visibleQueueItems = mutableListOf<DownloadQueueItem>()
+        for (item in queueItems) {
+            val isDismissed: Boolean = dismissedWorkIds.contains(item.workId.toString())
+            if (item.isActive || !isDismissed) {
+                visibleQueueItems.add(item)
+            }
+        }
+
+        return visibleQueueItems.sortedWith(
+            compareBy<DownloadQueueItem>(
+                { if (it.isActive) 0 else 1 },
+                { it.queuedAt.takeIf { queuedAt -> queuedAt > 0 } ?: Long.MAX_VALUE },
+                { it.queueIndex },
+                { it.workId.toString() }
+            )
+        )
     }
 
     private fun buildWorkRequest(
@@ -240,6 +268,19 @@ object DownloadQueueManager {
         }
     }
 
+    private fun dismissedQueueWorkIds(context: Context): Set<String> {
+        return queuePreferences(context)
+            .getStringSet(KEY_DISMISSED_WORK_IDS, emptySet())
+            .orEmpty()
+            .toSet()
+    }
+
+    private fun queuePreferences(context: Context) =
+        context.applicationContext.getSharedPreferences(
+            QUEUE_PREFERENCES_NAME,
+            Context.MODE_PRIVATE
+        )
+
     private fun tagValue(tags: Set<String>, prefix: String): String? {
         return tags.firstOrNull { it.startsWith(prefix) }?.removePrefix(prefix)
     }
@@ -252,6 +293,4 @@ object DownloadQueueManager {
             "%02x".format(byte.toInt() and 0xff)
         }.take(16)
     }
-
-    private const val TAG = "DownloadQueue"
 }
