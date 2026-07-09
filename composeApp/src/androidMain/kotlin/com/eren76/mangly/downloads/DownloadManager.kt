@@ -1,6 +1,7 @@
 package com.eren76.mangly.downloads
 
 import android.content.Context
+import android.util.Log
 import com.eren76.mangly.FileManager
 import com.eren76.mangly.composables.shared.image.CoverCache
 import com.eren76.mangly.rooms.dao.DownloadsDao
@@ -62,6 +63,10 @@ class DownloadManager @Inject constructor(
             if (chapterImages.images.isEmpty()) {
                 throw IOException("Extension returned no images for chapter: $chapterUrl")
             }
+            Log.i(
+                TAG,
+                "Resolved ${chapterImages.images.size} pages for chapter=$chapterName"
+            )
             val normalizedSummary = mangaSummary.takeIf { it.isNotBlank() }
 
             val downloadEntity = DownloadsEntity(
@@ -111,6 +116,10 @@ class DownloadManager @Inject constructor(
                 for ((pageIndexZeroBased, imageUrl) in chapterImages.images.withIndex()) {
                     val imageBytes = downloadImage(imageUrl, chapterImages.headers)
                     val pageNumber = pageIndexZeroBased + 1
+                    Log.d(
+                        TAG,
+                        "Saving page=$pageNumber/${chapterImages.images.size} chapter=$chapterName"
+                    )
 
                     val extension = getDownloadExtension(imageUrl)
                     val fileName = "$pageNumber.$extension"
@@ -156,6 +165,7 @@ class DownloadManager @Inject constructor(
                 )
             }
 
+            Log.i(TAG, "Saved $savedImages pages for chapter=$chapterName")
         }
     }
 
@@ -227,4 +237,7 @@ class DownloadManager @Inject constructor(
         downloadsDao.updateCoverFilename(downloadId = downloadId, filename = filename)
     }
 
+    private companion object {
+        const val TAG = "DownloadManager"
+    }
 }

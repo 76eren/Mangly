@@ -1,6 +1,7 @@
 package com.eren76.mangly.downloads
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
@@ -56,6 +57,18 @@ object DownloadQueueManager {
                 queueTotal = queueTotal,
                 batchId = batchId,
                 queuedAt = queuedAt + index
+            )
+        }
+
+        Log.i(
+            TAG,
+            "Enqueuing batch=$batchId chapters=${requests.size} manga=$mangaName"
+        )
+        requests.forEachIndexed { index, request ->
+            Log.d(
+                TAG,
+                "Queued work id=${request.id} chapter=${index + 1}/${requests.size} " +
+                    "name=${uniqueChapters[index].chapterName}"
             )
         }
 
@@ -239,4 +252,6 @@ object DownloadQueueManager {
             "%02x".format(byte.toInt() and 0xff)
         }.take(16)
     }
+
+    private const val TAG = "DownloadQueue"
 }
