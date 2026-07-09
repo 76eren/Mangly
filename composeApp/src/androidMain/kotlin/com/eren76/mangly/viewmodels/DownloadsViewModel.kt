@@ -79,7 +79,7 @@ class DownloadsViewModel
         context: Context
     ): Int {
         ensureQueueObserver(context)
-        val queuedCount: Int = DownloadQueueManager.enqueue(
+        val queuedCount: Int = DownloadQueueManager.enqueueChapterDownloads(
             context = context,
             mangaUrl = mangaurl,
             mangaName = mangaName,
@@ -97,7 +97,7 @@ class DownloadsViewModel
     }
 
     fun cancelDownloadQueue(context: Context) {
-        DownloadQueueManager.cancel(context)
+        DownloadQueueManager.cancelDownloadQueue(context)
     }
 
     fun dismissDownloadQueueItem(
@@ -106,11 +106,14 @@ class DownloadsViewModel
     ) {
         if (item.isActive) return
 
-        DownloadQueueManager.dismissQueueItem(context, item.workId)
+        DownloadQueueManager.dismissFinishedQueueItem(context, item.workId)
 
         // Makes the UI update immediately instead of waiting for the observer to trigger
         queueWorkInfoLiveData?.value?.let { workInfos: List<WorkInfo> ->
-            downloadQueue.value = DownloadQueueManager.queueItems(context, workInfos)
+            downloadQueue.value = DownloadQueueManager.visibleQueueItemsFromWorkInfos(
+                context = context,
+                workInfos = workInfos
+            )
         }
     }
 
@@ -119,10 +122,14 @@ class DownloadsViewModel
     private fun ensureQueueObserver(context: Context) {
         if (queueObserver != null) return
 
-        val liveData: LiveData<List<WorkInfo>> = DownloadQueueManager.observe(context)
+        val liveData: LiveData<List<WorkInfo>> =
+            DownloadQueueManager.observeDownloadQueueWorkInfos(context)
 
         val observer: Observer<List<WorkInfo>> = Observer<List<WorkInfo>> { workInfos ->
-            downloadQueue.value = DownloadQueueManager.queueItems(context, workInfos)
+            downloadQueue.value = DownloadQueueManager.visibleQueueItemsFromWorkInfos(
+                context = context,
+                workInfos = workInfos
+            )
             if (workInfos.isNotEmpty()) {
                 refresh()
             }
