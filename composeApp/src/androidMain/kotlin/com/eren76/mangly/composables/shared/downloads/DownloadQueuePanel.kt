@@ -21,6 +21,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,7 +38,8 @@ import com.eren76.mangly.downloads.models.DownloadQueueStatus
 fun DownloadQueuePanel(
     queueItems: List<DownloadQueueItem>,
     onCancelQueue: () -> Unit,
-    onDismissQueueItem: (DownloadQueueItem) -> Unit = {},
+    onDismissSingleFinishedQueueItem: (DownloadQueueItem) -> Unit = {},
+    onDismissAllFinishedQueueItems: (List<DownloadQueueItem>) -> Unit = {},
     modifier: Modifier = Modifier,
     initiallyExpanded: Boolean = false
 ) {
@@ -47,6 +49,8 @@ fun DownloadQueuePanel(
     val activeCount: Int = queueItems.count { it.isActive }
     val failedCount: Int = queueItems.count { it.status == DownloadQueueStatus.Failed }
     val cancelledCount: Int = queueItems.count { it.status == DownloadQueueStatus.Cancelled }
+    val dismissibleFinishedItems: List<DownloadQueueItem> =
+        queueItems.filter(::canDismissFinishedQueueItem)
 
     Surface(
         modifier = modifier
@@ -62,7 +66,12 @@ fun DownloadQueuePanel(
                 cancelledCount = cancelledCount,
                 isExpanded = isExpanded,
                 onToggleExpanded = { isExpanded = !isExpanded },
-                onCancelQueue = onCancelQueue
+                onCancelQueue = onCancelQueue,
+                onDismissAllFinishedQueueItems = if (dismissibleFinishedItems.isEmpty()) {
+                    null
+                } else {
+                    { onDismissAllFinishedQueueItems(dismissibleFinishedItems) }
+                }
             )
 
             if (activeCount > 0) {
@@ -89,10 +98,10 @@ fun DownloadQueuePanel(
                     ) { item: DownloadQueueItem ->
                         DownloadQueueRow(
                             item = item,
-                            onDismiss = if (item.isActive) {
-                                null
+                            onDismissSingleFinishedQueueItem = if (canDismissFinishedQueueItem(item)) {
+                                { onDismissSingleFinishedQueueItem(item) }
                             } else {
-                                { onDismissQueueItem(item) }
+                                null
                             }
                         )
                     }
@@ -109,7 +118,8 @@ private fun QueueHeader(
     cancelledCount: Int,
     isExpanded: Boolean,
     onToggleExpanded: () -> Unit,
-    onCancelQueue: () -> Unit
+    onCancelQueue: () -> Unit,
+    onDismissAllFinishedQueueItems: (() -> Unit)?
 ) {
     Row(
         modifier = Modifier
@@ -145,6 +155,16 @@ private fun QueueHeader(
             }
         }
 
+        if (onDismissAllFinishedQueueItems != null) {
+            TextButton(onClick = onDismissAllFinishedQueueItems) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = null
+                )
+                Text(text = "Dismiss all")
+            }
+        }
+
         IconButton(onClick = onToggleExpanded) {
             Icon(
                 imageVector = if (isExpanded) {
@@ -165,7 +185,7 @@ private fun QueueHeader(
 @Composable
 private fun DownloadQueueRow(
     item: DownloadQueueItem,
-    onDismiss: (() -> Unit)?
+    onDismissSingleFinishedQueueItem: (() -> Unit)?
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -190,8 +210,8 @@ private fun DownloadQueueRow(
                 color = statusColor(item.status),
                 maxLines = 1
             )
-            if (onDismiss != null) {
-                IconButton(onClick = onDismiss) {
+            if (onDismissSingleFinishedQueueItem != null) {
+                IconButton(onClick = onDismissSingleFinishedQueueItem) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Dismiss download queue item"
@@ -239,6 +259,11 @@ private fun queueSummary(
         if (cancelledCount > 0) add("$cancelledCount cancelled")
         if (isEmpty()) add("No active downloads")
     }.joinToString(" - ")
+}
+
+private fun canDismissFinishedQueueItem(item: DownloadQueueItem): Boolean {
+    return item.status == DownloadQueueStatus.Failed ||
+            item.status == DownloadQueueStatus.Cancelled
 }
 
 private val EXPANDED_QUEUE_MAX_HEIGHT = 200.dp

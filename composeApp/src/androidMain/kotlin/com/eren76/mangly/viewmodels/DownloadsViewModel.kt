@@ -12,6 +12,7 @@ import com.eren76.mangly.downloads.DownloadQueueManager
 import com.eren76.mangly.downloads.DownloadStorage
 import com.eren76.mangly.downloads.models.DownloadChapterQueueRequest
 import com.eren76.mangly.downloads.models.DownloadQueueItem
+import com.eren76.mangly.downloads.models.DownloadQueueStatus
 import com.eren76.mangly.rooms.dao.DownloadsDao
 import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
@@ -100,21 +101,47 @@ class DownloadsViewModel
         DownloadQueueManager.cancelDownloadQueue(context)
     }
 
-    fun dismissDownloadQueueItem(
+    fun dismissSingleFinishedDownloadQueueItem(
         context: Context,
         item: DownloadQueueItem
     ) {
-        if (item.isActive) return
+        if (!canDismissFinishedQueueItem(item)) return
 
-        DownloadQueueManager.dismissFinishedQueueItem(context, item.workId)
+        DownloadQueueManager.dismissSingleFinishedQueueItemByWorkId(context, item.workId)
 
         // Makes the UI update immediately instead of waiting for the observer to trigger
+        refreshVisibleDownloadQueue(context)
+    }
+
+    fun dismissAllFinishedDownloadQueueItems(
+        context: Context,
+        items: List<DownloadQueueItem>
+    ) {
+        val dismissibleFinishedItems: List<DownloadQueueItem> =
+            items.filter(::canDismissFinishedQueueItem)
+        if (dismissibleFinishedItems.isEmpty()) return
+
+        DownloadQueueManager.dismissFinishedQueueItemsByWorkIds(
+            context = context,
+            workIds = dismissibleFinishedItems.map { item -> item.workId }
+        )
+
+        // Makes the UI update immediately instead of waiting for the observer to trigger
+        refreshVisibleDownloadQueue(context)
+    }
+
+    private fun refreshVisibleDownloadQueue(context: Context) {
         queueWorkInfoLiveData?.value?.let { workInfos: List<WorkInfo> ->
             downloadQueue.value = DownloadQueueManager.visibleQueueItemsFromWorkInfos(
                 context = context,
                 workInfos = workInfos
             )
         }
+    }
+
+    private fun canDismissFinishedQueueItem(item: DownloadQueueItem): Boolean {
+        return item.status == DownloadQueueStatus.Failed ||
+                item.status == DownloadQueueStatus.Cancelled
     }
 
     // Because the downloading happens in a worker, the view model won't automatically know when to refresh the downloads list.

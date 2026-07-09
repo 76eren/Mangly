@@ -17,11 +17,17 @@ internal object DownloadQueueReader {
     }
 
     // We track the dismissed work IDs in shared preferences so that they can be filtered out from the queue items list.
-    fun dismissFinishedQueueItem(context: Context, workId: UUID) {
+    fun dismissSingleFinishedQueueItemByWorkId(context: Context, workId: UUID) {
+        dismissFinishedQueueItemsByWorkIds(context = context, workIds = listOf(workId))
+    }
+
+    fun dismissFinishedQueueItemsByWorkIds(context: Context, workIds: Collection<UUID>) {
+        if (workIds.isEmpty()) return
+
         downloadQueuePreferences(context).edit {
             putStringSet(
                 KEY_DISMISSED_WORK_IDS,
-                dismissedWorkIds(context) + workId.toString()
+                dismissedWorkIds(context) + workIds.map { workId -> workId.toString() }
             )
         }
     }

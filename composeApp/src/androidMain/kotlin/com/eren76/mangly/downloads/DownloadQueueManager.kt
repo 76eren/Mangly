@@ -37,8 +37,12 @@ object DownloadQueueManager {
         DownloadQueueWriter.cancelDownloadQueue(context)
     }
 
-    fun dismissFinishedQueueItem(context: Context, workId: UUID) {
-        DownloadQueueReader.dismissFinishedQueueItem(context, workId)
+    fun dismissSingleFinishedQueueItemByWorkId(context: Context, workId: UUID) {
+        DownloadQueueReader.dismissSingleFinishedQueueItemByWorkId(context, workId)
+    }
+
+    fun dismissFinishedQueueItemsByWorkIds(context: Context, workIds: Collection<UUID>) {
+        DownloadQueueReader.dismissFinishedQueueItemsByWorkIds(context, workIds)
     }
 
     fun visibleQueueItemsFromWorkInfos(

@@ -99,8 +99,11 @@ fun Home(
             DownloadQueuePanel(
                 queueItems = downloadQueue,
                 onCancelQueue = { downloadsViewModel.cancelDownloadQueue(context) },
-                onDismissQueueItem = { item ->
-                    downloadsViewModel.dismissDownloadQueueItem(context, item)
+                onDismissSingleFinishedQueueItem = { item ->
+                    downloadsViewModel.dismissSingleFinishedDownloadQueueItem(context, item)
+                },
+                onDismissAllFinishedQueueItems = { items ->
+                    downloadsViewModel.dismissAllFinishedDownloadQueueItems(context, items)
                 }
             )
 
