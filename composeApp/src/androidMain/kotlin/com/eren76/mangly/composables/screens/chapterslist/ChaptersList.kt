@@ -26,7 +26,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.eren76.mangly.Constants
+import com.eren76.mangly.composables.shared.dialogs.BatteryOptimizationPromptDialog
 import com.eren76.mangly.downloads.models.DownloadChapterQueueRequest
+import com.eren76.mangly.permissions.BatteryOptimizationPermissionHandling
 import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.entities.FavoritesEntity
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
@@ -88,6 +90,7 @@ fun ChaptersList(
     val selectedChapters = remember { mutableStateListOf<String>() }
     val isSelectionMode = selectedChapters.isNotEmpty()
     val context = LocalContext.current
+    var showBatteryOptimizationPrompt by remember { mutableStateOf(false) }
     val downloadsPrefs = remember {
         context.getSharedPreferences(Constants.READING_SETTING_KEY, Context.MODE_PRIVATE)
     }
@@ -380,6 +383,13 @@ fun ChaptersList(
                                     "$enqueuedCount chapters added to the queue"
                                 }
                                 Toast.makeText(context, toastText, Toast.LENGTH_SHORT).show()
+                                if (
+                                    enqueuedCount > 0 &&
+                                    BatteryOptimizationPermissionHandling
+                                        .shouldShowBackgroundDownloadPrompt(context)
+                                ) {
+                                    showBatteryOptimizationPrompt = true
+                                }
                                 selectedChapters.clear()
                             } else {
                                 // Delete chapters
@@ -431,6 +441,28 @@ fun ChaptersList(
             }
         }
     }
+
+    BatteryOptimizationPromptDialog(
+        visible = showBatteryOptimizationPrompt,
+        onConfirm = {
+            showBatteryOptimizationPrompt = false
+            val opened: Boolean =
+                BatteryOptimizationPermissionHandling.openBatteryOptimizationSettings(
+                    context
+                )
+            if (!opened) {
+                Toast.makeText(
+                    context,
+                    "Could not open battery optimization settings",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        },
+        onDismiss = {
+            showBatteryOptimizationPrompt = false
+            BatteryOptimizationPermissionHandling.dismissBackgroundDownloadPrompt(context)
+        }
+    )
 }
 
 private fun formatSourceError(error: Throwable): String {

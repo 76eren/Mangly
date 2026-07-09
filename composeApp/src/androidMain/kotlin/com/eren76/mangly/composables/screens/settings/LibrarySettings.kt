@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,9 +41,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.home.HomeSorting
+import com.eren76.mangly.permissions.BatteryOptimizationPermissionHandling
 
 @Composable
 internal fun LibrarySettingsSection(
@@ -69,6 +74,8 @@ internal fun LibrarySettingsSection(
 
     if (isDownloadModeEnabled) {
         LinkToDownloadsScreen(navController)
+        
+        BatteryOptimizationSetting()
 
         SettingsDivider()
     }
@@ -216,6 +223,7 @@ private fun SettingsNavigationCard(
     title: String,
     description: String,
     buttonText: String,
+    buttonEnabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     ElevatedCard(
@@ -251,12 +259,56 @@ private fun SettingsNavigationCard(
 
             FilledTonalButton(
                 onClick = onClick,
+                enabled = buttonEnabled,
                 modifier = Modifier.padding(start = 8.dp)
             ) {
                 Text(buttonText)
             }
         }
     }
+}
+
+@Composable
+private fun BatteryOptimizationSetting() {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var isIgnoringBatteryOptimizations by remember {
+        mutableStateOf(
+            BatteryOptimizationPermissionHandling.isIgnoringBatteryOptimizations(context)
+        )
+    }
+
+    fun refreshBatteryOptimizationState() {
+        isIgnoringBatteryOptimizations =
+            BatteryOptimizationPermissionHandling.isIgnoringBatteryOptimizations(context)
+    }
+
+    DisposableEffect(context, lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                refreshBatteryOptimizationState()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    SettingsNavigationCard(
+        title = "Background downloads",
+        description = if (isIgnoringBatteryOptimizations) {
+            "Battery optimization is disabled for Mangly."
+        } else {
+            "Disable battery optimization for more reliable background downloads."
+        },
+        buttonText = if (isIgnoringBatteryOptimizations) "Enabled" else "Open",
+        buttonEnabled = !isIgnoringBatteryOptimizations,
+        onClick = {
+            BatteryOptimizationPermissionHandling.openBatteryOptimizationSettings(context)
+        },
+    )
 }
 
 @Composable

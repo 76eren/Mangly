@@ -20,6 +20,7 @@ import com.eren76.mangly.R
 import com.eren76.mangly.downloads.DownloadManager
 import com.eren76.mangly.downloads.DownloadStorage
 import com.eren76.mangly.downloads.models.DownloadWorkerRequest
+import com.eren76.mangly.permissions.BatteryOptimizationPermissionHandling
 import com.eren76.mangly.permissions.NotificationPermissionHandling
 import com.eren76.mangly.rooms.dao.ExtensionDao
 import com.eren76.mangly.rooms.entities.ExtensionEntity
@@ -272,11 +273,19 @@ class ChapterDownloadWorker(
         return false
     }
 
+    private fun canStartForegroundExecution(): Boolean {
+        return isAppInForeground() ||
+                BatteryOptimizationPermissionHandling.isIgnoringBatteryOptimizations(
+                    applicationContext
+                )
+    }
+
     private suspend fun prepareForegroundExecution(request: DownloadWorkerRequest) {
-        if (!isAppInForeground()) {
+        if (!canStartForegroundExecution()) {
             Log.i(
                 TAG,
-                "App is backgrounded for work id=$id, continuing without foreground service"
+                "App is backgrounded and battery optimized for work id=$id, " +
+                        "continuing without foreground service"
             )
             updateProgressNotification(
                 mangaName = request.mangaName,
