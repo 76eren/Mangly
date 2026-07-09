@@ -1,5 +1,6 @@
 package com.eren76.mangly.workers
 
+import android.app.ActivityManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -98,7 +99,7 @@ class ChapterDownloadWorker(
     private val deps: WorkerDependencies by lazy {
         EntryPointAccessors.fromApplication(applicationContext, WorkerDependencies::class.java)
     }
-    
+
     override suspend fun doWork(): Result {
         val request: DownloadWorkerRequest = readDownloadRequest()
         Log.i(
@@ -130,31 +131,8 @@ class ChapterDownloadWorker(
             }
 
         createNotificationChannelIfNeeded()
-        runCatching {
-            setProgress(queueProgressData(request = request, status = STATUS_RUNNING))
-            setForeground(
-                createForegroundInfo(
-                    mangaName = request.mangaName,
-                    progressChapter = request.queueIndex,
-                    totalChapters = request.queueTotal
-                )
-            )
-        }.onFailure { error ->
-            Log.w(TAG, "Foreground setup failed for work id=$id", error)
-            if (shouldRetryTransientFailure()) {
-                return Result.retry()
-            }
-
-            runCatching {
-                setProgress(
-                    queueProgressData(
-                        request = request,
-                        status = STATUS_RUNNING,
-                        message = "Foreground notification unavailable: ${queueErrorMessage(error)}"
-                    )
-                )
-            }
-        }
+        setProgress(queueProgressData(request = request, status = STATUS_RUNNING))
+        prepareForegroundExecution(request)
 
         val extensionEntry: ExtensionEntity = deps.extensionDao().getById(extensionId)
             ?: run {
@@ -264,6 +242,81 @@ class ChapterDownloadWorker(
         }
     }
 
+    private fun isAppInForeground(): Boolean {
+        val activityManager =
+            applicationContext.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+                ?: return false
+        val packageName = applicationContext.packageName
+
+        return activityManager.runningAppProcesses.orEmpty().any { processInfo ->
+            val foregroundImportance =
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+
+            processInfo.processName == packageName &&
+                    processInfo.importance <= foregroundImportance
+        }
+    }
+
+    private fun isForegroundServiceStartDenied(error: Throwable): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
+
+        return error.hasCauseNamed("android.app.ForegroundServiceStartNotAllowedException")
+    }
+
+    private fun Throwable.hasCauseNamed(className: String): Boolean {
+        var current: Throwable? = this
+        while (current != null) {
+            if (current.javaClass.name == className) return true
+            current = current.cause
+        }
+        return false
+    }
+
+    private suspend fun prepareForegroundExecution(request: DownloadWorkerRequest) {
+        if (!isAppInForeground()) {
+            Log.i(
+                TAG,
+                "App is backgrounded for work id=$id, continuing without foreground service"
+            )
+            updateProgressNotification(
+                mangaName = request.mangaName,
+                progressChapter = request.queueIndex,
+                totalChapters = request.queueTotal
+            )
+            return
+        }
+
+        runCatching {
+            setForeground(
+                createForegroundInfo(
+                    mangaName = request.mangaName,
+                    progressChapter = request.queueIndex,
+                    totalChapters = request.queueTotal
+                )
+            )
+        }.onFailure { error ->
+            Log.w(TAG, "Foreground setup failed for work id=$id", error)
+            val message = if (isForegroundServiceStartDenied(error)) {
+                "Foreground service start was denied because the app is backgrounded"
+            } else {
+                "Foreground notification unavailable: ${queueErrorMessage(error)}"
+            }
+            runCatching {
+                setProgress(
+                    queueProgressData(
+                        request = request,
+                        status = STATUS_RUNNING,
+                        message = message
+                    )
+                )
+            }
+            updateProgressNotification(
+                mangaName = request.mangaName,
+                progressChapter = request.queueIndex,
+                totalChapters = request.queueTotal
+            )
+        }
+    }
 
     private fun readDownloadRequest(): DownloadWorkerRequest {
         val mangaUrl = inputData.getString(KEY_MANGA_URL).orEmpty()
