@@ -28,14 +28,12 @@ fun DownloadCard(
     val title = download.mangaName ?: download.mangaUrl
     val downloadedChapters = downloadWithChapters.chapters.count { it.isFullyDownloaded }
     val subtitle = "$downloadedChapters chapters downloaded"
-    val badgeText = if (download.extensionId == null) "Unavailable" else null
 
     HomeMangaCard(
         title = title,
         subtitle = subtitle,
         menuKey = download.downloadId,
         menuText = "Delete download",
-        badgeText = badgeText,
         onClick = onClick,
         onDelete = {
             downloadsViewModel.deleteWholeMangaDownloadByDownloadEntityId(
@@ -65,7 +63,7 @@ fun DownloadCoverImage(
     val title = download.mangaName ?: download.mangaUrl
 
     val localCoverFile = remember(download.downloadId, download.coverImageFilename, context) {
-        download.coverImageFilename?.let { filename ->
+        download.coverImageFilename.takeIf { it.isNotBlank() }?.let { filename ->
             downloadsViewModel.getCoverFile(filename = filename, context = context)
         }
     }

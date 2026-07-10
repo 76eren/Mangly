@@ -206,7 +206,7 @@ class DownloadsViewModel
         if (downloadWithChapters.chapters.isEmpty()) {
             downloadsDao.deleteDownloadById(downloadWithChapters.download.downloadId)
 
-            downloadWithChapters.download.coverImageFilename?.let { filename ->
+            downloadWithChapters.download.coverImageFilename.takeIf { it.isNotBlank() }?.let { filename ->
                 fileManager.deleteFileInDir(
                     context = context,
                     relativeDir = DOWNLOADS_COVERS_DIRECTORY,
@@ -229,7 +229,7 @@ class DownloadsViewModel
                 downloadsDao.getWithChaptersByDownloadId(downloadId)
                     ?: return@launch
 
-            downloadWithChapters.download.coverImageFilename?.let { filename ->
+            downloadWithChapters.download.coverImageFilename.takeIf { it.isNotBlank() }?.let { filename ->
                 fileManager.deleteFileInDir(
                     context = context,
                     relativeDir = DOWNLOADS_COVERS_DIRECTORY,

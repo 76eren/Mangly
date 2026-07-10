@@ -1,29 +1,18 @@
 package com.eren76.mangly.composables.screens.home
 
-import android.content.Context
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.eren76.mangly.Constants
-import com.eren76.mangly.downloads.DownloadQueuePanel
+import com.eren76.mangly.rooms.entities.FavoritesEntity
+import com.eren76.mangly.rooms.entities.HistoryWithReadChapters
+import com.eren76.mangly.rooms.relations.DownloadWithChapters
 import com.eren76.mangly.viewmodels.DownloadsViewModel
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.FavoritesViewModel
 import com.eren76.mangly.viewmodels.HistoryViewModel
+import com.eren76.manglyextension.plugins.ExtensionMetadata
 
 @Composable
 fun Home(
@@ -35,31 +24,10 @@ fun Home(
     showDownloads: Boolean = false,
 ) {
     val context = LocalContext.current
-
-    // Preferences
-    val sortingPref = remember {
-        context.getSharedPreferences(
-            Constants.HOME_SETTING_KEY,
-            Context.MODE_PRIVATE
-        ).getString(
-            Constants.HOME_SORTING_SETTING_KEY,
-            HomeSorting.DEFAULT_PREF_VALUE
-        )
+    val mode: HomeMode = remember(showDownloads) {
+        HomeMode.fromShowDownloads(showDownloads)
     }
-    val paginationPreferences = remember {
-        context.getSharedPreferences(
-            Constants.PAGINATION_SETTINGS_KEY,
-            Context.MODE_PRIVATE
-        )
-    }
-    val sorting = remember(sortingPref) {
-        HomeSorting.fromPrefValue(sortingPref)
-    }
-
-    val favorites = favoritesViewModel.favorites.value
-    val downloads = downloadsViewModel.downloads.value
-    val downloadQueue = downloadsViewModel.downloadQueue.value
-    val historyWithChapters = historyViewModel.historyWithChapters.value
+    val displayPreferences: HomeDisplayPreferences = rememberHomeDisplayPreferences(context)
 
     LaunchedEffect(showDownloads, context) {
         if (showDownloads) {
@@ -67,119 +35,65 @@ fun Home(
         }
     }
 
-    val sortedFavorites = remember(favorites, sorting, historyWithChapters) {
-        sortFavorites(favorites, sorting, historyViewModel)
-    }
-    val sortedDownloads = remember(downloads, sorting, historyWithChapters) {
-        sortDownloads(downloads, sorting, historyViewModel)
-    }
+    val favorites: List<FavoritesEntity> = favoritesViewModel.favorites.value
+    val downloads: List<DownloadWithChapters> = downloadsViewModel.downloads.value
+    val historyWithChapters: List<HistoryWithReadChapters> =
+        historyViewModel.historyWithChapters.value
 
-    val isPaginationEnabled: Boolean =
-        paginationPreferences.getBoolean(Constants.PAGINATION_ENABLED_KEY, false)
-    val pageSize: Int = paginationPreferences.getInt(
-        Constants.MANGLY_PAGINATION_SIZE_KEY.toString(),
-        Constants.MANGLY_PAGINATION_SIZE_KEY
-    )
+    val sortedFavorites = remember(favorites, displayPreferences.sorting, historyWithChapters) {
+        sortFavorites(favorites, displayPreferences.sorting, historyViewModel)
+    }
+    val sortedDownloads: List<DownloadWithChapters> =
+        remember(downloads, displayPreferences.sorting, historyWithChapters) {
+            sortDownloads(downloads, displayPreferences.sorting, historyViewModel)
+        }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
-    ) {
-        Text(
-            if (showDownloads) "Downloads" else "Favorites",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(16.dp)
+    val itemCountsBySource: Map<ExtensionMetadata, Int> = when (mode) {
+        HomeMode.Favorites -> favoriteSourceCounts(
+            favorites = sortedFavorites,
+            extensionMetadataViewModel = extensionMetadataViewModel
         )
 
-        // I kinda hate this but for now it works, needs to be refactored at some point
-        if (showDownloads) {
-            DownloadQueuePanel(
-                queueItems = downloadQueue,
-                onCancelQueue = { downloadsViewModel.cancelDownloadQueue(context) },
-                onDismissSingleFinishedQueueItem = { item ->
-                    downloadsViewModel.dismissSingleFinishedDownloadQueueItem(context, item)
-                },
-                onDismissAllFinishedQueueItems = { items ->
-                    downloadsViewModel.dismissAllFinishedDownloadQueueItems(context, items)
-                }
+        HomeMode.Downloads -> downloadSourceCounts(
+            downloads = sortedDownloads,
+            extensionMetadataViewModel = extensionMetadataViewModel
+        )
+    }
+    val sourceFilterState: HomeSourceFilterState = rememberHomeSourceFilterState(
+        itemCountsBySource = itemCountsBySource,
+        resetKey = mode
+    )
+
+    val filteredFavorites = remember(sortedFavorites, sourceFilterState.activeSource) {
+        filterFavoritesBySource(sortedFavorites, sourceFilterState.activeSource)
+    }
+    val filteredDownloads = remember(sortedDownloads, sourceFilterState.activeSource) {
+        filterDownloadsBySource(sortedDownloads, sourceFilterState.activeSource)
+    }
+
+    HomeLayout(mode = mode) {
+        when (mode) {
+            HomeMode.Favorites -> HomeFavoritesSection(
+                allFavorites = sortedFavorites,
+                filteredFavorites = filteredFavorites,
+                sourceFilterState = sourceFilterState,
+                displayPreferences = displayPreferences,
+                extensionMetadataViewModel = extensionMetadataViewModel,
+                favoritesViewModel = favoritesViewModel,
+                navHostController = navHostController
             )
 
-            if (sortedDownloads.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.TopCenter
-                ) {
-                    Text(
-                        text = "No downloads yet.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
-            } else {
-                if (!isPaginationEnabled) {
-                    ShowDownloadsInLazyGrid(
-                        downloads = sortedDownloads,
-                        extensionMetadataViewModel = extensionMetadataViewModel,
-                        navHostController = navHostController,
-                        downloadsViewModel = downloadsViewModel,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    )
-                } else {
-                    PaginatedDownloads(
-                        pageSize = pageSize,
-                        downloads = sortedDownloads,
-                        extensionMetadataViewModel = extensionMetadataViewModel,
-                        downloadsViewModel = downloadsViewModel,
-                        navHostController = navHostController,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    )
-                }
-            }
-        } else if (sortedFavorites.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.TopCenter
-            ) {
-                Text(
-                    text = "No favorites yet.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
-        } else {
-            if (!isPaginationEnabled) {
-                ShowItemsInLazyGrid(
-                    sortedFavorites = sortedFavorites,
-                    extensionMetadataViewModel = extensionMetadataViewModel,
-                    favoritesViewModel = favoritesViewModel,
-                    navHostController = navHostController,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                )
-            } else {
-                PaginatedFavorites(
-                    pageSize = pageSize,
-                    sortedFavorites = sortedFavorites,
-                    extensionMetadataViewModel = extensionMetadataViewModel,
-                    favoritesViewModel = favoritesViewModel,
-                    navHostController = navHostController,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                )
-            }
+            HomeMode.Downloads -> HomeDownloadsSection(
+                allDownloads = sortedDownloads,
+                filteredDownloads = filteredDownloads,
+                sourceFilterState = sourceFilterState,
+                displayPreferences = displayPreferences,
+                downloadQueue = downloadsViewModel.downloadQueue.value,
+                downloadsViewModel = downloadsViewModel,
+                extensionMetadataViewModel = extensionMetadataViewModel,
+                navHostController = navHostController,
+                context = context
+            )
         }
     }
 }

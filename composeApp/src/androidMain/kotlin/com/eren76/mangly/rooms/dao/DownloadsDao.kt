@@ -72,7 +72,7 @@ interface DownloadsDao {
     )
 
     @Query("UPDATE DownloadsEntity SET cover_image_filename = :filename WHERE download_id = :downloadId")
-    suspend fun updateCoverFilename(downloadId: UUID, filename: String?)
+    suspend fun updateCoverFilename(downloadId: UUID, filename: String)
 
     @Query(
         """
@@ -85,7 +85,7 @@ interface DownloadsDao {
     suspend fun updateDownloadMetadata(
         downloadId: UUID,
         mangaName: String?,
-        mangaSummary: String?
+        mangaSummary: String
     )
 
     @Transaction
@@ -98,7 +98,8 @@ interface DownloadsDao {
             insertDownload(download)
         } else {
             val resolvedName = download.mangaName ?: existing.mangaName
-            val resolvedSummary = download.mangaSummary ?: existing.mangaSummary
+            val resolvedSummary = download.mangaSummary.takeIf { it.isNotBlank() }
+                ?: existing.mangaSummary
             if (resolvedName != existing.mangaName || resolvedSummary != existing.mangaSummary) {
                 updateDownloadMetadata(
                     downloadId = download.downloadId,

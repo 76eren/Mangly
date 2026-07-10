@@ -20,6 +20,7 @@ import com.eren76.mangly.rooms.database.migrations.Migration9To10
 import com.eren76.mangly.rooms.database.migrations.Migration10To11
 import com.eren76.mangly.rooms.database.migrations.Migration11To12
 import com.eren76.mangly.rooms.database.migrations.Migration12To13
+import com.eren76.mangly.rooms.database.migrations.Migration13To14
 import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.entities.DownloadsEntity
 import com.eren76.mangly.rooms.entities.ExtensionEntity
@@ -27,7 +28,7 @@ import com.eren76.mangly.rooms.entities.FavoritesEntity
 import com.eren76.mangly.rooms.entities.HistoryChapterEntity
 import com.eren76.mangly.rooms.entities.HistoryEntity
 
-const val APP_DATABASE_VERSION = 13
+const val APP_DATABASE_VERSION = 14
 
 @Database(
     entities = [
@@ -71,7 +72,8 @@ abstract class AppDatabase : RoomDatabase() {
                         Migration9To10,
                         Migration10To11,
                         Migration11To12,
-                        Migration12To13
+                        Migration12To13,
+                        Migration13To14
                     )
                     .build()
                     .also { INSTANCE = it }
