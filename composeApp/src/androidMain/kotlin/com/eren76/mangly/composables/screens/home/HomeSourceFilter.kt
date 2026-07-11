@@ -19,44 +19,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.eren76.manglyextension.plugins.ExtensionMetadata
 
 @Composable
 fun HomeSourceFilter(
-    itemCountsBySource: Map<ExtensionMetadata, Int>,
-    selectedSource: ExtensionMetadata?,
-    onSelectedSourceChange: (ExtensionMetadata?) -> Unit,
+    sourceOptions: List<HomeSourceOption>,
+    selectedSourceId: String?,
+    onSelectedSourceChange: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    val sources = remember(itemCountsBySource) {
-        itemCountsBySource.keys.sortedWith(
-            compareBy<ExtensionMetadata>(
-                { source -> source.displayName().lowercase() },
-                { source -> source.source.getExtensionId() }
-            )
-        )
-    }
-    val baseLabelsBySource: Map<ExtensionMetadata, String> = remember(sources) {
-        sources.associateWith { source -> source.displayName() }
-    }
-    val duplicateLabels: Set<String> = remember(baseLabelsBySource) {
-        baseLabelsBySource.values
-            .groupingBy { label -> label }
+    val duplicateLabels: Set<String> = remember(sourceOptions) {
+        sourceOptions
+            .groupingBy { option -> option.displayName }
             .eachCount()
             .filterValues { count -> count > 1 }
             .keys
     }
 
-    val selectedLabel: String = selectedSource
-        ?.let { source: ExtensionMetadata ->
-            labelForSource(
-                source = source,
-                baseLabelsBySource = baseLabelsBySource,
-                duplicateLabels = duplicateLabels
-            )
-        }
+    val selectedLabel: String = sourceOptions
+        .firstOrNull { option -> option.id == selectedSourceId }
+        ?.let { option -> labelForSource(option, duplicateLabels) }
         ?: "All sources"
 
     Box(
@@ -87,26 +70,21 @@ fun HomeSourceFilter(
             onDismissRequest = { expanded = false }
         ) {
             DropdownMenuItem(
-                text = { Text("All sources (${itemCountsBySource.values.sum()})") },
+                text = { Text("All sources (${sourceOptions.sumOf { it.itemCount }})") },
                 onClick = {
                     expanded = false
                     onSelectedSourceChange(null)
                 }
             )
 
-            sources.forEach { source ->
-                val label: String = labelForSource(
-                    source = source,
-                    baseLabelsBySource = baseLabelsBySource,
-                    duplicateLabels = duplicateLabels
-                )
-                val itemCount = itemCountsBySource[source] ?: 0
+            sourceOptions.forEach { option ->
+                val label: String = labelForSource(option, duplicateLabels)
 
                 DropdownMenuItem(
-                    text = { Text("$label ($itemCount)") },
+                    text = { Text("$label (${option.itemCount})") },
                     onClick = {
                         expanded = false
-                        onSelectedSourceChange(source)
+                        onSelectedSourceChange(option.id)
                     }
                 )
             }
@@ -115,27 +93,14 @@ fun HomeSourceFilter(
 }
 
 private fun labelForSource(
-    source: ExtensionMetadata,
-    baseLabelsBySource: Map<ExtensionMetadata, String>,
+    option: HomeSourceOption,
     duplicateLabels: Set<String>
 ): String {
-    val baseLabel = baseLabelsBySource[source] ?: source.displayName()
+    val baseLabel = option.displayName
 
     return if (duplicateLabels.contains(baseLabel)) {
-        "$baseLabel (${
-            source.source.getExtensionId().take(8)
-        })" // Append first 8 characters of extension ID to disambiguate
+        "$baseLabel (${option.id.take(8)})"
     } else {
         baseLabel
     }
-}
-
-private fun ExtensionMetadata.displayName(): String {
-    val metadataName = name.takeIf { value -> value.isNotBlank() }
-    if (metadataName != null) return metadataName
-
-    return runCatching { source.getExtensionName() }
-        .getOrNull()
-        ?.takeIf { value -> value.isNotBlank() }
-        ?: "Unknown source"
 }

@@ -1,14 +1,18 @@
 package com.eren76.mangly.composables.shared.image
 
 import coil3.network.NetworkHeaders
+import com.eren76.mangly.SharedImageHttpClient
 import com.eren76.manglyextension.plugins.Source
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
+import kotlinx.coroutines.suspendCancellableCoroutine
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.Request
+import okhttp3.Response
+import java.io.IOException
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 object CoverCache {
-
     class DownloadedImage(
         val bytes: ByteArray,
         val contentType: String?,
@@ -19,22 +23,38 @@ object CoverCache {
         imageUrl: String,
         headers: List<Source.Header>
     ): DownloadedImage? {
-        return withContext(Dispatchers.IO) {
-            val client = OkHttpClient()
-            val requestBuilder = Request.Builder().url(imageUrl)
-            for (h in headers) {
-                requestBuilder.addHeader(h.name, h.value)
-            }
+        val requestBuilder = Request.Builder().url(imageUrl)
+        for (header in headers) {
+            requestBuilder.addHeader(header.name, header.value)
+        }
 
-            client.newCall(requestBuilder.build()).execute().use { resp ->
-                if (!resp.isSuccessful) return@use null
-                val bodyBytes = resp.body?.bytes() ?: return@use null
-                DownloadedImage(
-                    bytes = bodyBytes,
-                    contentType = resp.header("Content-Type"),
-                    finalUrl = resp.request.url.toString()
-                )
-            }
+        return suspendCancellableCoroutine { continuation ->
+            val call = SharedImageHttpClient.instance.newCall(requestBuilder.build())
+            continuation.invokeOnCancellation { call.cancel() }
+            call.enqueue(
+                object : Callback {
+                    override fun onFailure(call: Call, error: IOException) {
+                        continuation.resumeWithException(error)
+                    }
+
+                    override fun onResponse(call: Call, response: Response) {
+                        try {
+                            val downloadedImage = response.use { result ->
+                                if (!result.isSuccessful) return@use null
+                                val bodyBytes = result.body?.bytes() ?: return@use null
+                                DownloadedImage(
+                                    bytes = bodyBytes,
+                                    contentType = result.header("Content-Type"),
+                                    finalUrl = result.request.url.toString()
+                                )
+                            }
+                            continuation.resume(downloadedImage)
+                        } catch (error: Exception) {
+                            continuation.resumeWithException(error)
+                        }
+                    }
+                }
+            )
         }
     }
 

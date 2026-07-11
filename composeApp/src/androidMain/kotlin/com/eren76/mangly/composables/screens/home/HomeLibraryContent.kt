@@ -81,8 +81,8 @@ fun <T> ColumnScope.HomeLibraryContent(
     }
 
     HomeSourceFilter(
-        itemCountsBySource = sourceFilterState.itemCountsBySource,
-        selectedSource = sourceFilterState.activeSource,
+        sourceOptions = sourceFilterState.sourceOptions,
+        selectedSourceId = sourceFilterState.activeSourceId,
         onSelectedSourceChange = sourceFilterState.onSelectedSourceChange
     )
 

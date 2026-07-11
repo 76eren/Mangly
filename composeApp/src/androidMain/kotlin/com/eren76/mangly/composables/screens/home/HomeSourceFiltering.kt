@@ -1,77 +1,88 @@
 package com.eren76.mangly.composables.screens.home
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import com.eren76.mangly.rooms.entities.FavoritesEntity
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
-import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.manglyextension.plugins.ExtensionMetadata
 
+@Immutable
+data class HomeSourceOption(
+    val id: String,
+    val displayName: String,
+    val itemCount: Int
+)
+
+@Immutable
 data class HomeSourceFilterState(
-    val itemCountsBySource: Map<ExtensionMetadata, Int>,
-    val activeSource: ExtensionMetadata?,
-    val onSelectedSourceChange: (ExtensionMetadata?) -> Unit
+    val sourceOptions: List<HomeSourceOption>,
+    val activeSourceId: String?,
+    val onSelectedSourceChange: (String?) -> Unit
 )
 
 @Composable
 fun rememberHomeSourceFilterState(
-    itemCountsBySource: Map<ExtensionMetadata, Int>,
+    sourceOptions: List<HomeSourceOption>,
     resetKey: Any
 ): HomeSourceFilterState {
-    var selectedSource: ExtensionMetadata? by remember(resetKey) {
-        mutableStateOf<ExtensionMetadata?>(null)
+    val selectedSourceId = remember(resetKey) {
+        mutableStateOf<String?>(null)
+    }
+    val activeSourceId: String? = selectedSourceId.value.takeIf { sourceId ->
+        sourceId == null || sourceOptions.any { option -> option.id == sourceId }
     }
 
-    val activeSource: ExtensionMetadata? = selectedSource.takeIf { source ->
-        source == null || itemCountsBySource.containsKey(source)
-    }
-
-    LaunchedEffect(selectedSource, itemCountsBySource) {
-        if (selectedSource != activeSource) {
-            selectedSource = activeSource
+    LaunchedEffect(selectedSourceId.value, activeSourceId) {
+        if (selectedSourceId.value != activeSourceId) {
+            selectedSourceId.value = activeSourceId
         }
     }
 
-    return HomeSourceFilterState(
-        itemCountsBySource = itemCountsBySource,
-        activeSource = activeSource,
-        onSelectedSourceChange = { source -> selectedSource = source }
+    val onSelectedSourceChange: (String?) -> Unit = remember(selectedSourceId) {
+        { sourceId -> selectedSourceId.value = sourceId }
+    }
+
+    return remember(sourceOptions, activeSourceId, onSelectedSourceChange) {
+        HomeSourceFilterState(
+            sourceOptions = sourceOptions,
+            activeSourceId = activeSourceId,
+            onSelectedSourceChange = onSelectedSourceChange
+        )
+    }
+}
+
+fun favoriteSourceOptions(
+    favorites: List<FavoritesEntity>,
+    sources: List<ExtensionMetadata>
+): List<HomeSourceOption> {
+    return homeSourceOptions(
+        itemCountsBySourceId = favorites
+            .groupingBy { favorite -> favorite.extensionId.toString() }
+            .eachCount(),
+        sources = sources
     )
 }
 
-fun favoriteSourceCounts(
-    favorites: List<FavoritesEntity>,
-    extensionMetadataViewModel: ExtensionMetadataViewModel
-): Map<ExtensionMetadata, Int> {
-    val sourcesById = extensionMetadataViewModel.sourcesById()
-
-    return favorites
-        .mapNotNull { favorite -> sourcesById[favorite.extensionId.toString()] }
-        .sourceCounts()
-}
-
-fun downloadSourceCounts(
+fun downloadSourceOptions(
     downloads: List<DownloadWithChapters>,
-    extensionMetadataViewModel: ExtensionMetadataViewModel
-): Map<ExtensionMetadata, Int> {
-    val sourcesById = extensionMetadataViewModel.sourcesById()
-
-    return downloads
-        .mapNotNull { downloadWithChapters ->
-            sourcesById[downloadWithChapters.download.extensionId.toString()]
-        }
-        .sourceCounts()
+    sources: List<ExtensionMetadata>
+): List<HomeSourceOption> {
+    return homeSourceOptions(
+        itemCountsBySourceId = downloads
+            .groupingBy { download -> download.download.extensionId.toString() }
+            .eachCount(),
+        sources = sources
+    )
 }
 
 fun filterFavoritesBySource(
     favorites: List<FavoritesEntity>,
-    selectedSource: ExtensionMetadata?
+    selectedSourceId: String?
 ): List<FavoritesEntity> {
-    val selectedSourceId = selectedSource?.source?.getExtensionId() ?: return favorites
+    if (selectedSourceId == null) return favorites
 
     return favorites.filter { favorite ->
         favorite.extensionId.toString() == selectedSourceId
@@ -80,20 +91,48 @@ fun filterFavoritesBySource(
 
 fun filterDownloadsBySource(
     downloads: List<DownloadWithChapters>,
-    selectedSource: ExtensionMetadata?
+    selectedSourceId: String?
 ): List<DownloadWithChapters> {
-    val selectedSourceId = selectedSource?.source?.getExtensionId() ?: return downloads
+    if (selectedSourceId == null) return downloads
 
-    return downloads.filter { downloadWithChapters ->
-        downloadWithChapters.download.extensionId.toString() == selectedSourceId
+    return downloads.filter { download ->
+        download.download.extensionId.toString() == selectedSourceId
     }
 }
 
-private fun ExtensionMetadataViewModel.sourcesById(): Map<String, ExtensionMetadata> {
-    return getAllSources().associateBy { source -> source.source.getExtensionId() }
+private fun homeSourceOptions(
+    itemCountsBySourceId: Map<String, Int>,
+    sources: List<ExtensionMetadata>
+): List<HomeSourceOption> {
+    val seenSourceIds = mutableSetOf<String>()
+
+    return sources.mapNotNull { metadata ->
+        val sourceId = runCatching { metadata.source.getExtensionId() }
+            .getOrNull()
+            ?.takeIf { id -> id.isNotBlank() }
+            ?: return@mapNotNull null
+        val itemCount = itemCountsBySourceId[sourceId] ?: return@mapNotNull null
+        if (!seenSourceIds.add(sourceId)) return@mapNotNull null
+
+        HomeSourceOption(
+            id = sourceId,
+            displayName = metadata.displayName(),
+            itemCount = itemCount
+        )
+    }.sortedWith(
+        compareBy<HomeSourceOption>(
+            { option -> option.displayName.lowercase() },
+            { option -> option.id }
+        )
+    )
 }
 
-private fun List<ExtensionMetadata>.sourceCounts(): Map<ExtensionMetadata, Int> {
-    return groupingBy { source -> source }
-        .eachCount()
+private fun ExtensionMetadata.displayName(): String {
+    val metadataName = name.takeIf { value -> value.isNotBlank() }
+    if (metadataName != null) return metadataName
+
+    return runCatching { source.getExtensionName() }
+        .getOrNull()
+        ?.takeIf { value -> value.isNotBlank() }
+        ?: "Unknown source"
 }
