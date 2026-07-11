@@ -10,10 +10,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -81,8 +79,9 @@ fun <T> ColumnScope.HomeLibraryContent(
     supportingContent()
 
     if (isLoadingItems) {
-        HomeLoadingState(
-            text = mode.loadingText,
+        HomeLibrarySkeleton(
+            viewMode = viewMode,
+            loadingDescription = mode.loadingText,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
@@ -101,8 +100,9 @@ fun <T> ColumnScope.HomeLibraryContent(
     }
 
     if (isLoadingSources) {
-        HomeLoadingState(
-            text = "Loading sources...",
+        HomeLibrarySkeleton(
+            viewMode = viewMode,
+            loadingDescription = "Loading sources...",
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
@@ -191,32 +191,6 @@ fun HomeHeader(
                 sourceOptions = sourceFilterState.sourceOptions,
                 selectedSourceId = sourceFilterState.activeSourceId,
                 onSelectedSourceChange = sourceFilterState.onSelectedSourceChange
-            )
-        }
-    }
-}
-
-@Composable
-private fun HomeLoadingState(
-    text: String,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.TopCenter
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(32.dp),
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium
             )
         }
     }
