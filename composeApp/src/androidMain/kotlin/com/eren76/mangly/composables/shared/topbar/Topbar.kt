@@ -271,13 +271,13 @@ fun DeleteWarningDialog(
                         onClick = {
                             coroutineScope.launch {
                                 try {
-                                    val entityToBeDeleted =
+                                    val entityToBeDeleted: ExtensionEntity =
                                         extensionManager.getDatabaseEntryByMetadata(
                                             metadata,
                                             context
                                         )
 
-                                    fileManager.deleteAndRemoveEntry(entityToBeDeleted, context)
+                                    fileManager.deleteAndRemoveExtension(entityToBeDeleted, context)
 
                                     // TODO: stop being lazy
                                     val mainActivity = context as? MainActivity

@@ -48,12 +48,19 @@ interface DownloadsDao {
     @Query("SELECT * FROM DownloadsEntity WHERE manga_url = :mangaUrl LIMIT 1")
     suspend fun getWithChaptersByMangaUrl(mangaUrl: String): DownloadWithChapters?
 
+    @Transaction
+    @Query("SELECT * FROM DownloadsEntity WHERE extension_id = :extensionId")
+    suspend fun getWithChaptersByExtensionId(extensionId: UUID): List<DownloadWithChapters>
+
     @Query("DELETE FROM DownloadedChapterEntity WHERE id = :chapterId")
     suspend fun deleteDownloadedChapterById(chapterId: UUID)
 
     // Cascade is enabled for DownloadsEntity, so deleting a download will also delete its associated chapters
     @Query("DELETE FROM DownloadsEntity WHERE download_id = :downloadId")
     suspend fun deleteDownloadById(downloadId: UUID)
+
+    @Query("DELETE FROM DownloadsEntity WHERE extension_id = :extensionId")
+    suspend fun deleteDownloadsByExtensionId(extensionId: UUID)
 
     @Query(
         """

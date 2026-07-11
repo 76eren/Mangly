@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.eren76.mangly.Constants
 import com.eren76.mangly.FavoritesManager
 import com.eren76.mangly.FileManager
 import com.eren76.mangly.rooms.entities.FavoritesEntity
@@ -21,7 +22,7 @@ class FavoritesViewModel
 ) : ViewModel() {
     val favorites = mutableStateOf<List<FavoritesEntity>>(emptyList())
 
-    private val coverDir = "favorite_covers"
+    private val coverDir = Constants.FAVORITE_COVERS_DIRECTORY
 
     init {
         viewModelScope.launch {

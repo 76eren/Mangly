@@ -5,6 +5,7 @@ import com.eren76.mangly.ExtensionManager
 import com.eren76.mangly.FileManager
 import com.eren76.mangly.downloads.DownloadManager
 import com.eren76.mangly.rooms.dao.ExtensionDao
+import com.eren76.mangly.rooms.dao.FavoritesDao
 import com.eren76.mangly.rooms.dao.HistoryDao
 import com.eren76.mangly.rooms.dao.DownloadsDao
 import com.eren76.mangly.rooms.database.AppDatabase
@@ -45,8 +46,17 @@ object AppModule {
     @Singleton
     fun provideFileManager(
         extensionManager: ExtensionManager,
-        extensionDao: ExtensionDao
-    ): FileManager = FileManager(extensionManager, extensionDao)
+        extensionDao: ExtensionDao,
+        favoritesDao: FavoritesDao,
+        downloadsDao: DownloadsDao,
+        historyDao: HistoryDao
+    ): FileManager = FileManager(
+        extensionManager = extensionManager,
+        extensionDao = extensionDao,
+        favoritesDao = favoritesDao,
+        downloadsDao = downloadsDao,
+        historyDao = historyDao
+    )
 
     @Provides
     @Singleton

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.eren76.mangly.Constants
 import com.eren76.mangly.FileManager
 import com.eren76.mangly.HistoryManager
 import com.eren76.mangly.rooms.entities.HistoryChapterEntity
@@ -24,7 +25,7 @@ class HistoryViewModel
 ) : ViewModel() {
     val historyWithChapters = mutableStateOf<List<HistoryWithReadChapters>>(emptyList())
 
-    private val coverDir = "history_cover"
+    private val coverDir = Constants.HISTORY_COVERS_DIRECTORY
 
     init {
         refresh()

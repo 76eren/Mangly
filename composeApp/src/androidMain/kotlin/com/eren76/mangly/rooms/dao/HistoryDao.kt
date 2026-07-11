@@ -29,6 +29,9 @@ interface HistoryDao {
     @Query("SELECT * FROM HistoryEntity ORDER BY manga_url ASC")
     suspend fun getAll(): List<HistoryEntity>
 
+    @Query("SELECT * FROM HistoryEntity WHERE extension_id = :extensionId")
+    suspend fun getByExtensionId(extensionId: UUID): List<HistoryEntity>
+
     // HistoryReadChapterEntity operations
     @Insert(onConflict = OnConflictStrategy.REPLACE) // When reading a chapter you have already read, update the readAt timestamp
     suspend fun insertReadChapter(readChapter: HistoryChapterEntity)
@@ -81,4 +84,7 @@ interface HistoryDao {
     // Notice: cascading is enabled meaning that when a HistoryEntity is deleted, all associated HistoryReadChapterEntity entries will also be deleted automatically.
     @Query("DELETE FROM HistoryEntity WHERE id = :id")
     suspend fun deleteHistoryById(id: UUID)
+
+    @Query("DELETE FROM HistoryEntity WHERE extension_id = :extensionId")
+    suspend fun deleteByExtensionId(extensionId: UUID)
 }

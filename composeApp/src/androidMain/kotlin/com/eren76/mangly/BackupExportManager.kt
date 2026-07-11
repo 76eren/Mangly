@@ -37,8 +37,8 @@ class BackupExportManager @Inject constructor(
 
         // TODO: make this dynamic
         private val EXCLUDED_DIRECTORIES = setOf(
-            "favorite_covers",
-            "history_cover",
+            Constants.FAVORITE_COVERS_DIRECTORY,
+            Constants.HISTORY_COVERS_DIRECTORY,
         )
     }
 
@@ -165,7 +165,10 @@ class BackupExportManager @Inject constructor(
                         includedRoots = buildList {
                             addAll(databaseHashes.keys)
                             add("preferences.json")
-                            add("files/* excluding favorite_covers and history_cover")
+                            add(
+                                "files/* excluding ${Constants.FAVORITE_COVERS_DIRECTORY} " +
+                                        "and ${Constants.HISTORY_COVERS_DIRECTORY}"
+                            )
                         }
                     )
 
