@@ -48,12 +48,19 @@ interface DownloadsDao {
     @Query("SELECT * FROM DownloadsEntity WHERE manga_url = :mangaUrl LIMIT 1")
     suspend fun getWithChaptersByMangaUrl(mangaUrl: String): DownloadWithChapters?
 
+    @Transaction
+    @Query("SELECT * FROM DownloadsEntity WHERE extension_id = :extensionId")
+    suspend fun getWithChaptersByExtensionId(extensionId: UUID): List<DownloadWithChapters>
+
     @Query("DELETE FROM DownloadedChapterEntity WHERE id = :chapterId")
     suspend fun deleteDownloadedChapterById(chapterId: UUID)
 
     // Cascade is enabled for DownloadsEntity, so deleting a download will also delete its associated chapters
     @Query("DELETE FROM DownloadsEntity WHERE download_id = :downloadId")
     suspend fun deleteDownloadById(downloadId: UUID)
+
+    @Query("DELETE FROM DownloadsEntity WHERE extension_id = :extensionId")
+    suspend fun deleteDownloadsByExtensionId(extensionId: UUID)
 
     @Query(
         """
@@ -72,7 +79,7 @@ interface DownloadsDao {
     )
 
     @Query("UPDATE DownloadsEntity SET cover_image_filename = :filename WHERE download_id = :downloadId")
-    suspend fun updateCoverFilename(downloadId: UUID, filename: String?)
+    suspend fun updateCoverFilename(downloadId: UUID, filename: String)
 
     @Query(
         """
@@ -85,7 +92,7 @@ interface DownloadsDao {
     suspend fun updateDownloadMetadata(
         downloadId: UUID,
         mangaName: String?,
-        mangaSummary: String?
+        mangaSummary: String
     )
 
     @Transaction
@@ -98,7 +105,8 @@ interface DownloadsDao {
             insertDownload(download)
         } else {
             val resolvedName = download.mangaName ?: existing.mangaName
-            val resolvedSummary = download.mangaSummary ?: existing.mangaSummary
+            val resolvedSummary = download.mangaSummary.takeIf { it.isNotBlank() }
+                ?: existing.mangaSummary
             if (resolvedName != existing.mangaName || resolvedSummary != existing.mangaSummary) {
                 updateDownloadMetadata(
                     downloadId = download.downloadId,

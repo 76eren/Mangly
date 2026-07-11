@@ -1,6 +1,7 @@
 package com.eren76.mangly.viewmodels
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
@@ -18,10 +19,17 @@ import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
 import com.eren76.manglyextension.plugins.ExtensionMetadata
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 import javax.inject.Inject
+
+private const val DOWNLOADS_VIEW_MODEL_TAG = "DownloadsViewModel"
 
 @HiltViewModel
 class DownloadsViewModel
@@ -37,29 +45,60 @@ class DownloadsViewModel
 
     val downloads = mutableStateOf<List<DownloadWithChapters>>(emptyList())
     val downloadQueue = mutableStateOf<List<DownloadQueueItem>>(emptyList())
+    val isLoading = mutableStateOf(true)
 
     private var queueWorkInfoLiveData: LiveData<List<WorkInfo>>? = null
     private var queueObserver: Observer<List<WorkInfo>>? = null
+    private val refreshMutex = Mutex()
+    private val refreshedFinishedWorkIds = mutableSetOf<UUID>()
+    private val pendingFinishedWorkIds = mutableSetOf<UUID>()
 
     init {
         refresh()
     }
 
     fun refresh() {
+        launchRefresh()
+    }
+
+    private fun launchRefresh(
+        onSuccess: (() -> Unit)? = null,
+        onFailure: (() -> Unit)? = null
+    ) {
         viewModelScope.launch {
-            downloads.value = downloadsDao.getAllWithChapters()
-                .map { downloadWithChapters ->
-                    downloadWithChapters.copy(
-                        chapters = downloadWithChapters.chapters
-                            .sortedWith(
-                                compareBy<DownloadedChapterEntity>(
-                                    { it.chapterIndex == null },
-                                    { it.chapterIndex },
-                                    { it.chapterName?.lowercase() }
-                                )
-                            )
-                    )
+            try {
+                refreshMutex.withLock {
+                    downloads.value = getSortedDownloads()
+                    isLoading.value = false
                 }
+                onSuccess?.invoke()
+            } catch (error: CancellationException) {
+                onFailure?.invoke()
+                throw error
+            } catch (error: Exception) {
+                isLoading.value = false
+                onFailure?.invoke()
+                Log.e(DOWNLOADS_VIEW_MODEL_TAG, "Failed to refresh downloads", error)
+            }
+        }
+    }
+
+    private suspend fun getSortedDownloads(): List<DownloadWithChapters> {
+        val downloadsWithChapters = downloadsDao.getAllWithChapters()
+
+        return withContext(Dispatchers.Default) {
+            downloadsWithChapters.map { downloadWithChapters ->
+                downloadWithChapters.copy(
+                    chapters = downloadWithChapters.chapters
+                        .sortedWith(
+                            compareBy<DownloadedChapterEntity>(
+                                { it.chapterIndex == null },
+                                { it.chapterIndex },
+                                { it.chapterName?.lowercase() }
+                            )
+                        )
+                )
+            }
         }
     }
 
@@ -144,8 +183,7 @@ class DownloadsViewModel
                 item.status == DownloadQueueStatus.Cancelled
     }
 
-    // Because the downloading happens in a worker, the view model won't automatically know when to refresh the downloads list.
-    // This observer ensures that whenever there's a change in the download queue, the view model refreshes its data and queue snapshot.
+    // Keep queue progress current, but reload the library only after a worker finishes.
     private fun ensureQueueObserver(context: Context) {
         if (queueObserver != null) return
 
@@ -157,8 +195,27 @@ class DownloadsViewModel
                 context = context,
                 workInfos = workInfos
             )
-            if (workInfos.isNotEmpty()) {
-                refresh()
+
+            val newlyFinishedWorkIds = workInfos.asSequence()
+                .filter { workInfo -> workInfo.state.isFinished }
+                .map { workInfo -> workInfo.id }
+                .filterNot { workId ->
+                    refreshedFinishedWorkIds.contains(workId) ||
+                            pendingFinishedWorkIds.contains(workId)
+                }
+                .toList()
+
+            if (newlyFinishedWorkIds.isNotEmpty()) {
+                pendingFinishedWorkIds.addAll(newlyFinishedWorkIds)
+                launchRefresh(
+                    onSuccess = {
+                        pendingFinishedWorkIds.removeAll(newlyFinishedWorkIds)
+                        refreshedFinishedWorkIds.addAll(newlyFinishedWorkIds)
+                    },
+                    onFailure = {
+                        pendingFinishedWorkIds.removeAll(newlyFinishedWorkIds)
+                    }
+                )
             }
         }
 
@@ -206,7 +263,7 @@ class DownloadsViewModel
         if (downloadWithChapters.chapters.isEmpty()) {
             downloadsDao.deleteDownloadById(downloadWithChapters.download.downloadId)
 
-            downloadWithChapters.download.coverImageFilename?.let { filename ->
+            downloadWithChapters.download.coverImageFilename.takeIf { it.isNotBlank() }?.let { filename ->
                 fileManager.deleteFileInDir(
                     context = context,
                     relativeDir = DOWNLOADS_COVERS_DIRECTORY,
@@ -229,7 +286,7 @@ class DownloadsViewModel
                 downloadsDao.getWithChaptersByDownloadId(downloadId)
                     ?: return@launch
 
-            downloadWithChapters.download.coverImageFilename?.let { filename ->
+            downloadWithChapters.download.coverImageFilename.takeIf { it.isNotBlank() }?.let { filename ->
                 fileManager.deleteFileInDir(
                     context = context,
                     relativeDir = DOWNLOADS_COVERS_DIRECTORY,

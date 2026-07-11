@@ -1,8 +1,15 @@
 package com.eren76.mangly
 
 import android.content.Context
+import com.eren76.mangly.downloads.DownloadStorage
+import com.eren76.mangly.rooms.dao.DownloadsDao
 import com.eren76.mangly.rooms.dao.ExtensionDao
+import com.eren76.mangly.rooms.dao.FavoritesDao
+import com.eren76.mangly.rooms.dao.HistoryDao
 import com.eren76.mangly.rooms.entities.ExtensionEntity
+import com.eren76.mangly.rooms.entities.FavoritesEntity
+import com.eren76.mangly.rooms.entities.HistoryEntity
+import com.eren76.mangly.rooms.relations.DownloadWithChapters
 import com.eren76.manglyextension.plugins.ExtensionMetadata
 import java.io.File
 import java.io.InputStream
@@ -11,7 +18,10 @@ import javax.inject.Inject
 
 class FileManager @Inject constructor(
     private val extensionManager: ExtensionManager,
-    private val extensionDao: ExtensionDao
+    private val extensionDao: ExtensionDao,
+    private val favoritesDao: FavoritesDao,
+    private val downloadsDao: DownloadsDao,
+    private val historyDao: HistoryDao
 ) {
 
     fun saveBytesToStorage(
@@ -184,18 +194,84 @@ class FileManager @Inject constructor(
         return file
     }
 
-    suspend fun deleteAndRemoveEntry(entityToBeDeleted: ExtensionEntity, context: Context) {
-        extensionDao.delete(entityToBeDeleted.id)
+    suspend fun deleteAndRemoveExtension(entityToBeDeleted: ExtensionEntity, context: Context) {
+        // Before deleting an extension entry, we need to delete all associated files first
+        val extensionId = entityToBeDeleted.id
+        val favorites: List<FavoritesEntity> = favoritesDao.getByExtensionId(extensionId)
+        val downloads: List<DownloadWithChapters> =
+            downloadsDao.getWithChaptersByExtensionId(extensionId)
+        val historyItems: List<HistoryEntity> = historyDao.getByExtensionId(extensionId)
 
+        deleteFavoriteCoverFiles(context = context, favorites = favorites)
+        deleteDownloadFiles(context = context, downloads = downloads)
+        deleteHistoryCoverFiles(context = context, historyItems = historyItems)
+
+        favoritesDao.deleteByExtensionId(extensionId)
+        downloadsDao.deleteDownloadsByExtensionId(extensionId)
+        historyDao.deleteByExtensionId(extensionId)
+
+        // Now the actual extension entry can be deleted from the database and the zip file can be removed from storage
+        extensionDao.delete(entityToBeDeleted.id)
         val file = File(entityToBeDeleted.filePath)
         if (file.exists()) {
             file.delete()
         }
     }
 
+    private fun deleteFavoriteCoverFiles(
+        context: Context,
+        favorites: List<FavoritesEntity>
+    ) {
+        favorites.forEach { favorite ->
+            favorite.coverImageFilename?.let { filename ->
+                deleteFileInDir(
+                    context = context,
+                    relativeDir = Constants.FAVORITE_COVERS_DIRECTORY,
+                    fileName = filename
+                )
+            }
+        }
+    }
+
+    private fun deleteDownloadFiles(
+        context: Context,
+        downloads: List<DownloadWithChapters>
+    ) {
+        downloads.forEach { downloadWithChapters ->
+            val download = downloadWithChapters.download
+
+            download.coverImageFilename.takeIf { it.isNotBlank() }?.let { filename ->
+                deleteFileInDir(
+                    context = context,
+                    relativeDir = DownloadStorage.COVERS_DIRECTORY,
+                    fileName = filename
+                )
+            }
+
+            deleteDirectory(
+                context = context,
+                relativeDir = "${DownloadStorage.DOWNLOADS_DIRECTORY}/${download.downloadId}"
+            )
+        }
+    }
+
+    private fun deleteHistoryCoverFiles(
+        context: Context,
+        historyItems: List<HistoryEntity>
+    ) {
+        historyItems.forEach { history ->
+            history.coverImageFilename?.let { filename ->
+                deleteFileInDir(
+                    context = context,
+                    relativeDir = Constants.HISTORY_COVERS_DIRECTORY,
+                    fileName = filename
+                )
+            }
+        }
+    }
+
     suspend fun getAllEntries(context: Context): List<ExtensionEntity> {
         return extensionDao.getAll()
     }
-
 
 }

@@ -12,5 +12,9 @@ class Constants {
         const val MANGLY_PAGINATION_SIZE_KEY =
             6 // This only applies to the home page and download page. The history page calculates its own pagination size based on the screen height and item height.
         const val MANGLY_ENBALE_DOWNLOADS = "enable_downloads"
+
+        // File storage
+        const val FAVORITE_COVERS_DIRECTORY = "favorite_covers"
+        const val HISTORY_COVERS_DIRECTORY = "history_cover"
     }
 }

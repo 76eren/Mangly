@@ -67,14 +67,18 @@ class DownloadManager @Inject constructor(
                 TAG,
                 "Resolved ${chapterImages.images.size} pages for chapter=$chapterName"
             )
-            val normalizedSummary = mangaSummary.takeIf { it.isNotBlank() }
+            val resolvedSummary = mangaSummary.takeIf { it.isNotBlank() }
+                ?: existingDownload?.download?.mangaSummary
+                ?: ""
+            val resolvedCoverImageFilename =
+                existingDownload?.download?.coverImageFilename.orEmpty()
 
             val downloadEntity = DownloadsEntity(
                 downloadId = id,
                 mangaUrl = mangaurl,
                 mangaName = mangaName,
-                mangaSummary = normalizedSummary ?: existingDownload?.download?.mangaSummary,
-                coverImageFilename = existingDownload?.download?.coverImageFilename,
+                mangaSummary = resolvedSummary,
+                coverImageFilename = resolvedCoverImageFilename,
                 extensionId = extensionId
             )
 
@@ -99,7 +103,7 @@ class DownloadManager @Inject constructor(
             )
 
             downloadCoverIfMissing(
-                existingCoverFilename = existingDownload?.download?.coverImageFilename,
+                existingCoverFilename = downloadEntity.coverImageFilename,
                 downloadId = id,
                 mangaUrl = mangaurl,
                 source = source,
@@ -200,13 +204,13 @@ class DownloadManager @Inject constructor(
     }
 
     private suspend fun downloadCoverIfMissing(
-        existingCoverFilename: String?,
+        existingCoverFilename: String,
         downloadId: UUID,
         mangaUrl: String,
         source: Source,
         context: Context
     ) {
-        if (existingCoverFilename != null) return
+        if (existingCoverFilename.isNotBlank()) return
 
         val coverInfo: Source.ImageForChaptersList? = runCatching {
             source.getImageForChaptersList(mangaUrl)

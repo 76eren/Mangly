@@ -15,6 +15,9 @@ interface FavoritesDao {
     @Query("SELECT * FROM FavoritesEntity WHERE extension_id = :extensionId")
     suspend fun getByExtensionId(extensionId: UUID): List<FavoritesEntity>
 
+    @Query("DELETE FROM FavoritesEntity WHERE extension_id = :extensionId")
+    suspend fun deleteByExtensionId(extensionId: UUID)
+
     @Query("DELETE FROM FavoritesEntity WHERE id = :id")
     suspend fun delete(id: UUID)
 

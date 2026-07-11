@@ -27,6 +27,8 @@ import com.eren76.mangly.viewmodels.HistoryViewModel
 import com.eren76.mangly.viewmodels.SearchViewModel
 import com.eren76.manglyextension.plugins.ExtensionMetadata
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
@@ -67,7 +69,7 @@ class MainActivity : ComponentActivity() {
 
                     // Populate data for view models
                     LaunchedEffect(Unit) {
-                        val metadataList = fetchSources(applicationContext)
+                        val metadataList = loadInstalledSources(applicationContext)
                         sourcesViewModel.setSources(metadataList)
                     }
 
@@ -97,16 +99,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    suspend fun fetchSources(context: Context): List<ExtensionMetadata> {
-        val sources = mutableListOf<ExtensionMetadata>()
-
-        val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
-        for (entry in allEntries) {
-            val metadata: ExtensionMetadata =
-                extensionManager.extractExtensionMetadata(File(entry.filePath).readBytes(), context)
-            sources.add(metadata)
+    private suspend fun loadInstalledSources(context: Context): List<ExtensionMetadata> =
+        withContext(Dispatchers.IO) {
+            val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
+            allEntries.map { entry -> loadSourceMetadata(entry, context) }
         }
 
-        return sources
+    private fun loadSourceMetadata(
+        entry: ExtensionEntity,
+        context: Context
+    ): ExtensionMetadata {
+        val zipBytes = File(entry.filePath).readBytes()
+        return extensionManager.extractExtensionMetadata(zipBytes, context)
     }
 }

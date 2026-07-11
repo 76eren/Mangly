@@ -1,19 +1,11 @@
 package com.eren76.mangly.composables.screens.home
 
 import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import coil3.compose.SubcomposeAsyncImage
 import com.eren76.mangly.composables.shared.image.CoverImageRequests
-import com.eren76.mangly.composables.shared.image.ImageLoadingComposable
-import com.eren76.mangly.composables.shared.image.ImageLoadingErrorComposable
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
 import com.eren76.mangly.viewmodels.DownloadsViewModel
 
@@ -26,16 +18,16 @@ fun DownloadCard(
     val context = LocalContext.current
     val download = downloadWithChapters.download
     val title = download.mangaName ?: download.mangaUrl
-    val downloadedChapters = downloadWithChapters.chapters.count { it.isFullyDownloaded }
+    val downloadedChapters = remember(downloadWithChapters.chapters) {
+        downloadWithChapters.chapters.count { chapter -> chapter.isFullyDownloaded }
+    }
     val subtitle = "$downloadedChapters chapters downloaded"
-    val badgeText = if (download.extensionId == null) "Unavailable" else null
 
     HomeMangaCard(
         title = title,
         subtitle = subtitle,
         menuKey = download.downloadId,
         menuText = "Delete download",
-        badgeText = badgeText,
         onClick = onClick,
         onDelete = {
             downloadsViewModel.deleteWholeMangaDownloadByDownloadEntityId(
@@ -65,7 +57,7 @@ fun DownloadCoverImage(
     val title = download.mangaName ?: download.mangaUrl
 
     val localCoverFile = remember(download.downloadId, download.coverImageFilename, context) {
-        download.coverImageFilename?.let { filename ->
+        download.coverImageFilename.takeIf { it.isNotBlank() }?.let { filename ->
             downloadsViewModel.getCoverFile(filename = filename, context = context)
         }
     }
@@ -74,22 +66,10 @@ fun DownloadCoverImage(
         CoverImageRequests.local(context = context, file = localCoverFile)
     }
 
-    if (localRequest == null) {
-        Box(
-            modifier = modifier.background(Color.LightGray),
-            contentAlignment = Alignment.Center
-        ) {
-            ImageLoadingErrorComposable()
-        }
-        return
-    }
-
-    SubcomposeAsyncImage(
+    HomeCoverImage(
         model = localRequest,
         contentDescription = title,
+        isLoading = localRequest != null,
         modifier = modifier,
-        contentScale = ContentScale.Crop,
-        error = { ImageLoadingErrorComposable() },
-        loading = { ImageLoadingComposable() }
     )
 }

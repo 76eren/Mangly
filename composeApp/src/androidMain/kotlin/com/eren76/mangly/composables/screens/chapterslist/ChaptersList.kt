@@ -124,9 +124,13 @@ fun ChaptersList(
             summary = relatedDownload?.download?.mangaSummary.orEmpty()
             mangaName = relatedDownload?.download?.mangaName ?: targetUrl
             loadError = null
-            localCoverFile = relatedDownload?.download?.coverImageFilename?.let { filename ->
-                downloadsViewModel.getCoverFile(filename = filename, context = context)
-            }
+            localCoverFile = relatedDownload
+                ?.download
+                ?.coverImageFilename
+                ?.takeIf { filename -> filename.isNotBlank() }
+                ?.let { filename ->
+                    downloadsViewModel.getCoverFile(filename = filename, context = context)
+                }
 
             chaptersListViewModel.setChapters(localChapters)
             chaptersListViewModel.setImage(null)
