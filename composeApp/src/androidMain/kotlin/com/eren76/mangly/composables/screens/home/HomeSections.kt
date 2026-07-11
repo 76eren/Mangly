@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import com.eren76.mangly.composables.shared.collection.GridViewMode
 import com.eren76.mangly.downloads.DownloadQueuePanel
 import com.eren76.mangly.downloads.models.DownloadQueueItem
 import com.eren76.mangly.rooms.entities.FavoritesEntity
@@ -17,7 +18,7 @@ fun ColumnScope.HomeFavoritesSection(
     allFavorites: List<FavoritesEntity>,
     filteredFavorites: List<FavoritesEntity>,
     sourceFilterState: HomeSourceFilterState,
-    displayPreferences: HomeDisplayPreferences,
+    viewMode: GridViewMode,
     isLoadingItems: Boolean,
     isLoadingSources: Boolean,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
@@ -29,28 +30,26 @@ fun ColumnScope.HomeFavoritesSection(
         allItems = allFavorites,
         filteredItems = filteredFavorites,
         sourceFilterState = sourceFilterState,
+        viewMode = viewMode,
         isLoadingItems = isLoadingItems,
-        isLoadingSources = isLoadingSources
-    ) { listModifier ->
-        if (displayPreferences.isPaginationEnabled) {
-            PaginatedFavorites(
-                pageSize = displayPreferences.pageSize,
-                sortedFavorites = filteredFavorites,
+        isLoadingSources = isLoadingSources,
+        itemKey = { favorite -> favorite.id },
+        itemContent = { favorite ->
+            FavoriteCard(
+                favorite = favorite,
                 extensionMetadataViewModel = extensionMetadataViewModel,
                 favoritesViewModel = favoritesViewModel,
-                navHostController = navHostController,
-                modifier = listModifier
-            )
-        } else {
-            ShowItemsInLazyGrid(
-                sortedFavorites = filteredFavorites,
-                extensionMetadataViewModel = extensionMetadataViewModel,
-                favoritesViewModel = favoritesViewModel,
-                navHostController = navHostController,
-                modifier = listModifier
+                onClick = {
+                    onHomeMangaClick(
+                        mangaUrl = favorite.mangaUrl,
+                        extensionId = favorite.extensionId,
+                        extensionMetadataViewModel = extensionMetadataViewModel,
+                        navController = navHostController
+                    )
+                }
             )
         }
-    }
+    )
 }
 
 @Composable
@@ -58,7 +57,7 @@ fun ColumnScope.HomeDownloadsSection(
     allDownloads: List<DownloadWithChapters>,
     filteredDownloads: List<DownloadWithChapters>,
     sourceFilterState: HomeSourceFilterState,
-    displayPreferences: HomeDisplayPreferences,
+    viewMode: GridViewMode,
     isLoadingItems: Boolean,
     isLoadingSources: Boolean,
     downloadQueue: List<DownloadQueueItem>,
@@ -67,42 +66,41 @@ fun ColumnScope.HomeDownloadsSection(
     navHostController: NavHostController,
     context: Context
 ) {
-    DownloadQueuePanel(
-        queueItems = downloadQueue,
-        onCancelQueue = { downloadsViewModel.cancelDownloadQueue(context) },
-        onDismissSingleFinishedQueueItem = { item ->
-            downloadsViewModel.dismissSingleFinishedDownloadQueueItem(context, item)
-        },
-        onDismissAllFinishedQueueItems = { items ->
-            downloadsViewModel.dismissAllFinishedDownloadQueueItems(context, items)
-        }
-    )
-
     HomeLibraryContent(
         mode = HomeMode.Downloads,
         allItems = allDownloads,
         filteredItems = filteredDownloads,
         sourceFilterState = sourceFilterState,
+        viewMode = viewMode,
         isLoadingItems = isLoadingItems,
-        isLoadingSources = isLoadingSources
-    ) { listModifier ->
-        if (displayPreferences.isPaginationEnabled) {
-            PaginatedDownloads(
-                pageSize = displayPreferences.pageSize,
-                downloads = filteredDownloads,
-                extensionMetadataViewModel = extensionMetadataViewModel,
-                downloadsViewModel = downloadsViewModel,
-                navHostController = navHostController,
-                modifier = listModifier
+        isLoadingSources = isLoadingSources,
+        itemKey = { download -> download.download.downloadId },
+        supportingContent = {
+            DownloadQueuePanel(
+                queueItems = downloadQueue,
+                onCancelQueue = { downloadsViewModel.cancelDownloadQueue(context) },
+                onDismissSingleFinishedQueueItem = { item ->
+                    downloadsViewModel.dismissSingleFinishedDownloadQueueItem(context, item)
+                },
+                onDismissAllFinishedQueueItems = { items ->
+                    downloadsViewModel.dismissAllFinishedDownloadQueueItems(context, items)
+                }
             )
-        } else {
-            ShowDownloadsInLazyGrid(
-                downloads = filteredDownloads,
-                extensionMetadataViewModel = extensionMetadataViewModel,
-                navHostController = navHostController,
+        },
+        itemContent = { download: DownloadWithChapters ->
+            DownloadCard(
+                downloadWithChapters = download,
                 downloadsViewModel = downloadsViewModel,
-                modifier = listModifier
+                onClick = {
+                    onHomeMangaClick(
+                        mangaUrl = download.download.mangaUrl,
+                        extensionId = download.download.extensionId,
+                        extensionMetadataViewModel = extensionMetadataViewModel,
+                        navController = navHostController,
+                        isDownload = true
+                    )
+                }
             )
         }
-    }
+    )
 }

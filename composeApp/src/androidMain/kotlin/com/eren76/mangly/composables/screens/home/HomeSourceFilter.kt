@@ -1,14 +1,22 @@
 package com.eren76.mangly.composables.screens.home
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,10 +24,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.eren76.mangly.R
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeSourceFilter(
     sourceOptions: List<HomeSourceOption>,
@@ -27,8 +37,7 @@ fun HomeSourceFilter(
     onSelectedSourceChange: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
+    var showSheet by remember { mutableStateOf(false) }
     val duplicateLabels: Set<String> = remember(sourceOptions) {
         sourceOptions
             .groupingBy { option -> option.displayName }
@@ -36,71 +45,128 @@ fun HomeSourceFilter(
             .filterValues { count -> count > 1 }
             .keys
     }
-
-    val selectedLabel: String = sourceOptions
+    val selectedLabel = sourceOptions
         .firstOrNull { option -> option.id == selectedSourceId }
-        ?.let { option -> labelForSource(option, duplicateLabels) }
+        ?.displayName
         ?: "All sources"
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+    FilledTonalIconButton(
+        onClick = { showSheet = true },
+        modifier = modifier.size(40.dp)
     ) {
-        OutlinedButton(
-            onClick = { expanded = true },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "Source: $selectedLabel",
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Start,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+        Icon(
+            painter = painterResource(R.drawable.filter_list_24),
+            contentDescription = "Filter by source. Current source: $selectedLabel"
+        )
+    }
 
-            Icon(
-                imageVector = Icons.Filled.ArrowDropDown,
-                contentDescription = "Open source filter"
-            )
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            DropdownMenuItem(
-                text = { Text("All sources (${sourceOptions.sumOf { it.itemCount }})") },
-                onClick = {
-                    expanded = false
-                    onSelectedSourceChange(null)
-                }
-            )
-
-            sourceOptions.forEach { option ->
-                val label: String = labelForSource(option, duplicateLabels)
-
-                DropdownMenuItem(
-                    text = { Text("$label (${option.itemCount})") },
-                    onClick = {
-                        expanded = false
-                        onSelectedSourceChange(option.id)
-                    }
+    if (showSheet) {
+        ModalBottomSheet(onDismissRequest = { showSheet = false }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "Filter by source",
+                    style = MaterialTheme.typography.headlineSmall
                 )
+                Text(
+                    text = "Choose what appears in your library",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp, bottom = 8.dp)
+                )
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 460.dp),
+                contentPadding = PaddingValues(bottom = 24.dp)
+            ) {
+                item(key = "all_sources") {
+                    SourceFilterItem(
+                        label = "All sources",
+                        count = sourceOptions.sumOf { option -> option.itemCount },
+                        selected = selectedSourceId == null,
+                        onClick = {
+                            showSheet = false
+                            onSelectedSourceChange(null)
+                        }
+                    )
+                }
+
+                items(
+                    items = sourceOptions,
+                    key = { option -> option.id }
+                ) { option ->
+                    SourceFilterItem(
+                        label = option.displayName,
+                        count = option.itemCount,
+                        selected = option.id == selectedSourceId,
+                        supportingText = if (duplicateLabels.contains(option.displayName)) {
+                            "Source ID ${option.id.take(8)}"
+                        } else {
+                            null
+                        },
+                        onClick = {
+                            showSheet = false
+                            onSelectedSourceChange(option.id)
+                        }
+                    )
+                }
             }
         }
     }
 }
 
-private fun labelForSource(
-    option: HomeSourceOption,
-    duplicateLabels: Set<String>
-): String {
-    val baseLabel = option.displayName
-
-    return if (duplicateLabels.contains(baseLabel)) {
-        "$baseLabel (${option.id.take(8)})"
-    } else {
-        baseLabel
-    }
+@Composable
+private fun SourceFilterItem(
+    label: String,
+    count: Int,
+    selected: Boolean,
+    onClick: () -> Unit,
+    supportingText: String? = null
+) {
+    ListItem(
+        headlineContent = {
+            Text(
+                text = label,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        supportingContent = supportingText?.let { text ->
+            {
+                Text(
+                    text = text,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        leadingContent = {
+            RadioButton(
+                selected = selected,
+                onClick = null
+            )
+        },
+        trailingContent = {
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        colors = ListItemDefaults.colors(
+            containerColor = if (selected) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        )
+    )
 }

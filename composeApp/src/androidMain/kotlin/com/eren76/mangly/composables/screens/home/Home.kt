@@ -7,6 +7,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
+import com.eren76.mangly.composables.shared.collection.GridViewMode
+import com.eren76.mangly.preferences.rememberGridViewMode
 import com.eren76.mangly.rooms.entities.FavoritesEntity
 import com.eren76.mangly.rooms.entities.HistoryWithReadChapters
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
@@ -29,7 +31,8 @@ fun Home(
     val mode: HomeMode = remember(showDownloads) {
         HomeMode.fromShowDownloads(showDownloads)
     }
-    val displayPreferences: HomeDisplayPreferences = rememberHomeDisplayPreferences(context)
+    val sorting: HomeSorting = rememberHomeSorting(context)
+    val viewMode: GridViewMode = rememberGridViewMode(context)
 
     LaunchedEffect(showDownloads, context) {
         if (showDownloads) {
@@ -37,10 +40,11 @@ fun Home(
         }
     }
 
-    HomeLayout(mode = mode) {
+    HomeLayout {
         when (mode) {
             HomeMode.Favorites -> HomeFavoritesContent(
-                displayPreferences = displayPreferences,
+                sorting = sorting,
+                viewMode = viewMode,
                 favoritesViewModel = favoritesViewModel,
                 extensionMetadataViewModel = extensionMetadataViewModel,
                 historyViewModel = historyViewModel,
@@ -48,7 +52,8 @@ fun Home(
             )
 
             HomeMode.Downloads -> HomeDownloadsContent(
-                displayPreferences = displayPreferences,
+                sorting = sorting,
+                viewMode = viewMode,
                 downloadsViewModel = downloadsViewModel,
                 extensionMetadataViewModel = extensionMetadataViewModel,
                 historyViewModel = historyViewModel,
@@ -61,7 +66,8 @@ fun Home(
 
 @Composable
 private fun ColumnScope.HomeFavoritesContent(
-    displayPreferences: HomeDisplayPreferences,
+    sorting: HomeSorting,
+    viewMode: GridViewMode,
     favoritesViewModel: FavoritesViewModel,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
     historyViewModel: HistoryViewModel,
@@ -69,10 +75,10 @@ private fun ColumnScope.HomeFavoritesContent(
 ) {
     val favorites: List<FavoritesEntity> = favoritesViewModel.favorites.value
     val historyWithChapters: List<HistoryWithReadChapters> =
-        historyForSorting(displayPreferences.sorting, historyViewModel)
+        historyForSorting(sorting, historyViewModel)
     val sortedFavorites: List<FavoritesEntity> =
-        remember(favorites, displayPreferences.sorting, historyWithChapters) {
-            sortFavorites(favorites, displayPreferences.sorting, historyViewModel)
+        remember(favorites, sorting, historyWithChapters) {
+            sortFavorites(favorites, sorting, historyViewModel)
         }
 
     val sources: List<ExtensionMetadata> = extensionMetadataViewModel.getAllSources()
@@ -88,13 +94,15 @@ private fun ColumnScope.HomeFavoritesContent(
             filterFavoritesBySource(sortedFavorites, sourceFilterState.activeSourceId)
         }
 
+    val isLoadingFavorites: Boolean = favoritesViewModel.isLoading.value
+    val isLoadingSources: Boolean = extensionMetadataViewModel.isLoading.value
     HomeFavoritesSection(
         allFavorites = sortedFavorites,
         filteredFavorites = filteredFavorites,
         sourceFilterState = sourceFilterState,
-        displayPreferences = displayPreferences,
-        isLoadingItems = favoritesViewModel.isLoading.value,
-        isLoadingSources = extensionMetadataViewModel.isLoading.value,
+        viewMode = viewMode,
+        isLoadingItems = isLoadingFavorites,
+        isLoadingSources = isLoadingSources,
         extensionMetadataViewModel = extensionMetadataViewModel,
         favoritesViewModel = favoritesViewModel,
         navHostController = navHostController
@@ -103,7 +111,8 @@ private fun ColumnScope.HomeFavoritesContent(
 
 @Composable
 private fun ColumnScope.HomeDownloadsContent(
-    displayPreferences: HomeDisplayPreferences,
+    sorting: HomeSorting,
+    viewMode: GridViewMode,
     downloadsViewModel: DownloadsViewModel,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
     historyViewModel: HistoryViewModel,
@@ -112,10 +121,10 @@ private fun ColumnScope.HomeDownloadsContent(
 ) {
     val downloads: List<DownloadWithChapters> = downloadsViewModel.downloads.value
     val historyWithChapters: List<HistoryWithReadChapters> =
-        historyForSorting(displayPreferences.sorting, historyViewModel)
+        historyForSorting(sorting, historyViewModel)
     val sortedDownloads: List<DownloadWithChapters> =
-        remember(downloads, displayPreferences.sorting, historyWithChapters) {
-            sortDownloads(downloads, displayPreferences.sorting, historyViewModel)
+        remember(downloads, sorting, historyWithChapters) {
+            sortDownloads(downloads, sorting, historyViewModel)
         }
 
     val sources: List<ExtensionMetadata> = extensionMetadataViewModel.getAllSources()
@@ -130,14 +139,15 @@ private fun ColumnScope.HomeDownloadsContent(
         remember(sortedDownloads, sourceFilterState.activeSourceId) {
             filterDownloadsBySource(sortedDownloads, sourceFilterState.activeSourceId)
         }
-
+    val isLoadingDownloads = downloadsViewModel.isLoading.value
+    val isLoadingSources = extensionMetadataViewModel.isLoading.value
     HomeDownloadsSection(
         allDownloads = sortedDownloads,
         filteredDownloads = filteredDownloads,
         sourceFilterState = sourceFilterState,
-        displayPreferences = displayPreferences,
-        isLoadingItems = downloadsViewModel.isLoading.value,
-        isLoadingSources = extensionMetadataViewModel.isLoading.value,
+        viewMode = viewMode,
+        isLoadingItems = isLoadingDownloads,
+        isLoadingSources = isLoadingSources,
         downloadQueue = downloadsViewModel.downloadQueue.value,
         downloadsViewModel = downloadsViewModel,
         extensionMetadataViewModel = extensionMetadataViewModel,
