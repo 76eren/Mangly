@@ -18,6 +18,8 @@ fun ColumnScope.HomeFavoritesSection(
     filteredFavorites: List<FavoritesEntity>,
     sourceFilterState: HomeSourceFilterState,
     displayPreferences: HomeDisplayPreferences,
+    isLoadingItems: Boolean,
+    isLoadingSources: Boolean,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
     favoritesViewModel: FavoritesViewModel,
     navHostController: NavHostController
@@ -26,7 +28,9 @@ fun ColumnScope.HomeFavoritesSection(
         mode = HomeMode.Favorites,
         allItems = allFavorites,
         filteredItems = filteredFavorites,
-        sourceFilterState = sourceFilterState
+        sourceFilterState = sourceFilterState,
+        isLoadingItems = isLoadingItems,
+        isLoadingSources = isLoadingSources
     ) { listModifier ->
         if (displayPreferences.isPaginationEnabled) {
             PaginatedFavorites(
@@ -55,6 +59,8 @@ fun ColumnScope.HomeDownloadsSection(
     filteredDownloads: List<DownloadWithChapters>,
     sourceFilterState: HomeSourceFilterState,
     displayPreferences: HomeDisplayPreferences,
+    isLoadingItems: Boolean,
+    isLoadingSources: Boolean,
     downloadQueue: List<DownloadQueueItem>,
     downloadsViewModel: DownloadsViewModel,
     extensionMetadataViewModel: ExtensionMetadataViewModel,
@@ -76,7 +82,9 @@ fun ColumnScope.HomeDownloadsSection(
         mode = HomeMode.Downloads,
         allItems = allDownloads,
         filteredItems = filteredDownloads,
-        sourceFilterState = sourceFilterState
+        sourceFilterState = sourceFilterState,
+        isLoadingItems = isLoadingItems,
+        isLoadingSources = isLoadingSources
     ) { listModifier ->
         if (displayPreferences.isPaginationEnabled) {
             PaginatedDownloads(

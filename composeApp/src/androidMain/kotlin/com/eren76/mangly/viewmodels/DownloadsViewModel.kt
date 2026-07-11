@@ -37,6 +37,7 @@ class DownloadsViewModel
 
     val downloads = mutableStateOf<List<DownloadWithChapters>>(emptyList())
     val downloadQueue = mutableStateOf<List<DownloadQueueItem>>(emptyList())
+    val isLoading = mutableStateOf(true)
 
     private var queueWorkInfoLiveData: LiveData<List<WorkInfo>>? = null
     private var queueObserver: Observer<List<WorkInfo>>? = null
@@ -47,20 +48,25 @@ class DownloadsViewModel
 
     fun refresh() {
         viewModelScope.launch {
-            downloads.value = downloadsDao.getAllWithChapters()
-                .map { downloadWithChapters ->
-                    downloadWithChapters.copy(
-                        chapters = downloadWithChapters.chapters
-                            .sortedWith(
-                                compareBy<DownloadedChapterEntity>(
-                                    { it.chapterIndex == null },
-                                    { it.chapterIndex },
-                                    { it.chapterName?.lowercase() }
-                                )
-                            )
-                    )
-                }
+            downloads.value = getSortedDownloads()
+            isLoading.value = false
         }
+    }
+
+    private suspend fun getSortedDownloads(): List<DownloadWithChapters> {
+        return downloadsDao.getAllWithChapters()
+            .map { downloadWithChapters ->
+                downloadWithChapters.copy(
+                    chapters = downloadWithChapters.chapters
+                        .sortedWith(
+                            compareBy<DownloadedChapterEntity>(
+                                { it.chapterIndex == null },
+                                { it.chapterIndex },
+                                { it.chapterName?.lowercase() }
+                            )
+                        )
+                )
+            }
     }
 
     fun getCoverFile(filename: String, context: Context): File? {

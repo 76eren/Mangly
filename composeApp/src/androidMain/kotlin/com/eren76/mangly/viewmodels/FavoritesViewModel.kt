@@ -21,19 +21,20 @@ class FavoritesViewModel
     private val fileManager: FileManager
 ) : ViewModel() {
     val favorites = mutableStateOf<List<FavoritesEntity>>(emptyList())
+    val isLoading = mutableStateOf(true)
 
     private val coverDir = Constants.FAVORITE_COVERS_DIRECTORY
 
     init {
         viewModelScope.launch {
-            favorites.value = favoritesManager.getAllFavoritesFromDb()
+            refreshFavorites()
         }
     }
 
     fun addFavorite(favorite: FavoritesEntity) {
         viewModelScope.launch {
             favoritesManager.addFavoriteToDb(favorite)
-            favorites.value = favoritesManager.getAllFavoritesFromDb()
+            refreshFavorites()
         }
     }
 
@@ -49,7 +50,7 @@ class FavoritesViewModel
             }
 
             favoritesManager.removeFavoriteFromDb(id)
-            favorites.value = favoritesManager.getAllFavoritesFromDb()
+            refreshFavorites()
 
         }
     }
@@ -75,7 +76,12 @@ class FavoritesViewModel
     fun updateFavoriteCoverFilename(favoriteId: UUID, filename: String?) {
         viewModelScope.launch {
             favoritesManager.updateCoverFilename(id = favoriteId, filename = filename)
-            favorites.value = favoritesManager.getAllFavoritesFromDb()
+            refreshFavorites()
         }
+    }
+
+    private suspend fun refreshFavorites() {
+        favorites.value = favoritesManager.getAllFavoritesFromDb()
+        isLoading.value = false
     }
 }

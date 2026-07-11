@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,11 +46,33 @@ fun <T> ColumnScope.HomeLibraryContent(
     allItems: List<T>,
     filteredItems: List<T>,
     sourceFilterState: HomeSourceFilterState,
+    isLoadingItems: Boolean,
+    isLoadingSources: Boolean,
     content: @Composable (Modifier) -> Unit
 ) {
+    if (isLoadingItems) {
+        HomeLoadingState(
+            text = mode.loadingText,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        )
+        return
+    }
+
     if (allItems.isEmpty()) {
         HomeEmptyState(
             text = mode.emptyText,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        )
+        return
+    }
+
+    if (isLoadingSources) {
+        HomeLoadingState(
+            text = "Loading sources...",
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
@@ -77,6 +101,32 @@ fun <T> ColumnScope.HomeLibraryContent(
             .weight(1f)
             .fillMaxWidth()
     )
+}
+
+@Composable
+private fun HomeLoadingState(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(32.dp),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
 }
 
 @Composable

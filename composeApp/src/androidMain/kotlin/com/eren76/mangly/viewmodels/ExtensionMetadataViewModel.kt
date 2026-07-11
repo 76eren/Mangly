@@ -11,11 +11,13 @@ import javax.inject.Inject
 class ExtensionMetadataViewModel @Inject constructor() : ViewModel() {
     private val sources = mutableStateListOf<ExtensionMetadata>()
 
+    val isLoading = mutableStateOf(true)
     var selectedSingleSource = mutableStateOf<ExtensionMetadata?>(null)
 
     fun setSources(data: List<ExtensionMetadata>) {
         sources.clear()
         sources.addAll(data)
+        isLoading.value = false
     }
 
     fun getAllSources(): List<ExtensionMetadata> {

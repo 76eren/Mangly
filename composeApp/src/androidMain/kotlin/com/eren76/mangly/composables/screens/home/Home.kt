@@ -37,6 +37,11 @@ fun Home(
 
     val favorites: List<FavoritesEntity> = favoritesViewModel.favorites.value
     val downloads: List<DownloadWithChapters> = downloadsViewModel.downloads.value
+
+    val isLoadingFavorites = favoritesViewModel.isLoading.value
+    val isLoadingDownloads = downloadsViewModel.isLoading.value
+    val isLoadingSources = extensionMetadataViewModel.isLoading.value
+
     val historyWithChapters: List<HistoryWithReadChapters> =
         historyViewModel.historyWithChapters.value
 
@@ -78,6 +83,8 @@ fun Home(
                 filteredFavorites = filteredFavorites,
                 sourceFilterState = sourceFilterState,
                 displayPreferences = displayPreferences,
+                isLoadingItems = isLoadingFavorites,
+                isLoadingSources = isLoadingSources,
                 extensionMetadataViewModel = extensionMetadataViewModel,
                 favoritesViewModel = favoritesViewModel,
                 navHostController = navHostController
@@ -88,6 +95,8 @@ fun Home(
                 filteredDownloads = filteredDownloads,
                 sourceFilterState = sourceFilterState,
                 displayPreferences = displayPreferences,
+                isLoadingItems = isLoadingDownloads,
+                isLoadingSources = isLoadingSources,
                 downloadQueue = downloadsViewModel.downloadQueue.value,
                 downloadsViewModel = downloadsViewModel,
                 extensionMetadataViewModel = extensionMetadataViewModel,
