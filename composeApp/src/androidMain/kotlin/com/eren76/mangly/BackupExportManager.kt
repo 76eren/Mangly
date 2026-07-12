@@ -34,12 +34,6 @@ class BackupExportManager @Inject constructor(
     companion object {
         private const val BUFFER_SIZE = 64 * 1024
         private const val FORMAT_VERSION = 2
-
-        // TODO: make this dynamic
-        private val EXCLUDED_DIRECTORIES = setOf(
-            Constants.FAVORITE_COVERS_DIRECTORY,
-            Constants.HISTORY_COVERS_DIRECTORY,
-        )
     }
 
     private val gson: Gson = GsonBuilder()
@@ -165,10 +159,7 @@ class BackupExportManager @Inject constructor(
                         includedRoots = buildList {
                             addAll(databaseHashes.keys)
                             add("preferences.json")
-                            add(
-                                "files/* excluding ${Constants.FAVORITE_COVERS_DIRECTORY} " +
-                                        "and ${Constants.HISTORY_COVERS_DIRECTORY}"
-                            )
+                            add("files/")
                         }
                     )
 
@@ -198,10 +189,6 @@ class BackupExportManager @Inject constructor(
 
         filesRoot
             .listFiles()
-            ?.filterNot { file ->
-                file.isDirectory &&
-                        file.name in EXCLUDED_DIRECTORIES
-            }
             ?.sortedBy { it.name.lowercase(Locale.US) }
             ?.forEach { file ->
 
