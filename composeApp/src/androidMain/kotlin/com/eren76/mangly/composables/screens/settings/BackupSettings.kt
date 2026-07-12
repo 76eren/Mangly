@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun BackupSettingsSection(
+    isImportRunning: Boolean,
     onExportRequested: (Uri) -> Unit,
     onImportRequested: () -> Unit,
 ) {
@@ -35,6 +36,7 @@ internal fun BackupSettingsSection(
     )
 
     BackupImportSetting(
+        isImportRunning = isImportRunning,
         onImportRequested = onImportRequested
     )
 }
@@ -96,6 +98,7 @@ private fun BackupExportSetting(
 
 @Composable
 private fun BackupImportSetting(
+    isImportRunning: Boolean,
     onImportRequested: () -> Unit,
 ) {
     ElevatedCard(
@@ -131,9 +134,10 @@ private fun BackupImportSetting(
 
             FilledTonalButton(
                 onClick = onImportRequested,
+                enabled = !isImportRunning,
                 modifier = Modifier.padding(start = 8.dp)
             ) {
-                Text("Import")
+                Text(if (isImportRunning) "Importing..." else "Import")
             }
         }
     }

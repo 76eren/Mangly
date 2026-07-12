@@ -1,8 +1,6 @@
 package com.eren76.mangly.composables.shared.dialogs
 
-import android.content.Context
 import android.net.Uri
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,17 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.eren76.mangly.BackupImportManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 
 @Composable
 fun BackupImportConfirmDialog(
-    context: Context,
-    coroutineScope: CoroutineScope,
-    backupImportManager: BackupImportManager,
     pendingImportUri: Uri?,
     onDismiss: () -> Unit,
-    onStartBackupConflictResolution: (token: String, conflicts: List<BackupImportManager.ExtensionZipConflict>) -> Unit,
+    onConfirm: (Uri) -> Unit,
 ) {
     pendingImportUri?.let { uri ->
         ConfirmDialog(
@@ -47,29 +40,7 @@ fun BackupImportConfirmDialog(
             confirmColor = MaterialTheme.colorScheme.error,
             onDismiss = onDismiss,
             onConfirm = {
-                onDismiss()
-                coroutineScope.launch {
-                    try {
-                        val result = backupImportManager.startImport(inputUri = uri)
-                        when (result) {
-                            is BackupImportManager.StartImportResult.Ready -> {
-                                backupImportManager.continueImport(token = result.token)
-
-                            }
-
-                            is BackupImportManager.StartImportResult.NeedsExtensionConflictResolution -> {
-                                onStartBackupConflictResolution(result.token, result.conflicts)
-                            }
-                        }
-
-                    } catch (e: Exception) {
-                        Toast.makeText(
-                            context,
-                            "Failed to import backup: " + (e.message ?: "Unknown error"),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                }
+                onConfirm(uri)
             }
         )
     }
@@ -77,13 +48,13 @@ fun BackupImportConfirmDialog(
 
 @Composable
 fun BackupExtensionConflictResolutionDialog(
-    context: Context,
-    coroutineScope: CoroutineScope,
-    backupImportManager: BackupImportManager,
     token: String?,
     conflicts: List<BackupImportManager.ExtensionZipConflict>,
     selections: Map<String, BackupImportManager.ConflictResolution>,
     onSelectionsChanged: (Map<String, BackupImportManager.ConflictResolution>) -> Unit,
+    onOverwriteAll: () -> Unit,
+    onSkipAll: () -> Unit,
+    onContinue: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     if (token == null || conflicts.isEmpty()) return
@@ -191,49 +162,11 @@ fun BackupExtensionConflictResolutionDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     TextButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                try {
-                                    backupImportManager.continueImport(
-                                        token = token,
-                                        overwriteAllConflicts = true,
-                                    )
-
-                                } catch (e: Exception) {
-                                    Toast.makeText(
-                                        context,
-                                        "Failed to import backup: " + (e.message
-                                            ?: "Unknown error"),
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                } finally {
-                                    onDismiss()
-                                }
-                            }
-                        }
+                        onClick = onOverwriteAll
                     ) { Text("Overwrite all") }
 
                     TextButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                try {
-                                    backupImportManager.continueImport(
-                                        token = token,
-                                        skipAllConflicts = true,
-                                    )
-
-                                } catch (e: Exception) {
-                                    Toast.makeText(
-                                        context,
-                                        "Failed to import backup: " + (e.message
-                                            ?: "Unknown error"),
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                } finally {
-                                    onDismiss()
-                                }
-                            }
-                        }
+                        onClick = onSkipAll
                     ) { Text("Skip all") }
                 }
 
@@ -243,26 +176,7 @@ fun BackupExtensionConflictResolutionDialog(
                     TextButton(onClick = onDismiss) { Text("Cancel") }
                     Spacer(Modifier.width(8.dp))
                     TextButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                try {
-                                    backupImportManager.continueImport(
-                                        token = token,
-                                        conflictResolutions = selections,
-                                    )
-
-                                } catch (e: Exception) {
-                                    Toast.makeText(
-                                        context,
-                                        "Failed to import backup: " + (e.message
-                                            ?: "Unknown error"),
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                } finally {
-                                    onDismiss()
-                                }
-                            }
-                        }
+                        onClick = onContinue
                     ) { Text("Continue") }
                 }
             }
