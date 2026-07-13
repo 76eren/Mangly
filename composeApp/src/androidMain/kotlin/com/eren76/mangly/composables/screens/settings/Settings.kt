@@ -25,16 +25,18 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.navigation.NavHostController
 import com.eren76.mangly.Constants
+import com.eren76.mangly.composables.shared.dialogs.AppInfoDialog
 import com.eren76.mangly.composables.shared.dialogs.BackupExtensionConflictResolutionDialog
 import com.eren76.mangly.composables.shared.dialogs.BackupImportConfirmDialog
+import com.eren76.mangly.viewmodels.BackupSettingsViewModel
 
 @Composable
 fun Settings(
-    navController: NavHostController
+    navController: NavHostController,
+    backupSettingsViewModel: BackupSettingsViewModel,
 ) {
     val scrollState = rememberScrollState()
     val context = LocalContext.current
-    val backupSettingsState = rememberBackupSettingsState()
 
     val downloadsPrefs = remember {
         context.getSharedPreferences(
@@ -46,7 +48,7 @@ fun Settings(
     val importBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri ->
-            backupSettingsState.selectImportBackup(uri)
+            backupSettingsViewModel.selectImportBackup(uri)
         }
     )
 
@@ -55,6 +57,8 @@ fun Settings(
             downloadsPrefs.getBoolean(Constants.MANGLY_ENBALE_DOWNLOADS, false)
         )
     }
+
+    val isInfoDialogVisible = remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -81,40 +85,51 @@ fun Settings(
                 downloadsPrefs.edit { putBoolean(Constants.MANGLY_ENBALE_DOWNLOADS, it) }
             }
         )
-        
+
         BackupSettingsSection(
-            onExportRequested = backupSettingsState::exportBackup,
+            isExportRunning = backupSettingsViewModel.isExportRunning,
+            isImportRunning = backupSettingsViewModel.isImportRunning,
+            onExportRequested = backupSettingsViewModel::exportBackup,
             onImportRequested = {
                 importBackupLauncher.launch(arrayOf("*/*"))
             }
         )
+
+        SettingsDivider()
+
+        AboutSettingsSection(
+            onInfoClicked = { isInfoDialogVisible.value = true }
+        )
     }
 
-    SettingsBackupDialogs(backupSettingsState)
+    AppInfoDialog(
+        isEnabled = isInfoDialogVisible.value,
+        onDismiss = { isInfoDialogVisible.value = false },
+    )
+
+    SettingsBackupDialogs(backupSettingsViewModel)
 }
+
 
 @Composable
 private fun SettingsBackupDialogs(
-    backupSettingsState: SettingsBackupState,
+    viewModel: BackupSettingsViewModel,
 ) {
     BackupImportConfirmDialog(
-        context = backupSettingsState.context,
-        coroutineScope = backupSettingsState.coroutineScope,
-        backupImportManager = backupSettingsState.backupImportManager,
-        pendingImportUri = backupSettingsState.pendingImportUri,
-        onDismiss = backupSettingsState::dismissImportConfirmation,
-        onStartBackupConflictResolution = backupSettingsState::startConflictResolution,
+        pendingImportUri = viewModel.pendingImportUri,
+        onDismiss = viewModel::dismissImportConfirmation,
+        onConfirm = viewModel::startImport,
     )
 
     BackupExtensionConflictResolutionDialog(
-        context = backupSettingsState.context,
-        coroutineScope = backupSettingsState.coroutineScope,
-        backupImportManager = backupSettingsState.backupImportManager,
-        token = backupSettingsState.pendingImportToken,
-        conflicts = backupSettingsState.pendingExtensionConflicts,
-        selections = backupSettingsState.extensionConflictSelections,
-        onSelectionsChanged = backupSettingsState::updateExtensionConflictSelections,
-        onDismiss = backupSettingsState::dismissConflictResolution,
+        token = viewModel.pendingImportToken,
+        conflicts = viewModel.pendingExtensionConflicts,
+        selections = viewModel.extensionConflictSelections,
+        onSelectionsChanged = viewModel::updateExtensionConflictSelections,
+        onOverwriteAll = viewModel::overwriteAllConflicts,
+        onSkipAll = viewModel::skipAllConflicts,
+        onContinue = viewModel::continueWithSelectedConflicts,
+        onDismiss = viewModel::cancelConflictResolution,
     )
 }
 

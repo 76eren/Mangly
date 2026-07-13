@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun BackupSettingsSection(
+    isExportRunning: Boolean,
+    isImportRunning: Boolean,
     onExportRequested: (Uri) -> Unit,
     onImportRequested: () -> Unit,
 ) {
@@ -31,16 +33,22 @@ internal fun BackupSettingsSection(
     )
 
     BackupExportSetting(
+        isExportRunning = isExportRunning,
+        isImportRunning = isImportRunning,
         onExportRequested = onExportRequested
     )
 
     BackupImportSetting(
+        isExportRunning = isExportRunning,
+        isImportRunning = isImportRunning,
         onImportRequested = onImportRequested
     )
 }
 
 @Composable
 private fun BackupExportSetting(
+    isExportRunning: Boolean,
+    isImportRunning: Boolean,
     onExportRequested: (Uri) -> Unit,
 ) {
     val createBackupLauncher = rememberLauncherForActivityResult(
@@ -86,9 +94,10 @@ private fun BackupExportSetting(
                     val suggestedName = "mangly_${System.currentTimeMillis()}.manglybackup"
                     createBackupLauncher.launch(suggestedName)
                 },
+                enabled = !isExportRunning && !isImportRunning,
                 modifier = Modifier.padding(start = 8.dp)
             ) {
-                Text("Export")
+                Text(if (isExportRunning) "Exporting..." else "Export")
             }
         }
     }
@@ -96,6 +105,8 @@ private fun BackupExportSetting(
 
 @Composable
 private fun BackupImportSetting(
+    isExportRunning: Boolean,
+    isImportRunning: Boolean,
     onImportRequested: () -> Unit,
 ) {
     ElevatedCard(
@@ -131,9 +142,10 @@ private fun BackupImportSetting(
 
             FilledTonalButton(
                 onClick = onImportRequested,
+                enabled = !isImportRunning && !isExportRunning,
                 modifier = Modifier.padding(start = 8.dp)
             ) {
-                Text("Import")
+                Text(if (isImportRunning) "Importing..." else "Import")
             }
         }
     }

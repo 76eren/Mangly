@@ -16,6 +16,7 @@ import com.eren76.mangly.composables.screens.read.Read
 import com.eren76.mangly.composables.screens.search.Search
 import com.eren76.mangly.composables.screens.settings.Settings
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
+import com.eren76.mangly.viewmodels.BackupSettingsViewModel
 import com.eren76.mangly.viewmodels.DownloadsViewModel
 import com.eren76.mangly.viewmodels.ExtensionDetailsViewModel
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
@@ -37,7 +38,8 @@ fun NavHostContainer(
     chaptersListViewModel: ChaptersListViewModel,
     favoritesViewModel: FavoritesViewModel,
     historyViewModel: HistoryViewModel,
-    downloadsViewModel: DownloadsViewModel
+    downloadsViewModel: DownloadsViewModel,
+    backupSettingsViewModel: BackupSettingsViewModel,
 
 ) {
 
@@ -93,7 +95,8 @@ fun NavHostContainer(
                 searchViewModel.clearSearchResults()
                 chaptersListViewModel.clear()
                 Settings(
-                    navController = navController
+                    navController = navController,
+                    backupSettingsViewModel = backupSettingsViewModel,
                 )
             }
 
