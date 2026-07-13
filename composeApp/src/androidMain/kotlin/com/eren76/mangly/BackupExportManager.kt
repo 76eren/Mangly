@@ -68,7 +68,6 @@ class BackupExportManager @Inject constructor(
         outputUri: Uri,
         databaseName: String = "app_database",
     ) = withContext(Dispatchers.IO) {
-
         val resolver = context.contentResolver
 
         resolver.openOutputStream(outputUri, "wt")
@@ -77,7 +76,7 @@ class BackupExportManager @Inject constructor(
 
                 ZipOutputStream(fileOutput).use { zos ->
 
-                    zos.setLevel(Deflater.BEST_COMPRESSION)
+                    zos.setLevel(Deflater.DEFAULT_COMPRESSION)
 
                     val contentHashes = mutableListOf<String>()
                     val databaseHashes = linkedMapOf<String, String>()

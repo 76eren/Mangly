@@ -49,19 +49,23 @@ class BackupSettingsViewModel @Inject constructor(
     var isImportRunning by mutableStateOf(false)
         private set
 
+    var isExportRunning by mutableStateOf(false)
+        private set
+
     fun exportBackup(uri: Uri) {
+        if (isExportRunning || isImportRunning) return
+
+        isExportRunning = true
         viewModelScope.launch {
-            Log.i(TAG, "Starting backup export")
             try {
                 backupExportManager.export(outputUri = uri)
-                Log.i(TAG, "Backup export completed")
                 showToast("Backup exported")
             } catch (error: CancellationException) {
-                Log.i(TAG, "Backup export cancelled")
                 throw error
             } catch (error: Exception) {
-                Log.e(TAG, "Backup export failed", error)
                 showToast("Failed to export backup: ${error.userMessage()}")
+            } finally {
+                isExportRunning = false
             }
         }
     }
@@ -83,7 +87,7 @@ class BackupSettingsViewModel @Inject constructor(
     }
 
     fun startImport(uri: Uri) {
-        if (isImportRunning) return
+        if (isImportRunning || isExportRunning) return
 
         pendingImportUri = null
         isImportRunning = true

@@ -84,6 +84,7 @@ fun Settings(
         )
         
         BackupSettingsSection(
+            isExportRunning = backupSettingsViewModel.isExportRunning,
             isImportRunning = backupSettingsViewModel.isImportRunning,
             onExportRequested = backupSettingsViewModel::exportBackup,
             onImportRequested = {
