@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.navigation.NavHostController
 import com.eren76.mangly.Constants
+import com.eren76.mangly.composables.shared.dialogs.AppInfoDialog
 import com.eren76.mangly.composables.shared.dialogs.BackupExtensionConflictResolutionDialog
 import com.eren76.mangly.composables.shared.dialogs.BackupImportConfirmDialog
 import com.eren76.mangly.viewmodels.BackupSettingsViewModel
@@ -57,6 +58,8 @@ fun Settings(
         )
     }
 
+    val isInfoDialogVisible = remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -82,7 +85,7 @@ fun Settings(
                 downloadsPrefs.edit { putBoolean(Constants.MANGLY_ENBALE_DOWNLOADS, it) }
             }
         )
-        
+
         BackupSettingsSection(
             isExportRunning = backupSettingsViewModel.isExportRunning,
             isImportRunning = backupSettingsViewModel.isImportRunning,
@@ -91,10 +94,22 @@ fun Settings(
                 importBackupLauncher.launch(arrayOf("*/*"))
             }
         )
+
+        SettingsDivider()
+
+        AboutSettingsSection(
+            onInfoClicked = { isInfoDialogVisible.value = true }
+        )
     }
+
+    AppInfoDialog(
+        isEnabled = isInfoDialogVisible.value,
+        onDismiss = { isInfoDialogVisible.value = false },
+    )
 
     SettingsBackupDialogs(backupSettingsViewModel)
 }
+
 
 @Composable
 private fun SettingsBackupDialogs(

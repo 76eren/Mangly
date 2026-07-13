@@ -54,6 +54,10 @@ android {
     namespace = "com.eren76.mangly"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.eren76.mangly"
         minSdk = libs.versions.android.minSdk.get().toInt()
