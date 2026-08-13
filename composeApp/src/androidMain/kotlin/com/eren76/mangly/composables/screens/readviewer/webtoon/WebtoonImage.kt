@@ -3,8 +3,6 @@ package com.eren76.mangly.composables.screens.readviewer.webtoon
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -48,8 +46,7 @@ fun WebtoonImage(
     page: ReaderPage,
     index: Int,
     totalImages: Int,
-    onTap: () -> Unit,
-    onLongPress: () -> Unit
+    onRetry: () -> Unit
 ) {
     val density = LocalDensity.current
     val cachedHeight = remember(page.url) { ImageHeightCache.getHeight(page.url) }
@@ -110,12 +107,6 @@ fun WebtoonImage(
 
     PageContent(
         modifier = modifier
-            .combinedClickable(
-                onClick = onTap,
-                onLongClick = onLongPress,
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            )
             .onGloballyPositioned { coordinates ->
                 val heightDp = with(density) { coordinates.size.height.toDp() }
                 if (heightDp > 0.dp) {
@@ -127,6 +118,7 @@ fun WebtoonImage(
         index = index,
         minHeight = cachedHeight ?: 200.dp,
         totalImages = totalImages,
+        onRetry = onRetry
     )
 }
 
@@ -138,6 +130,7 @@ private fun PageContent(
     index: Int,
     minHeight: Dp,
     totalImages: Int,
+    onRetry: () -> Unit
 ) {
     when (state) {
         is ReaderPageState.Loading -> {
@@ -145,14 +138,14 @@ private fun PageContent(
         }
 
         is ReaderPageState.Error -> {
-            ImageLoadingErrorComposable(index = index)
+            ImageLoadingErrorComposable(index = index, onRetry = onRetry)
         }
 
         is ReaderPageState.Success -> {
             when {
                 tiles == null -> ImageLoadingComposable(index = index, minHeight = minHeight)
 
-                tiles.isEmpty() -> ImageLoadingErrorComposable(index = index)
+                tiles.isEmpty() -> ImageLoadingErrorComposable(index = index, onRetry = onRetry)
 
                 // Single tile – common case, same as before.
                 tiles.size == 1 -> Image(

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -17,13 +18,12 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import coil3.network.NetworkHeaders
 import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.readviewer.ReaderMode
 import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
@@ -32,9 +32,11 @@ import com.eren76.mangly.composables.screens.readviewer.ReaderPageState
 import com.eren76.mangly.composables.shared.read.LongPressImageMenu
 import com.eren76.mangly.composables.shared.read.ReadBottomControls
 import com.eren76.mangly.composables.shared.read.ReadTopControls
+import com.eren76.mangly.composables.shared.read.readerGestures
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
 import com.eren76.manglyextension.plugins.Source
-import kotlinx.coroutines.launch
+
+private const val HEADER_ITEM_COUNT = 1
 
 object WebtoonReaderMode : ReaderMode {
     override val name: String = "Webtoon"
@@ -44,18 +46,18 @@ object WebtoonReaderMode : ReaderMode {
         pages: List<ReaderPage>,
         headers: List<Source.Header>,
         modifier: Modifier,
+        onRetryPage: (Int) -> Unit,
         onPreviousChapter: () -> Unit,
         onNextChapter: () -> Unit,
         chaptersListViewModel: ChaptersListViewModel
     ) {
-
-        var showControls by remember { mutableStateOf(false) }
-        var showLongPressMenu by remember { mutableStateOf(false) }
-        var selectedLongPressImageUrl by remember(pages) { mutableStateOf<String?>(null) }
-        var selectedLongPressImageBytes by remember(pages) { mutableStateOf<ByteArray?>(null) }
-        val context = LocalContext.current
-        val coroutineScope = rememberCoroutineScope()
-
+        var showControls: Boolean by remember { mutableStateOf(false) }
+        var selectedLongPressImageBytes: ByteArray? by remember(pages) {
+            mutableStateOf<ByteArray?>(
+                null
+            )
+        }
+        val context: Context = LocalContext.current
 
         val sharedPreferences: SharedPreferences = context.getSharedPreferences(
             Constants.READING_SETTING_KEY,
@@ -63,37 +65,69 @@ object WebtoonReaderMode : ReaderMode {
         )
 
         val lazyListState = rememberLazyListState()
+        val zoomState = remember { WebtoonZoomState() }
 
-        remember(headers) {
-            NetworkHeaders.Builder().apply {
-                for (header in headers) {
-                    this[header.name] = header.value
-                }
-            }.build()
+        val lastPageIndex = pages.lastIndex.coerceAtLeast(0)
+        val currentPageIndex: Int by remember(lazyListState, lastPageIndex) {
+            derivedStateOf {
+                (lazyListState.firstVisibleItemIndex - HEADER_ITEM_COUNT)
+                    .coerceIn(0, lastPageIndex)
+            }
         }
 
-
-        val currentPage by remember {
-            derivedStateOf {
-                val firstVisibleItem = lazyListState.firstVisibleItemIndex
-
-                // Account for header item
-                if (firstVisibleItem > 0) firstVisibleItem else 1
+        fun requestPage(pageIndex: Int) {
+            if (pageIndex !in pages.indices) {
+                return
             }
+
+            lazyListState.requestScrollToItem(pageIndex + HEADER_ITEM_COUNT)
         }
 
         // Reset scroll position when images change (new chapter)
         LaunchedEffect(pages) {
             ImageHeightCache.clear()
+            zoomState.reset()
             lazyListState.scrollToItem(0)
+        }
+
+        fun showLongPressMenuAt(position: Offset) {
+            val imageSavingDisabled: Boolean = sharedPreferences.getBoolean(
+                ReaderModePrefs.DISABLE_IMAGE_SAVING_ON_HOLD_SETTING_KEY,
+                false
+            )
+            if (imageSavingDisabled) {
+                return
+            }
+
+            val contentPosition = zoomState.viewportToContent(position)
+            val pressedItem: LazyListItemInfo =
+                lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { item ->
+                    contentPosition.y >= item.offset &&
+                            contentPosition.y < item.offset + item.size
+                } ?: return
+            val page: ReaderPage = pages.getOrNull(pressedItem.index - 1) ?: return
+
+            selectedLongPressImageBytes =
+                (page.state as? ReaderPageState.Success)?.bytes
+            showControls = false
         }
 
         Box(
             modifier = modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
+                .readerGestures(
+                    onSideTap = {
+                        showControls = !showControls
+                        selectedLongPressImageBytes = null
+                    },
+                    onCenterDoubleTap = zoomState::toggleZoomAt,
+                    onLongPress = ::showLongPressMenuAt,
+                    isSideTapEnabled = { !lazyListState.isScrollInProgress }
+                )
         ) {
             ZoomableReaderContainer(
+                zoomState = zoomState,
                 modifier = Modifier.fillMaxSize()
             ) {
                 LazyColumn(
@@ -126,26 +160,7 @@ object WebtoonReaderMode : ReaderMode {
                             page = page,
                             index = index,
                             totalImages = pages.size,
-                            onTap = {
-                                showControls = !showControls
-                                showLongPressMenu = false
-                            },
-                            onLongPress = {
-                                if (!sharedPreferences.getBoolean(
-                                        ReaderModePrefs.DISABLE_IMAGE_SAVING_ON_HOLD_SETTING_KEY,
-                                        false
-                                    )
-                                ) {
-                                    // Freeze the selection at the time of long-press.
-                                    // Using index later can point to a different item if the list
-                                    // changes or if recomposition reorders/reuses slots.
-                                    selectedLongPressImageUrl = page.url
-                                    selectedLongPressImageBytes =
-                                        (page.state as? ReaderPageState.Success)?.bytes
-                                    showLongPressMenu = true
-                                    showControls = false
-                                }
-                            }
+                            onRetry = { onRetryPage(index) }
                         )
                     }
 
@@ -158,49 +173,33 @@ object WebtoonReaderMode : ReaderMode {
                         )
                     }
                 }
+            }
 
-                // Overlay controls (now also zoomed with everything else)
-                if (showControls) {
-                    ReadTopControls(
-                        currentPage = currentPage,
-                        totalPages = pages.size,
-                        chapterTitle = chaptersListViewModel.getSelectedChapterNumber(),
-                        onPreviousChapter = onPreviousChapter,
-                        modifier = Modifier.align(Alignment.TopCenter)
-                    )
+            if (showControls) {
+                ReadTopControls(
+                    currentPage = currentPageIndex + 1,
+                    totalPages = pages.size,
+                    chapterTitle = chaptersListViewModel.getSelectedChapterNumber(),
+                    onPreviousChapter = onPreviousChapter,
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
 
-                    ReadBottomControls(
-                        onNextChapter = onNextChapter,
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                        currentPage = currentPage,
-                        totalPages = pages.size,
-                        onGoToPage = { page ->
-                            coroutineScope.launch {
-                                lazyListState.scrollToItem(page)
-                            }
-                        }
+                ReadBottomControls(
+                    onNextChapter = onNextChapter,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    currentPage = currentPageIndex,
+                    totalPages = pages.size,
+                    onPageSelected = ::requestPage,
+                    onPagePreview = ::requestPage
+                )
+            }
 
-                    )
-                }
-
-                selectedLongPressImageUrl
-                    ?.takeIf { showLongPressMenu }
-                    ?.let { imageUrl ->
-                        val bytes = selectedLongPressImageBytes
-                        if (bytes != null) {
-                            LongPressImageMenu(
-                                imageBytes = bytes,
-                                onDismiss = {
-                                    showLongPressMenu = false
-                                    selectedLongPressImageUrl = null
-                                    selectedLongPressImageBytes = null
-                                }
-                            )
-                        }
-                    }
+            selectedLongPressImageBytes?.let { bytes ->
+                LongPressImageMenu(
+                    imageBytes = bytes,
+                    onDismiss = { selectedLongPressImageBytes = null }
+                )
             }
         }
-
     }
 }
-

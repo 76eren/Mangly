@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 
 @Composable
 fun ReadTopControls(
@@ -77,11 +78,11 @@ fun ReadBottomControls(
     onNextChapter: () -> Unit,
     currentPage: Int,
     totalPages: Int,
-    onGoToPage: (Int) -> Unit,
+    onPageSelected: (Int) -> Unit,
+    onPagePreview: (Int) -> Unit = {},
+    isPageSliderEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    var sliderPosition by remember(currentPage) { mutableFloatStateOf(currentPage.toFloat()) }
-
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -90,39 +91,13 @@ fun ReadBottomControls(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (totalPages > 1) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "1",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Slider(
-                    value = sliderPosition,
-                    onValueChange = { sliderPosition = it },
-                    onValueChangeFinished = {
-                        onGoToPage(sliderPosition.toInt())
-                    },
-                    valueRange = 0f..(totalPages - 1).toFloat(),
-                    steps = if (totalPages > 2) totalPages - 2 else 0,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp),
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                    )
-                )
-                Text(
-                    text = "$totalPages",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
+            ReaderPageSlider(
+                currentPage = currentPage,
+                totalPages = totalPages,
+                enabled = isPageSliderEnabled,
+                onPageSelected = onPageSelected,
+                onPagePreview = onPagePreview
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
         }
@@ -139,4 +114,63 @@ fun ReadBottomControls(
             )
         }
     }
+}
+
+@Composable
+private fun ReaderPageSlider(
+    currentPage: Int,
+    totalPages: Int,
+    enabled: Boolean,
+    onPageSelected: (Int) -> Unit,
+    onPagePreview: (Int) -> Unit
+) {
+    var sliderPosition by remember(currentPage) {
+        mutableFloatStateOf(currentPage.toFloat())
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        PageSliderLabel(text = "1")
+
+        Slider(
+            value = sliderPosition,
+            enabled = enabled,
+            onValueChange = { newPosition ->
+                val previousPage = sliderPosition.roundToInt()
+                val previewPage = newPosition.roundToInt()
+
+                sliderPosition = newPosition
+                if (previewPage != previousPage) {
+                    onPagePreview(previewPage)
+                }
+            },
+            onValueChangeFinished = {
+                onPageSelected(sliderPosition.roundToInt())
+            },
+            valueRange = 0f..(totalPages - 1).toFloat(),
+            steps = (totalPages - 2).coerceAtLeast(0),
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp),
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+            )
+        )
+
+        PageSliderLabel(text = totalPages.toString())
+    }
+}
+
+@Composable
+private fun PageSliderLabel(text: String) {
+    Text(
+        text = text,
+        color = MaterialTheme.colorScheme.onSurface,
+        style = MaterialTheme.typography.bodySmall
+    )
 }

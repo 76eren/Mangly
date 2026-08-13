@@ -27,6 +27,7 @@ interface ReaderMode {
         pages: List<ReaderPage>,
         headers: List<Source.Header>,
         modifier: Modifier,
+        onRetryPage: (Int) -> Unit,
         onPreviousChapter: () -> Unit,
         onNextChapter: () -> Unit,
         chaptersListViewModel: ChaptersListViewModel
@@ -45,13 +46,15 @@ object ReaderModePrefs {
 
 enum class ReaderModeType(val prefValue: String, val displayName: String) {
     WEBTOON("webtoon", "Webtoon"),
-    PAGED("paged", "Paged");
+    PAGED("paged", "Paged"),
+    REVERSE_PAGED("reverse_paged", "Reverse paged");
 }
 
 fun getReaderModeTypeFromPref(value: String?): ReaderModeType {
     return when (value) {
         ReaderModeType.WEBTOON.prefValue -> ReaderModeType.WEBTOON
         ReaderModeType.PAGED.prefValue -> ReaderModeType.PAGED
+        ReaderModeType.REVERSE_PAGED.prefValue -> ReaderModeType.REVERSE_PAGED
         else -> ReaderModeType.WEBTOON
     }
 }
@@ -59,6 +62,7 @@ fun getReaderModeTypeFromPref(value: String?): ReaderModeType {
 fun createReaderMode(type: ReaderModeType): ReaderMode {
     return when (type) {
         ReaderModeType.WEBTOON -> WebtoonReaderMode
-        ReaderModeType.PAGED -> PagedReaderMode
+        ReaderModeType.PAGED,
+        ReaderModeType.REVERSE_PAGED -> PagedReaderMode(type)
     }
 }

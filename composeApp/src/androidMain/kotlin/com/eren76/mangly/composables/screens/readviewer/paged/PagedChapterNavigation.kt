@@ -28,7 +28,8 @@ import com.eren76.mangly.viewmodels.ChaptersListViewModel
 fun PagedChapterNavigation(
     onPreviousChapter: () -> Unit,
     onNextChapter: () -> Unit,
-    chaptersListViewModel: ChaptersListViewModel
+    chaptersListViewModel: ChaptersListViewModel,
+    reverseLayout: Boolean
 ) {
     Column(
         modifier = Modifier
@@ -82,7 +83,11 @@ fun PagedChapterNavigation(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Swipe left or tap right to go to the next chapter",
+            text = if (reverseLayout) {
+                "Swipe right or tap left to continue"
+            } else {
+                "Swipe left or tap right to continue"
+            },
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
             style = MaterialTheme.typography.bodySmall
         )
