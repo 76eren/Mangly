@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -28,6 +29,7 @@ import com.eren76.mangly.composables.screens.readviewer.ReaderPage
 import com.eren76.mangly.composables.screens.readviewer.ReaderPageState
 import com.eren76.mangly.composables.screens.readviewer.createReaderMode
 import com.eren76.mangly.composables.screens.readviewer.getReaderModeTypeFromPref
+import com.eren76.mangly.composables.screens.readviewer.loadReaderPage
 import com.eren76.mangly.composables.screens.readviewer.loadReaderPagesIncrementally
 import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
@@ -38,6 +40,7 @@ import com.eren76.mangly.viewmodels.HistoryViewModel
 import com.eren76.manglyextension.plugins.ExtensionMetadata
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
@@ -90,6 +93,15 @@ fun Read(
     }
 
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val imageLoader = remember(context) { ImageLoader(context) }
+    val networkHeaders = remember(chapterImages?.headers) {
+        NetworkHeaders.Builder().apply {
+            chapterImages?.headers.orEmpty().forEach { header ->
+                this[header.name] = header.value
+            }
+        }.build()
+    }
     val prefs = remember {
         context.getSharedPreferences(
             Constants.READING_SETTING_KEY,
@@ -139,18 +151,11 @@ fun Read(
             ReaderPage(index = index, url = imageUrl)
         })
 
-        val headers = NetworkHeaders.Builder().apply {
-            for (header in chapterImages?.headers.orEmpty()) {
-                this[header.name] = header.value
-            }
-        }.build()
-
-        val imageLoader = ImageLoader(context)
         loadReaderPagesIncrementally(
             context = context,
             imageLoader = imageLoader,
             pages = pages,
-            headers = headers
+            headers = networkHeaders
         )
     }
 
@@ -220,6 +225,36 @@ fun Read(
     }
     val isLoading = isLoadingChapter || (hasImageUrls && pages.isEmpty())
 
+    fun retryPage(pageIndex: Int) {
+        val page: ReaderPage = pages.getOrNull(pageIndex) ?: return
+        if (page.state is ReaderPageState.Loading) return
+
+        coroutineScope.launch {
+            if (download) {
+                pages[pageIndex] = page.copy(state = ReaderPageState.Loading)
+                val bytes = withContext(Dispatchers.IO) {
+                    runCatching { File(page.url).readBytes() }.getOrNull()
+                }
+                val currentPage = pages.getOrNull(pageIndex) ?: return@launch
+                if (currentPage.url == page.url) {
+                    pages[pageIndex] = currentPage.copy(
+                        state = bytes
+                            ?.let(ReaderPageState::Success)
+                            ?: ReaderPageState.Error()
+                    )
+                }
+            } else {
+                loadReaderPage(
+                    context = context,
+                    imageLoader = imageLoader,
+                    pages = pages,
+                    pageIndex = pageIndex,
+                    headers = networkHeaders
+                )
+            }
+        }
+    }
+
     if (isLoading) {
         ReadLoadingSkeleton()
     } else if (chapterImageError != null) {
@@ -235,6 +270,7 @@ fun Read(
             modifier = Modifier
                 .fillMaxSize()
                 .zIndex(1000f),
+            onRetryPage = ::retryPage,
             onNextChapter = {
                 val chapters = chaptersListViewModel.getChapters()
                 val currentIndex = chapters.indexOfFirst { it.url == url }

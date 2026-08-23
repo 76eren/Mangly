@@ -1,6 +1,7 @@
 package com.eren76.mangly.composables.shared.image
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,12 +15,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun ImageLoadingErrorComposable(index: Int, errorMessage: String = "Failed to load image") {
+fun ImageLoadingErrorComposable(
+    index: Int,
+    errorMessage: String = "Failed to load image",
+    onRetry: (() -> Unit)? = null
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(200.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .then(
+                if (onRetry == null) Modifier else Modifier.clickable(onClick = onRetry)
+            ),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -36,6 +44,13 @@ fun ImageLoadingErrorComposable(index: Int, errorMessage: String = "Failed to lo
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall
             )
+            if (onRetry != null) {
+                Text(
+                    text = "Tap to retry",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
     }
 }

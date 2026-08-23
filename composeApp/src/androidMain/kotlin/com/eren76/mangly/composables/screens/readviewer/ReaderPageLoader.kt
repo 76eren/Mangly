@@ -8,7 +8,6 @@ import coil3.network.httpHeaders
 import coil3.request.CachePolicy
 import coil3.request.ErrorResult
 import coil3.request.ImageRequest
-import coil3.request.ImageResult
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.request.bitmapConfig
@@ -23,6 +22,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import kotlinx.coroutines.CancellationException
 
 suspend fun loadReaderPagesIncrementally(
     context: Context,
@@ -33,60 +33,67 @@ suspend fun loadReaderPagesIncrementally(
     val maxConcurrency: Int = 4 // TODO: Make this user-configurable
     val semaphore = Semaphore(maxConcurrency)
 
-    pages.mapIndexed { index, page ->
+    pages.indices.map { index ->
         async {
             semaphore.withPermit {
                 if (pages.getOrNull(index)?.state is ReaderPageState.Success) return@withPermit
-
-                try {
-                    val request = ImageRequest.Builder(context)
-                        .data(page.url)
-                        .httpHeaders(headers)
-                        .crossfade(false)
-                        .memoryCachePolicy(CachePolicy.ENABLED)
-                        .diskCachePolicy(CachePolicy.ENABLED)
-                        .bitmapConfig(Bitmap.Config.ARGB_8888)
-                        .allowHardware(false)
-                        .size(Size.ORIGINAL)
-                        .build()
-
-                    val result: ImageResult = withContext(Dispatchers.IO) {
-                        imageLoader.execute(request)
-                    }
-
-                    when (result) {
-                        is SuccessResult -> {
-                            val rawBytes: ByteArray? = withContext(Dispatchers.IO) {
-                                result.diskCacheKey?.let { key ->
-                                    imageLoader.diskCache?.openSnapshot(key)?.use { snapshot ->
-                                        runCatching {
-                                            snapshot.data.toFile().readBytes()
-                                        }.getOrNull()
-                                    }
-                                }
-                            }
-
-                            // fallback to decoding the bitmap and re-encoding it if we can't get the raw bytes from the disk cache
-                            val bytes = rawBytes ?: withContext(Dispatchers.IO) {
-                                val bitmap = result.image.toBitmap()
-                                ByteArrayOutputStream().use { baos ->
-                                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
-                                    baos.toByteArray()
-                                }
-                            }
-
-                            pages[index] = page.copy(state = ReaderPageState.Success(bytes))
-                        }
-
-                        is ErrorResult -> {
-                            pages[index] =
-                                page.copy(state = ReaderPageState.Error(result.throwable))
-                        }
-                    }
-                } catch (t: Throwable) {
-                    pages[index] = page.copy(state = ReaderPageState.Error(t))
-                }
+                loadReaderPage(context, imageLoader, pages, index, headers)
             }
         }
     }.awaitAll()
+}
+
+suspend fun loadReaderPage(
+    context: Context,
+    imageLoader: ImageLoader,
+    pages: MutableList<ReaderPage>,
+    pageIndex: Int,
+    headers: NetworkHeaders
+) {
+    val page = pages.getOrNull(pageIndex) ?: return
+    pages[pageIndex] = page.copy(state = ReaderPageState.Loading)
+
+    val state = try {
+        val request = ImageRequest.Builder(context)
+            .data(page.url)
+            .httpHeaders(headers)
+            .crossfade(false)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .bitmapConfig(Bitmap.Config.ARGB_8888)
+            .allowHardware(false)
+            .size(Size.ORIGINAL)
+            .build()
+
+        when (val result = withContext(Dispatchers.IO) { imageLoader.execute(request) }) {
+            is SuccessResult -> ReaderPageState.Success(result.readBytes(imageLoader))
+            is ErrorResult -> ReaderPageState.Error(result.throwable)
+        }
+    } catch (throwable: Throwable) {
+        if (throwable is CancellationException) throw throwable
+        ReaderPageState.Error(throwable)
+    }
+
+    val currentPage = pages.getOrNull(pageIndex) ?: return
+    if (currentPage.url == page.url) {
+        pages[pageIndex] = currentPage.copy(state = state)
+    }
+}
+
+private suspend fun SuccessResult.readBytes(imageLoader: ImageLoader): ByteArray {
+    val rawBytes = withContext(Dispatchers.IO) {
+        diskCacheKey?.let { key ->
+            imageLoader.diskCache?.openSnapshot(key)?.use { snapshot ->
+                runCatching { snapshot.data.toFile().readBytes() }.getOrNull()
+            }
+        }
+    }
+    if (rawBytes != null) return rawBytes
+
+    return withContext(Dispatchers.IO) {
+        ByteArrayOutputStream().use { output ->
+            image.toBitmap().compress(Bitmap.CompressFormat.PNG, 100, output)
+            output.toByteArray()
+        }
+    }
 }

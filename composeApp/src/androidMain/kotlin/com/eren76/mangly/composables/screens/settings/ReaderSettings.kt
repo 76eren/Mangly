@@ -9,9 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,10 +24,15 @@ import androidx.core.content.edit
 import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.readviewer.ReaderModePrefs
 import com.eren76.mangly.composables.screens.readviewer.ReaderModeType
+import com.eren76.mangly.composables.screens.readviewer.getReaderModeTypeFromPref
 
 @Composable
 internal fun ReaderSettingsSection() {
     ReadViewerSettings()
+
+    SettingsDivider()
+
+    SettingDisableDoubleTapZoom()
 
     SettingsDivider()
 
@@ -47,37 +49,91 @@ private fun ReadViewerSettings() {
         )
     }
 
-    var selectedMode by remember {
+    var selectedMode: ReaderModeType by remember {
         mutableStateOf(
-            prefs.getString(
-                ReaderModePrefs.KEY_READER_MODE,
-                ReaderModePrefs.DEFAULT_READER_MODE_VALUE
-            ) ?: ReaderModePrefs.DEFAULT_READER_MODE_VALUE
+            getReaderModeTypeFromPref(
+                prefs.getString(
+                    ReaderModePrefs.KEY_READER_MODE,
+                    ReaderModePrefs.DEFAULT_READER_MODE_VALUE
+                )
+            )
         )
     }
 
-    Text(
-        text = "Reader mode",
-        style = MaterialTheme.typography.titleLarge,
-        color = MaterialTheme.colorScheme.onBackground,
-        modifier = Modifier.padding(top = 24.dp)
-    )
-
-    val readerModeOptions = ReaderModeType.entries
-
-    SingleChoiceSegmentedButtonRow {
-        readerModeOptions.forEachIndexed { index, modeType ->
-            SegmentedButton(
-                selected = selectedMode == modeType.prefValue,
-                onClick = {
-                    selectedMode = modeType.prefValue
-                    prefs.edit { putString(ReaderModePrefs.KEY_READER_MODE, modeType.prefValue) }
-                },
-                shape = SegmentedButtonDefaults.itemShape(index, readerModeOptions.size)
-            ) {
-                Text(modeType.displayName)
+    SettingsSelectionDropdown(
+        title = "Reader mode",
+        selectedOption = selectedMode,
+        options = ReaderModeType.entries,
+        optionLabel = ReaderModeType::displayName,
+        onOptionSelected = { mode ->
+            selectedMode = mode
+            prefs.edit {
+                putString(ReaderModePrefs.KEY_READER_MODE, mode.prefValue)
             }
         }
+    )
+}
+
+@Composable
+private fun SettingDisableDoubleTapZoom() {
+    val context = LocalContext.current
+
+    val sharedPreferences = remember {
+        context.getSharedPreferences(
+            Constants.READING_SETTING_KEY,
+            Context.MODE_PRIVATE
+        )
+    }
+
+    var isDisabled by remember {
+        mutableStateOf(
+            sharedPreferences.getBoolean(
+                ReaderModePrefs.DISABLE_DOUBLE_TAP_ZOOM_SETTING_KEY,
+                false
+            )
+        )
+    }
+
+    fun updateSetting(value: Boolean) {
+        isDisabled = value
+        sharedPreferences.edit {
+            putBoolean(
+                ReaderModePrefs.DISABLE_DOUBLE_TAP_ZOOM_SETTING_KEY,
+                value
+            )
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { updateSetting(!isDisabled) }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = "Disable side tap for controls toggle",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text = "When this setting is enabled, tapping anywhere in the reader toggles the controls instead of zooming on a double tap. " +
+                        "Enabling this setting disables the zoom on double click feature.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            )
+        }
+
+        Switch(
+            checked = isDisabled,
+            onCheckedChange = { updateSetting(it) }
+        )
     }
 }
 
