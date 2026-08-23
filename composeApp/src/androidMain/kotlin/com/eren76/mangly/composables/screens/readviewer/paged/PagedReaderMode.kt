@@ -77,6 +77,10 @@ class PagedReaderMode(
             Constants.READING_SETTING_KEY,
             Context.MODE_PRIVATE
         )
+        val doubleTapZoomEnabled = !sharedPreferences.getBoolean(
+            ReaderModePrefs.DISABLE_DOUBLE_TAP_ZOOM_SETTING_KEY,
+            false
+        )
 
         val pageCount: Int = pages.size + CHAPTER_NAVIGATION_PAGE_COUNT
         val pagerState: PagerState = rememberPagerState(
@@ -124,12 +128,14 @@ class PagedReaderMode(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .readerGestures(
-                    onSideTap = {
+                    onControlsTap = {
                         showControls = !showControls
                         showLongPressMenu = false
                     },
-                    onCenterDoubleTap = { position ->
-                        currentZoomState?.toggleZoomAt(position)
+                    onDoubleTap = { position ->
+                        coroutineScope.launch {
+                            currentZoomState?.animateZoomToggleAt(position)
+                        }
                         showLongPressMenu = false
                     },
                     onLongPress = {
@@ -141,7 +147,8 @@ class PagedReaderMode(
                         if (!imageSavingDisabled && pagerState.currentPage in pages.indices) {
                             showLongPressMenu = true
                         }
-                    }
+                    },
+                    isDoubleTapEnabled = doubleTapZoomEnabled
                 )
         ) {
             HorizontalPager(

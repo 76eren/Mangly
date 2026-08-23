@@ -32,6 +32,10 @@ internal fun ReaderSettingsSection() {
 
     SettingsDivider()
 
+    SettingDisableDoubleTapZoom()
+
+    SettingsDivider()
+
     SettingDisableImageSavingOnHold()
 }
 
@@ -49,8 +53,8 @@ private fun ReadViewerSettings() {
         mutableStateOf(
             getReaderModeTypeFromPref(
                 prefs.getString(
-                ReaderModePrefs.KEY_READER_MODE,
-                ReaderModePrefs.DEFAULT_READER_MODE_VALUE
+                    ReaderModePrefs.KEY_READER_MODE,
+                    ReaderModePrefs.DEFAULT_READER_MODE_VALUE
                 )
             )
         )
@@ -68,6 +72,69 @@ private fun ReadViewerSettings() {
             }
         }
     )
+}
+
+@Composable
+private fun SettingDisableDoubleTapZoom() {
+    val context = LocalContext.current
+
+    val sharedPreferences = remember {
+        context.getSharedPreferences(
+            Constants.READING_SETTING_KEY,
+            Context.MODE_PRIVATE
+        )
+    }
+
+    var isDisabled by remember {
+        mutableStateOf(
+            sharedPreferences.getBoolean(
+                ReaderModePrefs.DISABLE_DOUBLE_TAP_ZOOM_SETTING_KEY,
+                false
+            )
+        )
+    }
+
+    fun updateSetting(value: Boolean) {
+        isDisabled = value
+        sharedPreferences.edit {
+            putBoolean(
+                ReaderModePrefs.DISABLE_DOUBLE_TAP_ZOOM_SETTING_KEY,
+                value
+            )
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { updateSetting(!isDisabled) }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = "Disable side tap for controls toggle",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text = "When this setting is enabled, tapping anywhere in the reader toggles the controls instead of zooming on a double tap. " +
+                        "Enabling this setting disables the zoom on double click feature.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            )
+        }
+
+        Switch(
+            checked = isDisabled,
+            onCheckedChange = { updateSetting(it) }
+        )
+    }
 }
 
 @Composable

@@ -18,6 +18,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +36,7 @@ import com.eren76.mangly.composables.shared.read.ReadTopControls
 import com.eren76.mangly.composables.shared.read.readerGestures
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
 import com.eren76.manglyextension.plugins.Source
+import kotlinx.coroutines.launch
 
 private const val HEADER_ITEM_COUNT = 1
 
@@ -63,6 +65,11 @@ object WebtoonReaderMode : ReaderMode {
             Constants.READING_SETTING_KEY,
             Context.MODE_PRIVATE
         )
+        val doubleTapZoomEnabled = !sharedPreferences.getBoolean(
+            ReaderModePrefs.DISABLE_DOUBLE_TAP_ZOOM_SETTING_KEY,
+            false
+        )
+        val coroutineScope = rememberCoroutineScope()
 
         val lazyListState = rememberLazyListState()
         val zoomState = remember { WebtoonZoomState() }
@@ -117,13 +124,18 @@ object WebtoonReaderMode : ReaderMode {
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .readerGestures(
-                    onSideTap = {
+                    onControlsTap = {
                         showControls = !showControls
                         selectedLongPressImageBytes = null
                     },
-                    onCenterDoubleTap = zoomState::toggleZoomAt,
+                    onDoubleTap = { position ->
+                        coroutineScope.launch {
+                            zoomState.animateZoomToggleAt(position)
+                        }
+                    },
                     onLongPress = ::showLongPressMenuAt,
-                    isSideTapEnabled = { !lazyListState.isScrollInProgress }
+                    isDoubleTapEnabled = doubleTapZoomEnabled,
+                    isControlsTapEnabled = { !lazyListState.isScrollInProgress }
                 )
         ) {
             ZoomableReaderContainer(

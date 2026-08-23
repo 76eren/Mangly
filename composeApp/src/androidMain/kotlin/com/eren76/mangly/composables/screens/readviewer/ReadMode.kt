@@ -41,7 +41,8 @@ object ReaderModePrefs {
 
     const val DISABLE_IMAGE_SAVING_ON_HOLD_SETTING_KEY =
         "mangly_disable_image_saving_on_hold_setting"
-
+    const val DISABLE_DOUBLE_TAP_ZOOM_SETTING_KEY =
+        "mangly_disable_double_tap_zoom_setting"
 }
 
 enum class ReaderModeType(val prefValue: String, val displayName: String) {

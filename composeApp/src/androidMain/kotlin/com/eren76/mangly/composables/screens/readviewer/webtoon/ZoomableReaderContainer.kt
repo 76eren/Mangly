@@ -22,6 +22,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
+import com.eren76.mangly.composables.shared.read.ZoomAnimator
+import com.eren76.mangly.composables.shared.read.ZoomTransform
 
 private const val MINIMUM_ZOOM = 1f
 private const val MAXIMUM_ZOOM = 4f
@@ -37,6 +39,7 @@ internal class WebtoonZoomState {
         private set
 
     private var viewportSize = IntSize.Zero
+    private val zoomAnimator = ZoomAnimator()
 
     val isZoomed: Boolean
         get() = scale > MINIMUM_ZOOM + ZOOM_TOLERANCE
@@ -47,6 +50,7 @@ internal class WebtoonZoomState {
     fun updateViewportSize(size: IntSize) {
         if (viewportSize == size) return
 
+        zoomAnimator.cancel()
         viewportSize = size
         offset = offset.coerceToBounds(scale)
     }
@@ -56,6 +60,7 @@ internal class WebtoonZoomState {
         pan: Offset,
         zoomChange: Float
     ) {
+        zoomAnimator.cancel()
         val oldScale = scale
         val newScale = (oldScale * zoomChange).coerceIn(MINIMUM_ZOOM, MAXIMUM_ZOOM)
         val transformedOffset = calculateOffsetForZoom(
@@ -73,24 +78,32 @@ internal class WebtoonZoomState {
     }
 
     fun panBy(pan: Offset) {
+        zoomAnimator.cancel()
         offset = (offset + pan).coerceToBounds(scale)
     }
 
-    fun toggleZoomAt(position: Offset) {
-        if (hasZoomTransform) {
-            reset()
-            return
+    suspend fun animateZoomToggleAt(position: Offset) {
+        val targetScale = if (hasZoomTransform) MINIMUM_ZOOM else DOUBLE_TAP_ZOOM
+        val targetOffset = if (targetScale == MINIMUM_ZOOM) {
+            Offset.Zero
+        } else {
+            calculateOffsetForZoom(
+                position = position,
+                oldScale = scale,
+                newScale = targetScale
+            ).coerceToBounds(targetScale)
         }
-
-        offset = calculateOffsetForZoom(
-            position = position,
-            oldScale = scale,
-            newScale = DOUBLE_TAP_ZOOM
-        ).coerceToBounds(DOUBLE_TAP_ZOOM)
-        scale = DOUBLE_TAP_ZOOM
+        zoomAnimator.animateTo(
+            from = ZoomTransform(scale, offset),
+            to = ZoomTransform(targetScale, targetOffset)
+        ) { transform ->
+            scale = transform.scale
+            offset = transform.offset.coerceToBounds(transform.scale)
+        }
     }
 
     fun reset() {
+        zoomAnimator.cancel()
         scale = MINIMUM_ZOOM
         offset = Offset.Zero
     }

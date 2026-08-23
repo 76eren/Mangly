@@ -11,6 +11,7 @@ import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.withTimeoutOrNull
 
 private const val SIDE_ZONE_FRACTION = 1f / 3f
 
@@ -19,7 +20,7 @@ private sealed interface ReaderPress {
     data class Tap(
         val position: Offset,
         val uptimeMillis: Long,
-        val sideTapEnabled: Boolean
+        val controlsTapEnabled: Boolean
     ) : ReaderPress
 
     data class LongPress(val position: Offset) : ReaderPress
@@ -27,15 +28,17 @@ private sealed interface ReaderPress {
 
 @Composable
 fun Modifier.readerGestures(
-    onSideTap: () -> Unit,
-    onCenterDoubleTap: (Offset) -> Unit,
+    onControlsTap: () -> Unit,
+    onDoubleTap: (Offset) -> Unit,
     onLongPress: (Offset) -> Unit,
-    isSideTapEnabled: () -> Boolean = { true }
+    isDoubleTapEnabled: Boolean = true,
+    isControlsTapEnabled: () -> Boolean = { true }
 ): Modifier {
-    val currentOnSideTap by rememberUpdatedState(onSideTap)
-    val currentOnCenterDoubleTap by rememberUpdatedState(onCenterDoubleTap)
+    val currentOnControlsTap by rememberUpdatedState(onControlsTap)
+    val currentOnDoubleTap by rememberUpdatedState(onDoubleTap)
     val currentOnLongPress by rememberUpdatedState(onLongPress)
-    val currentIsSideTapEnabled by rememberUpdatedState(isSideTapEnabled)
+    val currentIsDoubleTapEnabled by rememberUpdatedState(isDoubleTapEnabled)
+    val currentIsControlsTapEnabled by rememberUpdatedState(isControlsTapEnabled)
 
     return pointerInput(Unit) {
         var previousCenterTapTime: Long? = null
@@ -43,7 +46,7 @@ fun Modifier.readerGestures(
         val maximumDoubleTapDistance = 64.dp.toPx()
 
         awaitEachGesture {
-            when (val press = awaitReaderPress(currentIsSideTapEnabled)) {
+            when (val press = awaitReaderPress(currentIsControlsTapEnabled)) {
                 ReaderPress.Cancelled -> {
                     previousCenterTapTime = null
                     previousCenterTapPosition = null
@@ -56,9 +59,12 @@ fun Modifier.readerGestures(
                 }
 
                 is ReaderPress.Tap -> {
-                    if (press.position.isInSideZone(size.width)) {
-                        if (press.sideTapEnabled) {
-                            currentOnSideTap()
+                    val shouldToggleControls =
+                        !currentIsDoubleTapEnabled || press.position.isInSideZone(size.width)
+
+                    if (shouldToggleControls) {
+                        if (press.controlsTapEnabled) {
+                            currentOnControlsTap()
                         }
                         previousCenterTapTime = null
                         previousCenterTapPosition = null
@@ -79,7 +85,7 @@ fun Modifier.readerGestures(
                                 distanceFromPreviousTap <= maximumDoubleTapDistance
 
                     if (isDoubleTap) {
-                        currentOnCenterDoubleTap(press.position)
+                        currentOnDoubleTap(press.position)
                         previousCenterTapTime = null
                         previousCenterTapPosition = null
                     } else {
@@ -93,13 +99,13 @@ fun Modifier.readerGestures(
 }
 
 private suspend fun AwaitPointerEventScope.awaitReaderPress(
-    isSideTapEnabled: () -> Boolean
+    isControlsTapEnabled: () -> Boolean
 ): ReaderPress {
     val down = awaitFirstDown(
         requireUnconsumed = false,
         pass = PointerEventPass.Initial
     )
-    val sideTapEnabled = isSideTapEnabled()
+    val controlsTapEnabled = isControlsTapEnabled()
 
     return withTimeoutOrNull(
         timeMillis = viewConfiguration.longPressTimeoutMillis
@@ -120,7 +126,7 @@ private suspend fun AwaitPointerEventScope.awaitReaderPress(
                 return@withTimeoutOrNull ReaderPress.Tap(
                     position = trackedChange.position,
                     uptimeMillis = trackedChange.uptimeMillis,
-                    sideTapEnabled = sideTapEnabled
+                    controlsTapEnabled = controlsTapEnabled
                 )
             }
         }
