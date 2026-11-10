@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -14,15 +15,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.SubcomposeAsyncImage
-import coil3.network.NetworkHeaders
-import coil3.network.httpHeaders
-import coil3.request.CachePolicy
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import com.eren76.mangly.composables.shared.image.ImageLoadingComposable
 import com.eren76.mangly.composables.shared.image.ImageLoadingErrorComposable
-import com.eren76.manglyextension.plugins.Source
 import com.eren76.manglyextension.plugins.Source.ImageForChaptersList
+import com.eren76.mangly.composables.shared.image.CoverImageRequests
 import java.io.File
 
 // Dialog preview for chapter cover with network image and headers
@@ -31,7 +27,10 @@ fun ChaptersCoverPreviewDialog(
     image: ImageForChaptersList,
     onDismiss: () -> Unit
 ) {
-    val imageRequest = buildCoverPreviewImageRequest(image = image)
+    val context = LocalContext.current
+    val imageRequest = remember(context, image) {
+        CoverImageRequests.remote(context = context, imageForList = image)
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -94,27 +93,3 @@ fun ChaptersCoverPreviewDialog(
         }
     }
 }
-
-@Composable
-private fun buildCoverPreviewImageRequest(
-    image: ImageForChaptersList
-): ImageRequest {
-    val headers: List<Source.Header> = image.headers.map { header ->
-        Source.Header(header.name, header.value)
-    }
-
-    val networkHeaders = NetworkHeaders.Builder().apply {
-        for (header in headers) {
-            this[header.name] = header.value
-        }
-    }.build()
-
-    return ImageRequest.Builder(LocalContext.current)
-        .data(image.imageUrl)
-        .httpHeaders(networkHeaders)
-        .memoryCachePolicy(CachePolicy.ENABLED)
-        .diskCachePolicy(CachePolicy.ENABLED)
-        .crossfade(true)
-        .build()
-}
-

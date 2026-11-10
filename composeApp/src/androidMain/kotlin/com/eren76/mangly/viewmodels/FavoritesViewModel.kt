@@ -2,6 +2,7 @@ package com.eren76.mangly.viewmodels
 
 import android.content.Context
 import android.util.Log
+import coil3.SingletonImageLoader
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -182,7 +183,9 @@ class FavoritesViewModel
             extensionMetadata.source.getImageForChaptersList(favorite.mangaUrl)
         }?.takeIf { image -> image.imageUrl.isNotBlank() } ?: return null
         val downloaded: CoverCache.DownloadedImage =
-            CoverCache.downloadImage(coverInfo.imageUrl, coverInfo.headers)
+            CoverCache.downloadImage(
+                coverInfo.imageUrl, coverInfo.headers, SingletonImageLoader.get(context).diskCache
+            )
                 ?.takeIf { image -> image.bytes.isNotEmpty() }
                 ?: return null
 

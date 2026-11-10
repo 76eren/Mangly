@@ -48,7 +48,8 @@ suspend fun loadReaderPage(
     imageLoader: ImageLoader,
     pages: MutableList<ReaderPage>,
     pageIndex: Int,
-    headers: NetworkHeaders
+    headers: NetworkHeaders,
+    forceRefresh: Boolean = false
 ) {
     val page = pages.getOrNull(pageIndex) ?: return
     pages[pageIndex] = page.copy(state = ReaderPageState.Loading)
@@ -59,7 +60,7 @@ suspend fun loadReaderPage(
             .httpHeaders(headers)
             .crossfade(false)
             .memoryCachePolicy(CachePolicy.DISABLED)
-            .diskCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(if (forceRefresh) CachePolicy.WRITE_ONLY else CachePolicy.ENABLED)
             .bitmapConfig(Bitmap.Config.ARGB_8888)
             .allowHardware(false)
             .size(Size.ORIGINAL)

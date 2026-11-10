@@ -249,7 +249,8 @@ fun Read(
                     imageLoader = imageLoader,
                     pages = pages,
                     pageIndex = pageIndex,
-                    headers = networkHeaders
+                    headers = networkHeaders,
+                    forceRefresh = true
                 )
             }
         }
