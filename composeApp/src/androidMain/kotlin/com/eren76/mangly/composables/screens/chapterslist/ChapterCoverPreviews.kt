@@ -16,6 +16,7 @@ import androidx.compose.ui.window.DialogProperties
 import coil3.compose.SubcomposeAsyncImage
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
+import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.eren76.mangly.composables.shared.image.ImageLoadingComposable
@@ -27,11 +28,10 @@ import java.io.File
 // Dialog preview for chapter cover with network image and headers
 @Composable
 fun ChaptersCoverPreviewDialog(
-    targetUrl: String,
     image: ImageForChaptersList,
     onDismiss: () -> Unit
 ) {
-    val imageRequest = buildCoverPreviewImageRequest(targetUrl = targetUrl, image = image)
+    val imageRequest = buildCoverPreviewImageRequest(image = image)
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -97,7 +97,6 @@ fun ChaptersCoverPreviewDialog(
 
 @Composable
 private fun buildCoverPreviewImageRequest(
-    targetUrl: String,
     image: ImageForChaptersList
 ): ImageRequest {
     val headers: List<Source.Header> = image.headers.map { header ->
@@ -110,12 +109,11 @@ private fun buildCoverPreviewImageRequest(
         }
     }.build()
 
-    val cacheKey = "chapters_cover_preview_${targetUrl.hashCode()}"
     return ImageRequest.Builder(LocalContext.current)
         .data(image.imageUrl)
         .httpHeaders(networkHeaders)
-        .memoryCacheKey(cacheKey)
-        .diskCacheKey(cacheKey)
+        .memoryCachePolicy(CachePolicy.ENABLED)
+        .diskCachePolicy(CachePolicy.ENABLED)
         .crossfade(true)
         .build()
 }

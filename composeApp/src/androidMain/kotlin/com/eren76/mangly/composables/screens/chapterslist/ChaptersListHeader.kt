@@ -34,7 +34,6 @@ import java.io.File
 
 @Composable
 fun ChaptersHeaderSection(
-    targetUrl: String,
     image: ImageForChaptersList?,
     localCoverFile: File?,
     mangaName: String,
@@ -71,7 +70,6 @@ fun ChaptersHeaderSection(
 
                 image != null -> {
                     ChapterCover(
-                        targetUrl = targetUrl,
                         image = image,
                         onClick = { isCoverPreviewVisible = true },
                         modifier = Modifier
@@ -167,7 +165,6 @@ fun ChaptersHeaderSection(
 
                 image != null -> {
                     ChaptersCoverPreviewDialog(
-                        targetUrl = targetUrl,
                         image = image,
                         onDismiss = { isCoverPreviewVisible = false }
                     )

@@ -1,6 +1,7 @@
 package com.eren76.mangly
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import coil3.ImageLoader
 import coil3.PlatformContext
@@ -10,7 +11,6 @@ import coil3.disk.directory
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.CachePolicy
-import androidx.hilt.work.HiltWorkerFactory
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -36,18 +36,17 @@ class ManglyApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
             }
             .memoryCache {
                 MemoryCache.Builder()
-                    .maxSizePercent(context, percent = 0.25)
+                    .maxSizePercent(context, percent = 0.15)
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
                     .directory(cacheDir.resolve("image_cache"))
-                    .maxSizePercent(0.40)
+                    .maxSizePercent(0.15)
                     .build()
             }
-            .networkCachePolicy(CachePolicy.ENABLED)
-            .diskCachePolicy(CachePolicy.ENABLED)
             .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.DISABLED)
             .build()
     }
 }

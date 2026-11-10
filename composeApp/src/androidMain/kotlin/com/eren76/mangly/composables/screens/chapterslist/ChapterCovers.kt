@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
+import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.eren76.mangly.composables.shared.image.ImageLoadingComposable
@@ -27,12 +28,11 @@ import java.io.File
 // Chapter cover with network image and headers
 @Composable
 fun ChapterCover(
-    targetUrl: String,
     image: ImageForChaptersList,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
-    val imageRequest = buildCoverImageRequest(targetUrl = targetUrl, image = image)
+    val imageRequest = buildCoverImageRequest(image = image)
 
     ElevatedCard(
         modifier = modifier.pointerInput(onClick) {
@@ -87,7 +87,6 @@ fun ChapterCover(
 
 @Composable
 private fun buildCoverImageRequest(
-    targetUrl: String,
     image: ImageForChaptersList
 ): ImageRequest {
     val headers: List<Source.Header> = image.headers.map { header ->
@@ -100,12 +99,11 @@ private fun buildCoverImageRequest(
         }
     }.build()
 
-    val cacheKey = "chapters_cover_${targetUrl.hashCode()}"
     return ImageRequest.Builder(LocalContext.current)
         .data(image.imageUrl)
         .httpHeaders(networkHeaders)
-        .memoryCacheKey(cacheKey)
-        .diskCacheKey(cacheKey)
+        .memoryCachePolicy(CachePolicy.ENABLED)
+        .diskCachePolicy(CachePolicy.ENABLED)
         .crossfade(true)
         .build()
 }

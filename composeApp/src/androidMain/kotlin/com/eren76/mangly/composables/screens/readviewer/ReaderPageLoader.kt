@@ -58,7 +58,7 @@ suspend fun loadReaderPage(
             .data(page.url)
             .httpHeaders(headers)
             .crossfade(false)
-            .memoryCachePolicy(CachePolicy.ENABLED)
+            .memoryCachePolicy(CachePolicy.DISABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
             .bitmapConfig(Bitmap.Config.ARGB_8888)
             .allowHardware(false)
