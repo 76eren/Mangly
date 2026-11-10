@@ -19,7 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import coil3.ImageLoader
+import coil3.SingletonImageLoader
 import coil3.network.NetworkHeaders
 import com.eren76.mangly.Constants
 import com.eren76.mangly.composables.screens.readviewer.ReaderMode
@@ -94,7 +94,7 @@ fun Read(
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val imageLoader = remember(context) { ImageLoader(context) }
+    val imageLoader = remember(context) { SingletonImageLoader.get(context) }
     val networkHeaders = remember(chapterImages?.headers) {
         NetworkHeaders.Builder().apply {
             chapterImages?.headers.orEmpty().forEach { header ->
@@ -249,7 +249,8 @@ fun Read(
                     imageLoader = imageLoader,
                     pages = pages,
                     pageIndex = pageIndex,
-                    headers = networkHeaders
+                    headers = networkHeaders,
+                    forceRefresh = true
                 )
             }
         }

@@ -259,7 +259,6 @@ fun ChaptersList(
             }
 
             ChaptersHeaderSection(
-                targetUrl = targetUrl,
                 image = image,
                 localCoverFile = localCoverFile,
                 mangaName = mangaName,

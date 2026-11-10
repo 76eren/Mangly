@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import coil3.SingletonImageLoader
 import coil3.compose.SubcomposeAsyncImage
 import com.eren76.mangly.composables.shared.image.CoverCache
 import com.eren76.mangly.composables.shared.image.CoverImageRequests
@@ -22,6 +23,7 @@ import com.eren76.mangly.composables.shared.image.ImageLoadingErrorComposable
 import com.eren76.mangly.rooms.entities.HistoryEntity
 import com.eren76.mangly.viewmodels.HistoryViewModel
 import com.eren76.manglyextension.plugins.Source
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -60,86 +62,63 @@ private fun HistoryCoverImageLoader(
 ) {
     val context = LocalContext.current
 
-    var localCoverFile by remember(historyEntity.id, historyEntity.coverImageFilename) {
+    var localCoverFile by remember(historyEntity.id, historyEntity.mangaUrl) {
         mutableStateOf<File?>(null)
-    }
-
-    LaunchedEffect(historyEntity.id, historyEntity.coverImageFilename) {
-        localCoverFile = historyEntity.coverImageFilename?.let { filename ->
-            historyViewModel.getCoverFile(filename = filename, context = context)
-        }
-    }
-
-    var imageForList by remember(historyEntity.id, historyEntity.mangaUrl) {
-        mutableStateOf<Source.ImageForChaptersList?>(null)
     }
     var loadFailed by remember(historyEntity.id, historyEntity.mangaUrl) { mutableStateOf(false) }
 
-    LaunchedEffect(historyEntity.id, historyEntity.mangaUrl, localCoverFile) {
-        if (localCoverFile != null) return@LaunchedEffect
-
+    LaunchedEffect(historyEntity.id, historyEntity.mangaUrl, historyEntity.coverImageFilename, source) {
         loadFailed = false
-        imageForList = null
+        try {
+            val existingFile = withContext(Dispatchers.IO) {
+                historyEntity.coverImageFilename?.let { filename ->
+                    historyViewModel.getCoverFile(filename = filename, context = context)
+                }
+            }
+            if (existingFile != null) {
+                localCoverFile = existingFile
+                return@LaunchedEffect
+            }
 
-        val coverInfo: Source.ImageForChaptersList? = runCatching {
-            withContext(Dispatchers.IO) { source.getImageForChaptersList(historyEntity.mangaUrl) }
-        }.getOrNull()
+            val coverInfo = withContext(Dispatchers.IO) {
+                source.getImageForChaptersList(historyEntity.mangaUrl)
+            }
+            if (coverInfo.imageUrl.isBlank()) {
+                loadFailed = true
+                return@LaunchedEffect
+            }
 
-        if (coverInfo == null || coverInfo.imageUrl.isBlank()) {
-            loadFailed = true
-            return@LaunchedEffect
-        }
-
-        imageForList = coverInfo
-
-        val downloaded = runCatching {
-            CoverCache.downloadImage(coverInfo.imageUrl, coverInfo.headers)
-        }.getOrNull()
-
-        if (downloaded == null || downloaded.bytes.isEmpty()) {
-            loadFailed = true
-            return@LaunchedEffect
-        }
-
-        val ext = CoverCache.inferImageExtension(
-            contentType = downloaded.contentType,
-            finalUrl = downloaded.finalUrl,
-            originalUrl = coverInfo.imageUrl
-        )
-
-        val filename = "${historyEntity.id}.$ext"
-
-        val savedFile = withContext(Dispatchers.IO) {
-            historyViewModel.saveCoverBytes(
-                filename = filename,
-                bytes = downloaded.bytes,
-                context = context
+            val downloaded = CoverCache.downloadImage(
+                coverInfo.imageUrl, coverInfo.headers, SingletonImageLoader.get(context).diskCache
             )
+            if (downloaded == null || downloaded.bytes.isEmpty()) {
+                loadFailed = true
+                return@LaunchedEffect
+            }
+
+            val ext = CoverCache.inferImageExtension(
+                contentType = downloaded.contentType,
+                finalUrl = downloaded.finalUrl,
+                originalUrl = coverInfo.imageUrl
+            )
+            val filename = "${historyEntity.id}.$ext"
+            localCoverFile = withContext(Dispatchers.IO) {
+                historyViewModel.saveCoverBytes(
+                    filename = filename,
+                    bytes = downloaded.bytes,
+                    context = context
+                )
+            }
+            historyViewModel.updateHistoryCoverFilename(historyId = historyEntity.id, filename = filename)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            loadFailed = true
         }
-
-        historyViewModel.updateHistoryCoverFilename(
-            historyId = historyEntity.id,
-            filename = filename
-        )
-
-        localCoverFile = savedFile
     }
 
     val localRequest = remember(localCoverFile) {
         CoverImageRequests.local(context = context, file = localCoverFile)
-    }
-
-    val networkHeaders = remember(imageForList?.headers) {
-        CoverCache.buildNetworkHeaders(imageForList?.headers ?: emptyList())
-    }
-
-    val remoteRequest = remember(imageForList?.imageUrl, networkHeaders) {
-        CoverImageRequests.remote(
-            context = context,
-            imageForList = imageForList,
-            networkHeaders = networkHeaders,
-            crossfade = true
-        )
     }
 
     when {
@@ -160,21 +139,10 @@ private fun HistoryCoverImageLoader(
             )
         }
 
-        imageForList?.imageUrl == null -> {
+        else -> {
             Box(modifier = modifier, contentAlignment = Alignment.Center) {
                 ImageLoadingComposable()
             }
-        }
-
-        else -> {
-            SubcomposeAsyncImage(
-                model = remoteRequest,
-                contentDescription = historyEntityDescriptionFromUrl(historyEntity.mangaUrl),
-                modifier = modifier,
-                contentScale = ContentScale.Crop,
-                loading = { ImageLoadingComposable() },
-                error = { ImageLoadingErrorComposable() }
-            )
         }
     }
 }

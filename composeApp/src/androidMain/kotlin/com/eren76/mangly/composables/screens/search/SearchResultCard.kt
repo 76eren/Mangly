@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
+import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.eren76.mangly.composables.shared.image.ImageLoadingComposable
@@ -64,6 +65,8 @@ private fun SearchResultImage(
     val imageRequest = ImageRequest.Builder(context)
         .data(searchResult.imageUrl)
         .httpHeaders(networkHeaders)
+        .memoryCachePolicy(CachePolicy.ENABLED)
+        .diskCachePolicy(CachePolicy.ENABLED)
         .crossfade(true)
         .build()
 

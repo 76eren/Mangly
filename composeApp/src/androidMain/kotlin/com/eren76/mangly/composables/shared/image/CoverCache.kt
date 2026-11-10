@@ -1,9 +1,12 @@
 package com.eren76.mangly.composables.shared.image
 
+import coil3.disk.DiskCache
 import coil3.network.NetworkHeaders
 import com.eren76.mangly.SharedImageHttpClient
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Request
@@ -21,8 +24,20 @@ object CoverCache {
 
     suspend fun downloadImage(
         imageUrl: String,
-        headers: List<Source.Header>
+        headers: List<Source.Header>,
+        diskCache: DiskCache? = null
     ): DownloadedImage? {
+        val cachedBytes = withContext(Dispatchers.IO) {
+            try {
+                diskCache?.openSnapshot(imageUrl)?.use { snapshot ->
+                    snapshot.data.toFile().readBytes().takeIf { it.isNotEmpty() }
+                }
+            } catch (_: IOException) {
+                null
+            }
+        }
+        if (cachedBytes != null) return DownloadedImage(cachedBytes, null, imageUrl)
+
         val requestBuilder = Request.Builder().url(imageUrl)
         for (header in headers) {
             requestBuilder.addHeader(header.name, header.value)

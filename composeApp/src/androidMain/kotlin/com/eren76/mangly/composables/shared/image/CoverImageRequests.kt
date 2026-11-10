@@ -1,8 +1,8 @@
 package com.eren76.mangly.composables.shared.image
 
 import android.content.Context
-import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
+import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.eren76.manglyextension.plugins.Source
@@ -14,6 +14,8 @@ object CoverImageRequests {
         return file?.let {
             ImageRequest.Builder(context)
                 .data(it)
+                .memoryCachePolicy(CachePolicy.ENABLED)
+                .diskCachePolicy(CachePolicy.DISABLED)
                 .crossfade(false)
                 .build()
         }
@@ -22,15 +24,16 @@ object CoverImageRequests {
     fun remote(
         context: Context,
         imageForList: Source.ImageForChaptersList?,
-        networkHeaders: NetworkHeaders,
-        crossfade: Boolean
+        crossfade: Boolean = true
     ): ImageRequest {
         return ImageRequest.Builder(context)
             .data(imageForList?.imageUrl)
             .apply {
                 val hdrs = imageForList?.headers
-                if (!hdrs.isNullOrEmpty()) httpHeaders(networkHeaders)
+                if (!hdrs.isNullOrEmpty()) httpHeaders(CoverCache.buildNetworkHeaders(hdrs))
             }
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
             .crossfade(crossfade)
             .build()
     }

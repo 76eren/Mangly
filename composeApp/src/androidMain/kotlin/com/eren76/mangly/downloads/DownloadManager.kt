@@ -2,6 +2,7 @@ package com.eren76.mangly.downloads
 
 import android.content.Context
 import android.util.Log
+import coil3.SingletonImageLoader
 import com.eren76.mangly.FileManager
 import com.eren76.mangly.composables.shared.image.CoverCache
 import com.eren76.mangly.rooms.dao.DownloadsDao
@@ -25,9 +26,12 @@ class DownloadManager @Inject constructor(
 
     suspend fun downloadImage(
         imageUrl: String,
-        headers: List<Source.Header>
+        headers: List<Source.Header>,
+        context: Context
     ): ByteArray {
-        val bytes = CoverCache.downloadImage(imageUrl, headers)?.bytes
+        val bytes = CoverCache.downloadImage(
+            imageUrl, headers, SingletonImageLoader.get(context).diskCache
+        )?.bytes
         if (bytes == null || bytes.isEmpty()) {
             throw IOException("Failed to download image: $imageUrl")
         }
@@ -118,7 +122,7 @@ class DownloadManager @Inject constructor(
             var savedImages = 0
             try {
                 for ((pageIndexZeroBased, imageUrl) in chapterImages.images.withIndex()) {
-                    val imageBytes = downloadImage(imageUrl, chapterImages.headers)
+                    val imageBytes = downloadImage(imageUrl, chapterImages.headers, context)
                     val pageNumber = pageIndexZeroBased + 1
                     Log.d(
                         TAG,
@@ -219,7 +223,9 @@ class DownloadManager @Inject constructor(
         if (coverInfo == null || coverInfo.imageUrl.isBlank()) return
 
         val cover: CoverCache.DownloadedImage? = runCatching {
-            CoverCache.downloadImage(coverInfo.imageUrl, coverInfo.headers)
+            CoverCache.downloadImage(
+                coverInfo.imageUrl, coverInfo.headers, SingletonImageLoader.get(context).diskCache
+            )
         }.getOrNull()
 
         if (cover == null || cover.bytes.isEmpty()) return
