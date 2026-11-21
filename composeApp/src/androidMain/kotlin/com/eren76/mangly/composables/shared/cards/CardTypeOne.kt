@@ -1,7 +1,8 @@
 package com.eren76.mangly.composables.shared.cards
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,25 +19,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.eren76.mangly.composables.screens.CardData
 
 // Todo: this has only one usage get rid of it or make it more generic
 @Composable
 fun CardTypeOne(cardData: CardData, onClick: () -> Unit) {
+    val isSourceDisabled = !cardData.metadata.canSourceBeLoaded
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = {
-                        onClick()
-                    }
-                )
-            }
-            .padding(8.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+        modifier = Modifier.fillMaxWidth().padding(8.dp).combinedClickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(4.dp),
+        border = if (isSourceDisabled) BorderStroke(1.dp, MaterialTheme.colorScheme.error) else null
     ) {
         Row(
             modifier = Modifier
@@ -58,6 +53,15 @@ fun CardTypeOne(cardData: CardData, onClick: () -> Unit) {
             ) {
                 Text(text = cardData.title, style = MaterialTheme.typography.titleMedium)
                 Text(text = cardData.description, style = MaterialTheme.typography.bodySmall)
+                if (isSourceDisabled) {
+                    Text(
+                        text = "Extension needs updating",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }

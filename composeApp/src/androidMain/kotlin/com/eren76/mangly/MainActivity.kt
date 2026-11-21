@@ -18,15 +18,15 @@ import com.eren76.mangly.navigation.NavHostContainer
 import com.eren76.mangly.navigation.NavigationConstants
 import com.eren76.mangly.rooms.entities.ExtensionEntity
 import com.eren76.mangly.themes.AppTheme
-import com.eren76.mangly.viewmodels.ChaptersListViewModel
 import com.eren76.mangly.viewmodels.BackupSettingsViewModel
+import com.eren76.mangly.viewmodels.ChaptersListViewModel
 import com.eren76.mangly.viewmodels.DownloadsViewModel
 import com.eren76.mangly.viewmodels.ExtensionDetailsViewModel
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.FavoritesViewModel
 import com.eren76.mangly.viewmodels.HistoryViewModel
 import com.eren76.mangly.viewmodels.SearchViewModel
-import com.eren76.manglyextension.plugins.ExtensionMetadata
+import com.eren76.manglyextension.plugins.ExtensionLoadResult
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -71,8 +71,9 @@ class MainActivity : ComponentActivity() {
 
                     // Populate data for view models
                     LaunchedEffect(Unit) {
-                        val metadataList = loadInstalledSources(applicationContext)
-                        sourcesViewModel.setSources(metadataList)
+                        val allSourceLoadResults: List<ExtensionLoadResult> =
+                            loadAllInstalledSources(applicationContext)
+                        sourcesViewModel.setAllSourceLoadResults(allSourceLoadResults)
                     }
 
                     Surface(color = MaterialTheme.colorScheme.background) {
@@ -102,17 +103,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private suspend fun loadInstalledSources(context: Context): List<ExtensionMetadata> =
+    private suspend fun loadAllInstalledSources(context: Context): List<ExtensionLoadResult> =
         withContext(Dispatchers.IO) {
-            val allEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
-            allEntries.map { entry -> loadSourceMetadata(entry, context) }
+            val allInstalledExtensionEntries: List<ExtensionEntity> = fileManager.getAllEntries(context)
+            allInstalledExtensionEntries.map { entry -> loadSource(entry, context) }
         }
 
-    private fun loadSourceMetadata(
+    private fun loadSource(
         entry: ExtensionEntity,
         context: Context
-    ): ExtensionMetadata {
+    ): ExtensionLoadResult {
         val zipBytes = File(entry.filePath).readBytes()
-        return extensionManager.extractExtensionMetadata(zipBytes, context)
+        return extensionManager.loadExtension(zipBytes, context, entry.id)
     }
 }

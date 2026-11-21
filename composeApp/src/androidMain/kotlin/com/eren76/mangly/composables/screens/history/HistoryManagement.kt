@@ -52,11 +52,12 @@ fun HistoryManagement(
         getHistoryDataNewestToOldest(historyViewModel)
     }
 
-    val sourcesById: Map<UUID, ExtensionMetadata> =
-        remember(extensionMetaDataViewModel.getAllSources()) {
-            extensionMetaDataViewModel.getAllSources().associateBy { metadata ->
-                UUID.fromString(metadata.source.getExtensionId())
-            }
+    val allSourceMetadataById: Map<UUID, ExtensionMetadata> =
+        remember(extensionMetaDataViewModel.getAllValidAndInvalidSourcesMetadata()) {
+            extensionMetaDataViewModel.getAllValidAndInvalidSourcesMetadata()
+                .associateBy { metadata: ExtensionMetadata ->
+                    UUID.fromString(metadata.extensionId)
+                }
         }
 
     Column(
@@ -76,7 +77,7 @@ fun HistoryManagement(
         if (!paginationPreferences.getBoolean(Constants.PAGINATION_ENABLED_KEY, false)) {
             ShowItemsInLazyGrid(
                 historyData = historyData,
-                sourcesById = sourcesById,
+                allSourceMetadataById = allSourceMetadataById,
                 historyViewModel = historyViewModel,
                 navHostController = navHostController,
                 extensionMetaDataViewModel = extensionMetaDataViewModel
@@ -84,7 +85,7 @@ fun HistoryManagement(
         } else {
             PaginatedHistoryList(
                 historyData = historyData,
-                sourcesById = sourcesById,
+                allSourceMetadataById = allSourceMetadataById,
                 historyViewModel = historyViewModel,
                 navHostController = navHostController,
                 extensionMetaDataViewModel = extensionMetaDataViewModel

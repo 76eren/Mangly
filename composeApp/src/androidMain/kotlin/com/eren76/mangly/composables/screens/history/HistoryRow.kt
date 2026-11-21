@@ -1,6 +1,7 @@
 package com.eren76.mangly.composables.screens.history
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,28 +29,33 @@ import androidx.compose.ui.unit.dp
 import com.eren76.mangly.composables.shared.dropdowns.DeleteDropdownMenu
 import com.eren76.mangly.rooms.entities.HistoryEntity
 import com.eren76.mangly.viewmodels.HistoryViewModel
-import com.eren76.manglyextension.plugins.Source
+import com.eren76.manglyextension.plugins.ExtensionMetadata
+import com.eren76.manglyextension.plugins.LoadedSource
 
 @Composable
 internal fun HistoryRow(
     historyEntity: HistoryEntity,
     lastReadAt: Long,
-    source: Source?,
+    extensionMetadata: ExtensionMetadata?,
+    loadedSource: LoadedSource?,
     historyViewModel: HistoryViewModel,
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
     var isDeleteDropdownMenuExpanded by remember(historyEntity.id) { mutableStateOf(false) }
 
+    val canOpenCard = extensionMetadata?.canSourceBeLoaded == true
+    val isSourceDisabled = extensionMetadata?.canSourceBeLoaded == false
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
             .combinedClickable(
-                onClick = onClick,
+                onClickLabel = if (canOpenCard) null else "Show delete options",
+                onClick = { if (canOpenCard) onClick() else isDeleteDropdownMenuExpanded = true },
                 onLongClick = { isDeleteDropdownMenuExpanded = true }
             ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(4.dp),
+        border = if (isSourceDisabled) BorderStroke(1.dp, MaterialTheme.colorScheme.error) else null
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -60,7 +66,7 @@ internal fun HistoryRow(
             ) {
                 HistoryCoverImage(
                     historyEntity = historyEntity,
-                    source = source,
+                    source = loadedSource,
                     historyViewModel = historyViewModel,
                     modifier = Modifier
                         .width(110.dp)
@@ -87,6 +93,15 @@ internal fun HistoryRow(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (isSourceDisabled) {
+                        Text(
+                            text = "Extension needs updating",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
 

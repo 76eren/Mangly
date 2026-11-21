@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import com.eren76.mangly.navigation.navigateToManga
 import com.eren76.mangly.composables.shared.collection.GridViewMode
 import com.eren76.mangly.downloads.DownloadQueuePanel
 import com.eren76.mangly.downloads.models.DownloadQueueItem
@@ -40,9 +41,9 @@ fun ColumnScope.HomeFavoritesSection(
                 extensionMetadataViewModel = extensionMetadataViewModel,
                 favoritesViewModel = favoritesViewModel,
                 onClick = {
-                    onHomeMangaClick(
+                    navigateToManga(
                         mangaUrl = favorite.mangaUrl,
-                        extensionId = favorite.extensionId,
+                        extensionId = favorite.extensionId.toString(),
                         extensionMetadataViewModel = extensionMetadataViewModel,
                         navController = navHostController
                     )
@@ -91,10 +92,11 @@ fun ColumnScope.HomeDownloadsSection(
             DownloadCard(
                 downloadWithChapters = download,
                 downloadsViewModel = downloadsViewModel,
+                extensionMetadata = extensionMetadataViewModel.getSourceMetadataById(download.download.extensionId.toString()),
                 onClick = {
-                    onHomeMangaClick(
+                    navigateToManga(
                         mangaUrl = download.download.mangaUrl,
-                        extensionId = download.download.extensionId,
+                        extensionId = download.download.extensionId.toString(),
                         extensionMetadataViewModel = extensionMetadataViewModel,
                         navController = navHostController,
                         isDownload = true

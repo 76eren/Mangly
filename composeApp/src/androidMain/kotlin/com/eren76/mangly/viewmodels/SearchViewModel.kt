@@ -5,11 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eren76.mangly.search.querySearchSources
 import com.eren76.manglyextension.plugins.ExtensionMetadata
+import com.eren76.manglyextension.plugins.LoadedSource
 import com.eren76.manglyextension.plugins.Source
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @HiltViewModel
 class SearchViewModel @Inject constructor() : ViewModel() {
@@ -18,18 +19,18 @@ class SearchViewModel @Inject constructor() : ViewModel() {
 
     private var searchJob: Job? = null
 
-    fun search(query: String, sources: List<ExtensionMetadata>) {
+    fun search(query: String, workingSources: List<LoadedSource>) {
         searchJob?.cancel()
 
         uiState.value = SearchUiState(
             query = query,
-            sourceOrder = sources,
-            loadingSources = sources.toSet(),
+            workingSourceMetadataInOrder = workingSources.map { it.metadata },
+            pendingWorkingSourceMetadata = workingSources.mapTo(mutableSetOf()) { it.metadata },
             hasSearched = true
         )
 
         searchJob = viewModelScope.launch {
-            querySearchSources(query = query, sources = sources, uiState = uiState)
+            querySearchSources(query = query, workingSources = workingSources, uiState = uiState)
         }
     }
 
@@ -41,12 +42,12 @@ class SearchViewModel @Inject constructor() : ViewModel() {
 
 data class SearchUiState(
     val query: String = "",
-    val sourceOrder: List<ExtensionMetadata> = emptyList(),
-    val results: Map<ExtensionMetadata, List<Source.SearchResult>> = emptyMap(),
-    val errors: Map<ExtensionMetadata, String> = emptyMap(),
-    val loadingSources: Set<ExtensionMetadata> = emptySet(),
+    val workingSourceMetadataInOrder: List<ExtensionMetadata> = emptyList(),
+    val resultsByWorkingSource: Map<ExtensionMetadata, List<Source.SearchResult>> = emptyMap(),
+    val errorsByWorkingSource: Map<ExtensionMetadata, String> = emptyMap(),
+    val pendingWorkingSourceMetadata: Set<ExtensionMetadata> = emptySet(),
     val hasSearched: Boolean = false
 ) {
     val isLoading: Boolean
-        get() = loadingSources.isNotEmpty()
+        get() = pendingWorkingSourceMetadata.isNotEmpty()
 }

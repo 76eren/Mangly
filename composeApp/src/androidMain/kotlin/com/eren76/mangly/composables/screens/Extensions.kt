@@ -9,20 +9,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.eren76.mangly.composables.shared.cards.CardTypeOne
 import com.eren76.mangly.composables.shared.topbar.TopBarNewExtension
 import com.eren76.mangly.viewmodels.ExtensionDetailsViewModel
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.manglyextension.plugins.ExtensionMetadata
-import com.eren76.manglyextension.plugins.Source
 
 @Composable
 fun Extensions(
@@ -30,24 +29,18 @@ fun Extensions(
     extensionDetailsViewModel: ExtensionDetailsViewModel,
     extensionMetadataViewModel: ExtensionMetadataViewModel
 ) {
-    val cardItems = remember { mutableStateListOf<CardData>() }
-
-    for (metadata in extensionMetadataViewModel.getAllSources()) {
-        val extensionName = metadata.source.getExtensionName()
-        val extensionImageBitmap: BitmapPainter = metadata.icon
-
-        cardItems.add(
+    val allSourceCards =
+        extensionMetadataViewModel.getAllValidAndInvalidSourcesMetadata().map { metadata ->
             CardData(
-                imagePainter = extensionImageBitmap,
-                title = extensionName,
+                imagePainter = metadata.icon,
+                title = metadata.name,
                 description = metadata.version,
-                metadata = metadata,
-                source = metadata.source
+                metadata = metadata
             )
-        )
-    }
+        }
+    val (workingSourceCards, disabledSourceCards) = allSourceCards.partition { it.metadata.canSourceBeLoaded }
 
-    extensionDetailsViewModel.setCards(cardItems)
+    LaunchedEffect(allSourceCards) { extensionDetailsViewModel.setAllSourceCards(allSourceCards) }
 
 
     Scaffold(
@@ -65,11 +58,27 @@ fun Extensions(
         )
         {
             LazyColumn {
-                items(cardItems) { item ->
+                items(workingSourceCards, key = { it.metadata.extensionId }) { item ->
                     CardTypeOne(
                         cardData = item,
-                        onClick = { navController.navigate("extensionDetails/${item.metadata.source.getExtensionId()}") }
+                        onClick = { navController.navigate("extensionDetails/${item.metadata.extensionId}") }
                     )
+                }
+                if (disabledSourceCards.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Disabled extensions",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                    items(disabledSourceCards, key = { it.metadata.extensionId }) { item ->
+                        CardTypeOne(
+                            cardData = item,
+                            onClick = { navController.navigate("extensionDetails/${item.metadata.extensionId}") }
+                        )
+                    }
                 }
             }
 
@@ -82,6 +91,5 @@ data class CardData(
     val imagePainter: Painter,
     val title: String,
     val description: String,
-    val metadata: ExtensionMetadata,
-    val source: Source
+    val metadata: ExtensionMetadata
 )

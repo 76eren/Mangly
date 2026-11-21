@@ -5,7 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.work.WorkInfo
 import com.eren76.mangly.downloads.models.DownloadChapterQueueRequest
 import com.eren76.mangly.downloads.models.DownloadQueueItem
-import com.eren76.manglyextension.plugins.ExtensionMetadata
+import com.eren76.manglyextension.plugins.LoadedSource
 import java.util.UUID
 
 object DownloadQueueManager {
@@ -15,7 +15,7 @@ object DownloadQueueManager {
         mangaName: String,
         mangaSummary: String,
         chapters: List<DownloadChapterQueueRequest>,
-        extensionMetadata: ExtensionMetadata,
+        loadedSource: LoadedSource,
         activeQueueItems: List<DownloadQueueItem>
     ): Int {
         return DownloadQueueWriter.enqueueChapterDownloads(
@@ -24,7 +24,7 @@ object DownloadQueueManager {
             mangaName = mangaName,
             mangaSummary = mangaSummary,
             chapters = chapters,
-            extensionMetadata = extensionMetadata,
+            loadedSource = loadedSource,
             activeQueueItems = activeQueueItems
         )
     }

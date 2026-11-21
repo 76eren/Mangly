@@ -12,7 +12,7 @@ import com.eren76.mangly.FavoritesManager
 import com.eren76.mangly.FileManager
 import com.eren76.mangly.composables.shared.image.CoverCache
 import com.eren76.mangly.rooms.entities.FavoritesEntity
-import com.eren76.manglyextension.plugins.ExtensionMetadata
+import com.eren76.manglyextension.plugins.LoadedSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -115,16 +115,11 @@ class FavoritesViewModel
 
     fun ensureFavoriteCover(
         favorite: FavoritesEntity,
-        extensionMetadata: ExtensionMetadata?,
+        source: LoadedSource,
         context: Context
     ) {
         if (coverLoadJobs[favorite.id]?.isActive == true) return
         if (coverLoadStates[favorite.id] == FavoriteCoverLoadState.Success) return
-
-        if (extensionMetadata == null) {
-            coverLoadStates[favorite.id] = FavoriteCoverLoadState.Failed
-            return
-        }
 
         val applicationContext = context.applicationContext
         coverLoadStates[favorite.id] = FavoriteCoverLoadState.Loading
@@ -133,7 +128,7 @@ class FavoritesViewModel
                 val savedFile: File? = coverLoadSemaphore.withPermit {
                     loadAndSaveFavoriteCover(
                         favorite = favorite,
-                        extensionMetadata = extensionMetadata,
+                        source = source,
                         context = applicationContext
                     )
                 }
@@ -176,11 +171,11 @@ class FavoritesViewModel
 
     private suspend fun loadAndSaveFavoriteCover(
         favorite: FavoritesEntity,
-        extensionMetadata: ExtensionMetadata,
+        source: LoadedSource,
         context: Context
     ): File? {
         val coverInfo = withContext(Dispatchers.IO) {
-            extensionMetadata.source.getImageForChaptersList(favorite.mangaUrl)
+            source.source.getImageForChaptersList(favorite.mangaUrl)
         }?.takeIf { image -> image.imageUrl.isNotBlank() } ?: return null
         val downloaded: CoverCache.DownloadedImage =
             CoverCache.downloadImage(

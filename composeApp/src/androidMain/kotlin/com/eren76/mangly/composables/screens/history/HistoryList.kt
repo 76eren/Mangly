@@ -39,21 +39,20 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.eren76.mangly.navigation.navigateToManga
 import com.eren76.mangly.rooms.entities.HistoryEntity
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.HistoryViewModel
 import com.eren76.manglyextension.plugins.ExtensionMetadata
-import com.eren76.manglyextension.plugins.Source
+import java.util.UUID
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import java.net.URLEncoder
-import java.util.UUID
 
 @Composable
 fun ShowItemsInLazyGrid(
     historyData: Map<Long, HistoryEntity>,
-    sourcesById: Map<UUID, ExtensionMetadata>,
+    allSourceMetadataById: Map<UUID, ExtensionMetadata>,
     historyViewModel: HistoryViewModel,
     navHostController: NavHostController,
     extensionMetaDataViewModel: ExtensionMetadataViewModel
@@ -73,21 +72,21 @@ fun ShowItemsInLazyGrid(
             val timeKey = entry.key
             val historyEntity = entry.value
 
-            val sourceMetadata = sourcesById[historyEntity.extensionId]
-            val source: Source? = sourceMetadata?.source
+            val extensionMetadata = allSourceMetadataById[historyEntity.extensionId]
 
             HistoryRow(
                 historyEntity = historyEntity,
                 lastReadAt = timeKey,
-                source = source,
+                extensionMetadata = extensionMetadata,
+                loadedSource = extensionMetaDataViewModel.getWorkingSourceById(historyEntity.extensionId.toString()),
                 historyViewModel = historyViewModel,
                 onClick = {
-                    val encodedUrl = URLEncoder.encode(
-                        historyEntity.mangaUrl,
-                        Charsets.UTF_8.name()
+                    navigateToManga(
+                        mangaUrl = historyEntity.mangaUrl,
+                        extensionId = historyEntity.extensionId.toString(),
+                        extensionMetadataViewModel = extensionMetaDataViewModel,
+                        navController = navHostController
                     )
-                    extensionMetaDataViewModel.setSelectedSource(sourcesById[historyEntity.extensionId]!!) // TODO: not ideal
-                    navHostController.navigate("chapters/$encodedUrl")
                 }
             )
         }
@@ -97,7 +96,7 @@ fun ShowItemsInLazyGrid(
 @Composable
 fun PaginatedHistoryList(
     historyData: Map<Long, HistoryEntity>,
-    sourcesById: Map<UUID, ExtensionMetadata>,
+    allSourceMetadataById: Map<UUID, ExtensionMetadata>,
     historyViewModel: HistoryViewModel,
     navHostController: NavHostController,
     extensionMetaDataViewModel: ExtensionMetadataViewModel
@@ -214,8 +213,7 @@ fun PaginatedHistoryList(
                             val timeKey = entry.key
                             val historyEntity = entry.value
 
-                            val sourceMetadata = sourcesById[historyEntity.extensionId]
-                            val source: Source? = sourceMetadata?.source
+                            val extensionMetadata = allSourceMetadataById[historyEntity.extensionId]
 
                             Box(
                                 modifier = Modifier.onSizeChanged { size ->
@@ -228,19 +226,16 @@ fun PaginatedHistoryList(
                                 HistoryRow(
                                     historyEntity = historyEntity,
                                     lastReadAt = timeKey,
-                                    source = source,
+                                    extensionMetadata = extensionMetadata,
+                                    loadedSource = extensionMetaDataViewModel.getWorkingSourceById(historyEntity.extensionId.toString()),
                                     historyViewModel = historyViewModel,
                                     onClick = {
-                                        val encodedUrl = URLEncoder.encode(
-                                            historyEntity.mangaUrl,
-                                            Charsets.UTF_8.name()
+                                        navigateToManga(
+                                            mangaUrl = historyEntity.mangaUrl,
+                                            extensionId = historyEntity.extensionId.toString(),
+                                            extensionMetadataViewModel = extensionMetaDataViewModel,
+                                            navController = navHostController
                                         )
-
-                                        extensionMetaDataViewModel.setSelectedSource(
-                                            sourcesById[historyEntity.extensionId]!!
-                                        )
-
-                                        navHostController.navigate("chapters/$encodedUrl")
                                     }
                                 )
                             }

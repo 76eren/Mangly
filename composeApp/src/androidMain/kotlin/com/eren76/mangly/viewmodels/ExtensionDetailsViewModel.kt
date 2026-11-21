@@ -11,17 +11,17 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ExtensionDetailsViewModel @Inject constructor() : ViewModel() {
-    private val cards = mutableStateListOf<CardData>()
+    private val allSourceCards = mutableStateListOf<CardData>()
 
     var selectedCardData by mutableStateOf<CardData?>(null)
         private set
 
-    fun setCards(data: List<CardData>) {
-        cards.clear()
-        cards.addAll(data)
+    fun setAllSourceCards(allSourceCards: List<CardData>) {
+        this.allSourceCards.clear()
+        this.allSourceCards.addAll(allSourceCards)
     }
 
     fun selectCardBySource(id: String) {
-        selectedCardData = cards.find { it.metadata.source.getExtensionId() == id }
+        selectedCardData = allSourceCards.find { it.metadata.extensionId == id }
     }
 }

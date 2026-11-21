@@ -10,8 +10,10 @@ import androidx.core.graphics.createBitmap
 import com.caverock.androidsvg.SVG
 import com.eren76.mangly.rooms.dao.ExtensionDao
 import com.eren76.mangly.rooms.entities.ExtensionEntity
+import com.eren76.manglyextension.plugins.ExtensionLoadResult
 import com.eren76.manglyextension.plugins.ExtensionMetadata
 import com.eren76.manglyextension.plugins.IPreferences
+import com.eren76.manglyextension.plugins.LoadedSource
 import com.eren76.manglyextension.plugins.PluginMetadata
 import com.eren76.manglyextension.plugins.PreferenceImplementation
 import com.eren76.manglyextension.plugins.Source
@@ -29,10 +31,17 @@ import javax.inject.Inject
 class ExtensionManager @Inject constructor(
     private val extensionDao: ExtensionDao
 ) {
-    /**
-     * Reads just the metadata out of a plugin .zip file (as a bytearray).
-     */
-    fun extractExtensionMetadata(zipBytes: ByteArray, context: Context): ExtensionMetadata {
+    fun extractExtensionMetadata(
+        zipBytes: ByteArray,
+        context: Context,
+        installedExtensionId: UUID? = null
+    ): ExtensionMetadata = loadExtension(zipBytes, context, installedExtensionId).metadata
+
+    fun loadExtension(
+        zipBytes: ByteArray,
+        context: Context,
+        installedExtensionId: UUID? = null
+    ): ExtensionLoadResult {
         val zipContents = readZip(zipBytes)
 
         val jsonBytes = zipContents["meta/plugin.json"]
@@ -54,37 +63,74 @@ class ExtensionManager @Inject constructor(
         val dex = zipContents["dex/classes.dex"]
             ?: throw IllegalArgumentException("Missing dex/classes.dex")
 
-        val source = loadPluginSource(metadata.entryClass, dex, context)
-        require(source.getExtensionName().isNotBlank()) { "Extension name is blank" }
+        val source: Source? = try {
+            loadPluginSource(metadata.entryClass, dex, context)
+        } catch (error: Exception) {
+            if (installedExtensionId == null) throw IllegalArgumentException(
+                "Unable to load extension",
+                error
+            )
+            null
+        } catch (error: LinkageError) {
+            if (installedExtensionId == null) throw IllegalArgumentException(
+                "Extension needs updating",
+                error
+            )
+            null
+        }
+        val extensionId = installedExtensionId?.toString() ?: try {
+            requireNotNull(source).getExtensionId()
+        } catch (error: LinkageError) {
+            throw IllegalArgumentException("Extension ID is unavailable", error)
+        }
+        UUID.fromString(extensionId)
 
-        return ExtensionMetadata(
-            entryClass = metadata.entryClass,
-            name = metadata.name,
-            version = metadata.version,
-            icon = bitmapPainter,
-            dexFile = dex,
-            source = source,
-            canSourceBeLoaded = determineCanSourceBeLoaded(source)
+        val result: ExtensionLoadResult = validateSource(
+            ExtensionMetadata(
+                entryClass = metadata.entryClass,
+                name = metadata.name,
+                version = metadata.version,
+                icon = bitmapPainter,
+                dexFile = dex,
+                extensionId = extensionId,
+                canSourceBeLoaded = false
+            ),
+            source
         )
+        result.loadedSource?.let {
+            require(it.source.getExtensionName().isNotBlank()) { "Extension name is blank" }
+        }
+
+        return result
+    }
+
+    internal fun validateSource(
+        metadata: ExtensionMetadata,
+        candidate: Source?
+    ): ExtensionLoadResult {
+        val source = candidate?.takeIf { determineCanSourceBeLoaded(it) }
+        val validatedMetadata: ExtensionMetadata = metadata.copy(canSourceBeLoaded = source != null)
+        return ExtensionLoadResult(
+            validatedMetadata,
+            source?.let { LoadedSource(validatedMetadata, it) })
     }
 
     fun determineCanSourceBeLoaded(source: Source): Boolean {
         return try {
-            // The app's inherited getter does not declare the extension's API version.
-            val versionGetter = source.javaClass.getMethod("getApiVersion")
-            if (versionGetter.declaringClass != Source::class.java) {
-                source.apiVersion >= Source.API_VERSION
-            } else {
-                val methods = source.javaClass.methods
-                Source::class.java.methods.filter { Modifier.isAbstract(it.modifiers) }.all { required ->
+            val methods = source.javaClass.methods
+            val implementsRequiredMethods = Source::class.java.methods
+                .filter { Modifier.isAbstract(it.modifiers) }.all { required ->
                     methods.any { implementation ->
                         implementation.name == required.name &&
-                            implementation.parameterTypes.contentEquals(required.parameterTypes) &&
-                            !Modifier.isAbstract(implementation.modifiers) &&
-                            required.returnType.isAssignableFrom(implementation.returnType)
+                                implementation.parameterTypes.contentEquals(required.parameterTypes) &&
+                                !Modifier.isAbstract(implementation.modifiers) &&
+                                required.returnType.isAssignableFrom(implementation.returnType)
                     }
                 }
-            }
+            // The app's inherited getter does not declare the extension's API version.
+            val versionGetter = source.javaClass.getMethod("getApiVersion")
+            implementsRequiredMethods && (versionGetter.declaringClass == Source::class.java ||
+                    source.apiVersion >= Source.API_VERSION)
         } catch (_: ReflectiveOperationException) {
             false
         } catch (_: LinkageError) {
@@ -119,6 +165,10 @@ class ExtensionManager @Inject constructor(
         val sourceWithoutPrefs = clazz.getDeclaredConstructor(IPreferences::class.java)
             .newInstance(null) as Source
 
+        if (!determineCanSourceBeLoaded(sourceWithoutPrefs)) {
+            return sourceWithoutPrefs
+        }
+
         val settingsKey: String = sourceWithoutPrefs.getExtensionId()
         require(settingsKey.isNotBlank()) { "Extension ID is blank" }
         try {
@@ -142,31 +192,15 @@ class ExtensionManager @Inject constructor(
      * Gets the database entry for a given ExtensionMetadata.
      */
     suspend fun getDatabaseEntryByMetadata(
-        currentMetadata: ExtensionMetadata,
-        context: Context
+        currentMetadata: ExtensionMetadata
     ): ExtensionEntity {
-
-        val allEntries: List<ExtensionEntity> = extensionDao.getAll()
-        for (entry in allEntries) {
-            val targetMetaData: ExtensionMetadata =
-                extractExtensionMetadata(File(entry.filePath).readBytes(), context)
-
-            if (
-                targetMetaData.entryClass == currentMetadata.entryClass && targetMetaData.dexFile.contentEquals(
-                    currentMetadata.dexFile
-                )
-            ) {
-                return entry
-            }
-        }
-
-        throw IllegalArgumentException("No matching database entry found for metadata: ${currentMetadata.name}")
+        return extensionDao.getById(UUID.fromString(currentMetadata.extensionId))
+            ?: throw IllegalArgumentException("No matching database entry found for metadata: ${currentMetadata.name}")
     }
 
     /**
      * Helper methods
      */
-
     private fun readZip(zipBytes: ByteArray): Map<String, ByteArray> {
         val zipMap = mutableMapOf<String, ByteArray>()
         ZipInputStream(ByteArrayInputStream(zipBytes)).use { zis ->

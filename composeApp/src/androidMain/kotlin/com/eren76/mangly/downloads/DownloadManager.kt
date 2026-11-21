@@ -9,14 +9,15 @@ import com.eren76.mangly.rooms.dao.DownloadsDao
 import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.entities.DownloadsEntity
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
+import com.eren76.manglyextension.plugins.LoadedSource
 import com.eren76.manglyextension.plugins.Source
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
 import kotlin.math.floor
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class DownloadManager @Inject constructor(
     private val fileManager: FileManager,
@@ -45,13 +46,14 @@ class DownloadManager @Inject constructor(
         mangaName: String,
         mangaSummary: String,
         chapterUrl: String,
-        source: Source,
+        loadedSource: LoadedSource,
         extensionId: UUID,
         context: Context,
         downloadsDirectory: String,
         chapterName: String,
     ) {
         return withContext(Dispatchers.IO) {
+            val source = loadedSource.source
             val existingDownload: DownloadWithChapters? =
                 downloadsDao.getWithChaptersByMangaUrl(mangaurl)
 

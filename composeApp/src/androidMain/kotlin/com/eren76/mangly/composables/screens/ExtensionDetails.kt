@@ -30,18 +30,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eren76.mangly.composables.shared.topbar.TopBarDeleteExtensionFromExtensionDetails
+import com.eren76.manglyextension.plugins.LoadedSource
 import com.eren76.manglyextension.plugins.PreferenceImplementation
 import com.eren76.manglyextension.plugins.PreferenceUi
 import com.eren76.manglyextension.plugins.Source
 
 
 @Composable
-fun ExtensionDetails(cardData: CardData) {
-    val allUiSettings: List<Source.SettingGen>? = remember { seedSettings(cardData) }
-    val prefs = remember { cardData.source.preferences as PreferenceImplementation }
-
-    var refreshVersion by remember { mutableStateOf(0) }
-
+fun ExtensionDetails(cardData: CardData, loadedSource: LoadedSource?) {
     Scaffold(
         topBar = { TopBarDeleteExtensionFromExtensionDetails(cardData.metadata) }
     ) { paddingValues ->
@@ -83,29 +79,39 @@ fun ExtensionDetails(cardData: CardData) {
                 modifier = Modifier.padding(vertical = 8.dp)
             )
 
-            if (allUiSettings == null) {
+            if (loadedSource == null) {
                 Text(
-                    text = "Error loading settings for this extension.",
-                    color = Color.Red,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    text = "Extension needs updating",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(16.dp)
                 )
-                return@Column
             } else {
-                for (setting in allUiSettings) {
-                    when (setting.uiElement) {
-                        PreferenceUi.SWITCH -> PreferenceSwitch(
-                            setting = setting,
-                            prefs = prefs,
-                            version = refreshVersion,
-                            notifyChanged = { refreshVersion++ }
-                        )
-
-                        PreferenceUi.TEXTAREA -> PreferenceTextArea(setting, prefs)
-                        else -> {}
-                    }
-                }
+                ExtensionSettings(loadedSource)
             }
+        }
+    }
+}
 
+@Composable
+private fun ExtensionSettings(source: LoadedSource) {
+    val allUiSettings = remember(source) { seedSettings(source) }
+    val prefs = remember(source) { source.source.preferences as PreferenceImplementation }
+    var refreshVersion by remember(source) { mutableStateOf(0) }
+
+    if (allUiSettings == null) {
+        Text("Error loading settings for this extension.", color = MaterialTheme.colorScheme.error)
+        return
+    }
+    for (setting in allUiSettings) {
+        when (setting.uiElement) {
+            PreferenceUi.SWITCH -> PreferenceSwitch(
+                setting = setting,
+                prefs = prefs,
+                version = refreshVersion,
+                notifyChanged = { refreshVersion++ }
+            )
+            PreferenceUi.TEXTAREA -> PreferenceTextArea(setting, prefs)
+            else -> {}
         }
     }
 }
@@ -215,11 +221,11 @@ private fun PreferenceTextArea(
     }
 }
 
-fun seedSettings(cardData: CardData): List<Source.SettingGen>? {
+fun seedSettings(source: LoadedSource): List<Source.SettingGen>? {
     try {
-        val rawSettings = cardData.source.generateSettings()
+        val rawSettings = source.source.generateSettings()
         val preferences: PreferenceImplementation =
-            cardData.source.preferences as PreferenceImplementation
+            source.source.preferences as PreferenceImplementation
         val storedSettings = preferences.settings as SharedPreferences
 
         // If the UI settings aren't present yet, we initialize them

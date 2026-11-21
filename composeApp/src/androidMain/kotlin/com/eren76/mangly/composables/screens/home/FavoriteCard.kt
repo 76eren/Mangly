@@ -27,9 +27,11 @@ fun FavoriteCard(
     onClick: () -> Unit,
 ) {
     val context = LocalContext.current
+    val metadata = extensionMetadataViewModel.getSourceMetadataById(favorite.extensionId.toString())
 
     HomeMangaCard(
         title = favorite.mangaTitle,
+        extensionMetadata = metadata,
         menuKey = favorite.id,
         menuText = "Delete favorite",
         onClick = onClick,
@@ -56,6 +58,7 @@ fun FavoriteImage(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val source = extensionMetadataViewModel.getWorkingSourceById(favorite.extensionId.toString())
     val coverLoadState: FavoriteCoverLoadState = favoritesViewModel.getCoverLoadState(favorite.id)
     val loadedCoverFile = favoritesViewModel.getLoadedCoverFile(favorite.id)
 
@@ -89,16 +92,15 @@ fun FavoriteImage(
         favorite.mangaUrl,
         favorite.coverImageFilename,
         hasResolvedLocalCover,
-        localCoverFile
+        localCoverFile,
+        source
     ) {
         if (!hasResolvedLocalCover) return@LaunchedEffect
         if (localCoverFile != null) return@LaunchedEffect
 
-        favoritesViewModel.ensureFavoriteCover(
-            favorite = favorite,
-            extensionMetadata = findMetadataForFavorite(extensionMetadataViewModel, favorite),
-            context = context
-        )
+        source?.let {
+            favoritesViewModel.ensureFavoriteCover(favorite = favorite, source = it, context = context)
+        }
     }
 
     val localRequest = remember(localCoverFile, context) {
@@ -109,8 +111,8 @@ fun FavoriteImage(
         model = localRequest,
         contentDescription = favorite.mangaTitle,
         isLoading = !hasResolvedLocalCover ||
-                coverLoadState == FavoriteCoverLoadState.Idle ||
-                coverLoadState == FavoriteCoverLoadState.Loading,
+                (source != null && (coverLoadState == FavoriteCoverLoadState.Idle ||
+                    coverLoadState == FavoriteCoverLoadState.Loading)),
         modifier = modifier
     )
 }
