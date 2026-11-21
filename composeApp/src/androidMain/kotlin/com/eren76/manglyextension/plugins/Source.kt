@@ -2,6 +2,11 @@ package com.eren76.manglyextension.plugins
 
 abstract class Source(val prefs: IPreferences?) {
     val preferences: IPreferences? = prefs
+    open val apiVersion: Int = API_VERSION
+
+    companion object {
+        const val API_VERSION: Int = 1
+    }
 
     /**
      * Gets the ID  for the extension.

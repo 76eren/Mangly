@@ -20,6 +20,7 @@ import dalvik.system.DexClassLoader
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.lang.reflect.Modifier
 import java.util.UUID
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
@@ -62,8 +63,33 @@ class ExtensionManager @Inject constructor(
             version = metadata.version,
             icon = bitmapPainter,
             dexFile = dex,
-            source = source
+            source = source,
+            canSourceBeLoaded = determineCanSourceBeLoaded(source)
         )
+    }
+
+    fun determineCanSourceBeLoaded(source: Source): Boolean {
+        return try {
+            // The app's inherited getter does not declare the extension's API version.
+            val versionGetter = source.javaClass.getMethod("getApiVersion")
+            if (versionGetter.declaringClass != Source::class.java) {
+                source.apiVersion >= Source.API_VERSION
+            } else {
+                val methods = source.javaClass.methods
+                Source::class.java.methods.filter { Modifier.isAbstract(it.modifiers) }.all { required ->
+                    methods.any { implementation ->
+                        implementation.name == required.name &&
+                            implementation.parameterTypes.contentEquals(required.parameterTypes) &&
+                            !Modifier.isAbstract(implementation.modifiers) &&
+                            required.returnType.isAssignableFrom(implementation.returnType)
+                    }
+                }
+            }
+        } catch (_: ReflectiveOperationException) {
+            false
+        } catch (_: LinkageError) {
+            false
+        }
     }
 
     /**
