@@ -70,7 +70,7 @@ fun <T> ColumnScope.HomeLibraryContent(
         showSourceFilter = !isLoadingItems &&
                 !isLoadingSources &&
                 allItems.isNotEmpty() &&
-                sourceFilterState.sourceOptions.size > 1,
+                sourceFilterState.allLibrarySourceOptions.size > 1,
         pageLabel = collectionState.pageInfo
             ?.takeIf { isContentReady }
             ?.let { pageInfo -> "${pageInfo.currentPage} / ${pageInfo.totalPages}" }
@@ -139,11 +139,11 @@ fun HomeHeader(
     modifier: Modifier = Modifier,
     pageLabel: String? = null
 ) {
-    val selectedSource = sourceFilterState.sourceOptions
+    val selectedSource = sourceFilterState.allLibrarySourceOptions
         .firstOrNull { option -> option.id == sourceFilterState.activeSourceId }
     val sourceLabel = selectedSource?.displayName ?: "All sources"
     val visibleItemCount = selectedSource?.itemCount
-        ?: sourceFilterState.sourceOptions.sumOf { option -> option.itemCount }
+        ?: sourceFilterState.allLibrarySourceOptions.sumOf { option -> option.itemCount }
     val itemLabel = if (visibleItemCount == 1) "item" else "items"
 
     Row(
@@ -188,7 +188,7 @@ fun HomeHeader(
         if (showSourceFilter) {
             Spacer(modifier = Modifier.width(6.dp))
             HomeSourceFilter(
-                sourceOptions = sourceFilterState.sourceOptions,
+                allLibrarySourceOptions = sourceFilterState.allLibrarySourceOptions,
                 selectedSourceId = sourceFilterState.activeSourceId,
                 onSelectedSourceChange = sourceFilterState.onSelectedSourceChange
             )

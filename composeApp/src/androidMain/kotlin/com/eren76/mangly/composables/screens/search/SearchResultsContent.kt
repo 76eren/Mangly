@@ -28,16 +28,16 @@ fun SearchResultsContent(
     Column(
         modifier = modifier.verticalScroll(rememberScrollState())
     ) {
-        uiState.sourceOrder.forEach { extensionMetadata ->
-            key(extensionMetadata.source.getExtensionId()) {
-                val results = uiState.results[extensionMetadata]
-                if (results == null && extensionMetadata in uiState.loadingSources) {
+        uiState.workingSourceMetadataInOrder.forEach { extensionMetadata ->
+            key(extensionMetadata.extensionId) {
+                val results = uiState.resultsByWorkingSource[extensionMetadata]
+                if (results == null && extensionMetadata in uiState.pendingWorkingSourceMetadata) {
                     SearchSourceLoading(extensionMetadata = extensionMetadata)
                 } else if (results != null) {
                     SearchSourceResults(
                         extensionMetadata = extensionMetadata,
                         results = results,
-                        error = uiState.errors[extensionMetadata],
+                        error = uiState.errorsByWorkingSource[extensionMetadata],
                         query = uiState.query,
                         onResultClick = onResultClick
                     )
@@ -56,7 +56,7 @@ private fun SearchSourceResults(
     onResultClick: (Source.SearchResult, ExtensionMetadata) -> Unit
 ) {
     Text(
-        text = extensionMetadata.source.getExtensionName(),
+        text = extensionMetadata.name,
         style = MaterialTheme.typography.titleLarge,
         modifier = Modifier.padding(vertical = 8.dp)
     )
@@ -108,7 +108,7 @@ private fun SearchSourceLoading(
     extensionMetadata: ExtensionMetadata
 ) {
     Text(
-        text = extensionMetadata.source.getExtensionName(),
+        text = extensionMetadata.name,
         style = MaterialTheme.typography.titleLarge,
         modifier = Modifier.padding(vertical = 8.dp)
     )

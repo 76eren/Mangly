@@ -61,7 +61,7 @@ fun SearchBarContent(
             expanded = expanded,
             onExpandedChange = { expanded = it },
         ) {
-            if (uiState.isLoading || uiState.hasSearched || uiState.results.isNotEmpty()) {
+            if (uiState.isLoading || uiState.hasSearched || uiState.resultsByWorkingSource.isNotEmpty()) {
                 SearchResultsContent(
                     uiState = uiState,
                     onResultClick = onResultClick,

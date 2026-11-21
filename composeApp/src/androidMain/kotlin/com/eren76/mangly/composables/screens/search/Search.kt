@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import com.eren76.mangly.navigation.navigateToManga
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.SearchViewModel
 
@@ -35,16 +36,16 @@ fun Search(
             onSearch = { query ->
                 searchViewModel.search(
                     query = query,
-                    sources = extensionMetadataViewModel.getAllSources()
+                    workingSources = extensionMetadataViewModel.getOnlyValidSourcesMetadata()
                 )
             },
             uiState = searchViewModel.uiState.value,
             onResultClick = { result, extensionMetadata ->
-                navigateToSearchResult(
-                    url = result.url,
+                navigateToManga(
+                    mangaUrl = result.url,
                     navController = navHostController,
                     extensionMetadataViewModel = extensionMetadataViewModel,
-                    correspondingSource = extensionMetadata
+                    extensionId = extensionMetadata.extensionId
                 )
             },
             modifier = Modifier.fillMaxWidth()

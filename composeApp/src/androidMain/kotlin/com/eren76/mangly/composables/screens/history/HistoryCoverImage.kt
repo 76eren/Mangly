@@ -1,8 +1,6 @@
 package com.eren76.mangly.composables.screens.history
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -13,7 +11,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import coil3.SingletonImageLoader
 import coil3.compose.SubcomposeAsyncImage
 import com.eren76.mangly.composables.shared.image.CoverCache
@@ -22,7 +19,7 @@ import com.eren76.mangly.composables.shared.image.ImageLoadingComposable
 import com.eren76.mangly.composables.shared.image.ImageLoadingErrorComposable
 import com.eren76.mangly.rooms.entities.HistoryEntity
 import com.eren76.mangly.viewmodels.HistoryViewModel
-import com.eren76.manglyextension.plugins.Source
+import com.eren76.manglyextension.plugins.LoadedSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -31,32 +28,7 @@ import java.io.File
 @Composable
 internal fun HistoryCoverImage(
     historyEntity: HistoryEntity,
-    source: Source?,
-    historyViewModel: HistoryViewModel,
-    modifier: Modifier = Modifier
-) {
-    if (source == null) {
-        Box(
-            modifier = modifier,
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(modifier = Modifier.size(16.dp))
-        }
-        return
-    }
-
-    HistoryCoverImageLoader(
-        historyEntity = historyEntity,
-        source = source,
-        historyViewModel = historyViewModel,
-        modifier = modifier
-    )
-}
-
-@Composable
-private fun HistoryCoverImageLoader(
-    historyEntity: HistoryEntity,
-    source: Source,
+    source: LoadedSource?,
     historyViewModel: HistoryViewModel,
     modifier: Modifier = Modifier
 ) {
@@ -80,8 +52,13 @@ private fun HistoryCoverImageLoader(
                 return@LaunchedEffect
             }
 
+            if (source == null) {
+                loadFailed = true
+                return@LaunchedEffect
+            }
+
             val coverInfo = withContext(Dispatchers.IO) {
-                source.getImageForChaptersList(historyEntity.mangaUrl)
+                source.source.getImageForChaptersList(historyEntity.mangaUrl)
             }
             if (coverInfo.imageUrl.isBlank()) {
                 loadFailed = true

@@ -18,21 +18,21 @@ data class HomeSourceOption(
 
 @Immutable
 data class HomeSourceFilterState(
-    val sourceOptions: List<HomeSourceOption>,
+    val allLibrarySourceOptions: List<HomeSourceOption>,
     val activeSourceId: String?,
     val onSelectedSourceChange: (String?) -> Unit
 )
 
 @Composable
 fun rememberHomeSourceFilterState(
-    sourceOptions: List<HomeSourceOption>,
+    allLibrarySourceOptions: List<HomeSourceOption>,
     resetKey: Any
 ): HomeSourceFilterState {
     val selectedSourceId = remember(resetKey) {
         mutableStateOf<String?>(null)
     }
     val activeSourceId: String? = selectedSourceId.value.takeIf { sourceId ->
-        sourceId == null || sourceOptions.any { option -> option.id == sourceId }
+        sourceId == null || allLibrarySourceOptions.any { option -> option.id == sourceId }
     }
 
     LaunchedEffect(selectedSourceId.value, activeSourceId) {
@@ -45,9 +45,9 @@ fun rememberHomeSourceFilterState(
         { sourceId -> selectedSourceId.value = sourceId }
     }
 
-    return remember(sourceOptions, activeSourceId, onSelectedSourceChange) {
+    return remember(allLibrarySourceOptions, activeSourceId, onSelectedSourceChange) {
         HomeSourceFilterState(
-            sourceOptions = sourceOptions,
+            allLibrarySourceOptions = allLibrarySourceOptions,
             activeSourceId = activeSourceId,
             onSelectedSourceChange = onSelectedSourceChange
         )
@@ -56,25 +56,25 @@ fun rememberHomeSourceFilterState(
 
 fun favoriteSourceOptions(
     favorites: List<FavoritesEntity>,
-    sources: List<ExtensionMetadata>
+    allSourceMetadata: List<ExtensionMetadata>
 ): List<HomeSourceOption> {
     return homeSourceOptions(
         itemCountsBySourceId = favorites
             .groupingBy { favorite -> favorite.extensionId.toString() }
             .eachCount(),
-        sources = sources
+        allSourceMetadata = allSourceMetadata
     )
 }
 
 fun downloadSourceOptions(
     downloads: List<DownloadWithChapters>,
-    sources: List<ExtensionMetadata>
+    allSourceMetadata: List<ExtensionMetadata>
 ): List<HomeSourceOption> {
     return homeSourceOptions(
         itemCountsBySourceId = downloads
             .groupingBy { download -> download.download.extensionId.toString() }
             .eachCount(),
-        sources = sources
+        allSourceMetadata = allSourceMetadata
     )
 }
 
@@ -102,15 +102,12 @@ fun filterDownloadsBySource(
 
 private fun homeSourceOptions(
     itemCountsBySourceId: Map<String, Int>,
-    sources: List<ExtensionMetadata>
+    allSourceMetadata: List<ExtensionMetadata>
 ): List<HomeSourceOption> {
     val seenSourceIds = mutableSetOf<String>()
 
-    return sources.mapNotNull { metadata ->
-        val sourceId = runCatching { metadata.source.getExtensionId() }
-            .getOrNull()
-            ?.takeIf { id -> id.isNotBlank() }
-            ?: return@mapNotNull null
+    return allSourceMetadata.mapNotNull { metadata ->
+        val sourceId = metadata.extensionId
         val itemCount = itemCountsBySourceId[sourceId] ?: return@mapNotNull null
         if (!seenSourceIds.add(sourceId)) return@mapNotNull null
 
@@ -128,11 +125,5 @@ private fun homeSourceOptions(
 }
 
 private fun ExtensionMetadata.displayName(): String {
-    val metadataName = name.takeIf { value -> value.isNotBlank() }
-    if (metadataName != null) return metadataName
-
-    return runCatching { source.getExtensionName() }
-        .getOrNull()
-        ?.takeIf { value -> value.isNotBlank() }
-        ?: "Unknown source"
+    return name.ifBlank { "Unknown source" }
 }

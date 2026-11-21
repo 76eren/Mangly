@@ -110,7 +110,7 @@ class FileManager @Inject constructor(
         val extensionMetadata: ExtensionMetadata =
             extensionManager.extractExtensionMetadata(zipBytes, context)
 
-        val extensionId = extensionMetadata.source.getExtensionId()
+        val extensionId = extensionMetadata.extensionId
         val fileName = "$extensionId.zip"
         val file = File(context.filesDir, fileName)
 
@@ -143,7 +143,7 @@ class FileManager @Inject constructor(
         val extensionMetadata: ExtensionMetadata =
             extensionManager.extractExtensionMetadata(zipBytes, context)
 
-        val extensionId = extensionMetadata.source.getExtensionId()
+        val extensionId = extensionMetadata.extensionId
         val id = UUID.fromString(extensionId)
         return extensionDao.getById(id)
     }

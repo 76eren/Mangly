@@ -2,8 +2,11 @@ package com.eren76.mangly.navigation
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -15,14 +18,15 @@ import com.eren76.mangly.composables.screens.home.Home
 import com.eren76.mangly.composables.screens.read.Read
 import com.eren76.mangly.composables.screens.search.Search
 import com.eren76.mangly.composables.screens.settings.Settings
-import com.eren76.mangly.viewmodels.ChaptersListViewModel
 import com.eren76.mangly.viewmodels.BackupSettingsViewModel
+import com.eren76.mangly.viewmodels.ChaptersListViewModel
 import com.eren76.mangly.viewmodels.DownloadsViewModel
 import com.eren76.mangly.viewmodels.ExtensionDetailsViewModel
 import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.FavoritesViewModel
 import com.eren76.mangly.viewmodels.HistoryViewModel
 import com.eren76.mangly.viewmodels.SearchViewModel
+import com.eren76.manglyextension.plugins.LoadedSource
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
@@ -41,7 +45,7 @@ fun NavHostContainer(
     downloadsViewModel: DownloadsViewModel,
     backupSettingsViewModel: BackupSettingsViewModel,
 
-) {
+    ) {
 
     NavHost(
         navController = navController,
@@ -111,23 +115,35 @@ fun NavHostContainer(
                 val sourceId = backStackEntry.arguments?.getString("id")
                 extensionsViewModel.selectCardBySource(sourceId ?: "")
                 extensionsViewModel.selectedCardData?.let {
-                    ExtensionDetails(cardData = it)
+                    ExtensionDetails(
+                        cardData = it,
+                        loadedSource = extensionMetadataViewModel.getWorkingSourceById(it.metadata.extensionId)
+                    )
                 }
             }
 
             composable("chapters/{url}") { backStackEntry ->
                 val encodedUrl = backStackEntry.arguments?.getString("url").orEmpty()
                 val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
-                ChaptersList(
-                    targetUrl = url,
-                    extensionMetadataViewModel = extensionMetadataViewModel,
-                    chaptersListViewModel = chaptersListViewModel,
-                    favoritesViewModel = favoritesViewModel,
-                    historyViewModel = historyViewModel,
-                    downloadsViewModel = downloadsViewModel,
-                    navHostController = navController,
-                    showDownloads = false
-                )
+                val workingSource = extensionMetadataViewModel.selectedWorkingSource
+                if (workingSource == null) {
+                    Text(
+                        text = "Extension needs updating",
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                } else {
+                    ChaptersList(
+                        targetUrl = url,
+                        source = workingSource,
+                        chaptersListViewModel = chaptersListViewModel,
+                        favoritesViewModel = favoritesViewModel,
+                        historyViewModel = historyViewModel,
+                        downloadsViewModel = downloadsViewModel,
+                        navHostController = navController,
+                        showDownloads = false
+                    )
+                }
             }
 
             composable("chapters/{url}/downloads") { backStackEntry ->
@@ -135,7 +151,7 @@ fun NavHostContainer(
                 val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
                 ChaptersList(
                     targetUrl = url,
-                    extensionMetadataViewModel = extensionMetadataViewModel,
+                    source = null,
                     chaptersListViewModel = chaptersListViewModel,
                     favoritesViewModel = favoritesViewModel,
                     historyViewModel = historyViewModel,
@@ -148,14 +164,23 @@ fun NavHostContainer(
             composable("read/{url}") { backStackEntry ->
                 val encodedUrl = backStackEntry.arguments?.getString("url").orEmpty()
                 val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
-                Read(
-                    targetUrl = url,
-                    extensionMetadataViewModel = extensionMetadataViewModel,
-                    chaptersListViewModel = chaptersListViewModel,
-                    historyViewModel = historyViewModel,
-                    downloadsViewModel = downloadsViewModel,
-                    download = false
-                )
+                val workingSource: LoadedSource? = extensionMetadataViewModel.selectedWorkingSource
+                if (workingSource == null) {
+                    Text(
+                        text = "Extension needs updating",
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                } else {
+                    Read(
+                        targetUrl = url,
+                        source = workingSource,
+                        chaptersListViewModel = chaptersListViewModel,
+                        historyViewModel = historyViewModel,
+                        downloadsViewModel = downloadsViewModel,
+                        download = false
+                    )
+                }
             }
 
             composable("read/{url}/downloads") { backStackEntry ->
@@ -163,7 +188,7 @@ fun NavHostContainer(
                 val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
                 Read(
                     targetUrl = url,
-                    extensionMetadataViewModel = extensionMetadataViewModel,
+                    source = null,
                     chaptersListViewModel = chaptersListViewModel,
                     historyViewModel = historyViewModel,
                     downloadsViewModel = downloadsViewModel,

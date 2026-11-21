@@ -35,9 +35,8 @@ import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
 import com.eren76.mangly.viewmodels.DownloadsViewModel
-import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.HistoryViewModel
-import com.eren76.manglyextension.plugins.ExtensionMetadata
+import com.eren76.manglyextension.plugins.LoadedSource
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -48,7 +47,7 @@ import java.util.UUID
 @Composable
 fun Read(
     targetUrl: String,
-    extensionMetadataViewModel: ExtensionMetadataViewModel,
+    source: LoadedSource?,
     chaptersListViewModel: ChaptersListViewModel,
     historyViewModel: HistoryViewModel,
     downloadsViewModel: DownloadsViewModel,
@@ -69,9 +68,8 @@ fun Read(
         else downloadsViewModel.downloads.value.find { it.download.mangaUrl == chaptersListViewModel.getSelectedMangaUrl() }
     }
 
-    val resolvedExtensionId: UUID? =
-        extensionMetadataViewModel.selectedSingleSource.value?.source?.getExtensionId()
-            ?.let { UUID.fromString(it) }
+    val resolvedExtensionId: UUID? = relatedDownload?.download?.extensionId
+        ?: source?.metadata?.extensionId?.let { UUID.fromString(it) }
 
     fun addToHistoryIfPossible(chapterUrl: String) {
         val extId = resolvedExtensionId ?: return
@@ -81,15 +79,6 @@ fun Read(
             extensionId = extId,
             chapterUrl = chapterUrl
         )
-    }
-
-    val metadata: ExtensionMetadata? = extensionMetadataViewModel.selectedSingleSource.value
-    if (!download && metadata == null) {
-        Text(
-            text = "Something went wrong while loading the chapter images.",
-            modifier = Modifier.padding(16.dp)
-        )
-        return
     }
 
     val context = LocalContext.current
@@ -117,20 +106,20 @@ fun Read(
     val readerMode: ReaderMode = createReaderMode(modeType)
 
     // Online mode: fetch chapter images from the extension source.
-    LaunchedEffect(url, metadata, download) {
+    LaunchedEffect(url, source, download) {
         if (download) return@LaunchedEffect
-        val safeMetadata = metadata ?: return@LaunchedEffect
+        val onlineSource = source ?: return@LaunchedEffect
 
         chapterImages = null
         chapterImageError = null
         isLoadingChapter = true
         try {
             chapterImages = withContext(Dispatchers.IO) {
-                getChapterImages(url, safeMetadata)
+                getChapterImages(url, onlineSource)
             }
         } catch (error: Exception) {
             chapterImageError =
-                "Failed to load chapter images from ${safeMetadata.source.getExtensionName()}: ${
+                "Failed to load chapter images from ${onlineSource.metadata.name}: ${
                     formatReadSourceError(
                         error
                     )
@@ -312,8 +301,8 @@ fun Read(
 }
 
 
-suspend fun getChapterImages(url: String, metadata: ExtensionMetadata): Source.ChapterImages {
-    return metadata.source.getChapterImages(url)
+suspend fun getChapterImages(url: String, source: LoadedSource): Source.ChapterImages {
+    return source.source.getChapterImages(url)
 }
 
 private fun formatReadSourceError(error: Throwable): String {

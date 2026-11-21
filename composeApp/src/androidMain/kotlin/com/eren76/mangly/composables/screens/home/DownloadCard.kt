@@ -8,11 +8,13 @@ import androidx.compose.ui.platform.LocalContext
 import com.eren76.mangly.composables.shared.image.CoverImageRequests
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
 import com.eren76.mangly.viewmodels.DownloadsViewModel
+import com.eren76.manglyextension.plugins.ExtensionMetadata
 
 @Composable
 fun DownloadCard(
     downloadWithChapters: DownloadWithChapters,
     downloadsViewModel: DownloadsViewModel,
+    extensionMetadata: ExtensionMetadata?,
     onClick: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -26,6 +28,8 @@ fun DownloadCard(
     HomeMangaCard(
         title = title,
         subtitle = subtitle,
+        allowOpeningWithoutSource = downloadedChapters > 0,
+        extensionMetadata = extensionMetadata,
         menuKey = download.downloadId,
         menuText = "Delete download",
         onClick = onClick,

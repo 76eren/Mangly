@@ -8,7 +8,6 @@ import androidx.work.WorkerParameters
 import com.eren76.mangly.downloads.DownloadStorage
 import com.eren76.mangly.downloads.models.DownloadWorkerRequest
 import com.eren76.mangly.rooms.entities.ExtensionEntity
-import com.eren76.manglyextension.plugins.ExtensionMetadata
 import kotlinx.coroutines.CancellationException
 import java.io.File
 import java.io.IOException
@@ -101,11 +100,13 @@ class ChapterDownloadWorker(
             }
 
         return try {
-            val metadata: ExtensionMetadata =
-                dependencies.extensionManager().extractExtensionMetadata(
+            val loadedSource = checkNotNull(
+                dependencies.extensionManager().loadExtension(
                     zipBytes = File(extensionEntry.filePath).readBytes(),
-                    context = applicationContext
-                )
+                    context = applicationContext,
+                    installedExtensionId = extensionId
+                ).loadedSource
+            ) { "Extension needs updating" }
 
             notifications.updateProgressNotification(
                 mangaName = request.mangaName,
@@ -120,7 +121,7 @@ class ChapterDownloadWorker(
                 mangaSummary = request.mangaSummary,
                 chapterUrl = request.chapterUrl,
                 chapterName = request.chapterName,
-                source = metadata.source,
+                loadedSource = loadedSource,
                 extensionId = extensionId,
                 context = applicationContext,
                 downloadsDirectory = request.downloadsDirectory,

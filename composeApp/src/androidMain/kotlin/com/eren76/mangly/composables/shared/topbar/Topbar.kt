@@ -110,7 +110,7 @@ fun TopBarNewExtension() {
                                 } else {
                                     // Update
                                     val oldMetadata = extensionManager.extractExtensionMetadata(
-                                        File(existingEntity.filePath).readBytes(), context
+                                        File(existingEntity.filePath).readBytes(), context, existingEntity.id
                                     )
 
                                     oldEntityState.value = existingEntity
@@ -273,8 +273,7 @@ fun DeleteWarningDialog(
                                 try {
                                     val entityToBeDeleted: ExtensionEntity =
                                         extensionManager.getDatabaseEntryByMetadata(
-                                            metadata,
-                                            context
+                                            metadata
                                         )
 
                                     fileManager.deleteAndRemoveExtension(entityToBeDeleted, context)

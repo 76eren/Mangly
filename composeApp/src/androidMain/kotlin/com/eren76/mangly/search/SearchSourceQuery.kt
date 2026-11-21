@@ -3,10 +3,10 @@ package com.eren76.mangly.search
 import androidx.compose.runtime.MutableState
 import com.eren76.mangly.viewmodels.SearchUiState
 import com.eren76.manglyextension.plugins.ExtensionMetadata
+import com.eren76.manglyextension.plugins.LoadedSource
 import com.eren76.manglyextension.plugins.Source
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
@@ -19,13 +19,12 @@ private data class ExtensionSearchResult(
 
 internal suspend fun querySearchSources(
     query: String,
-    sources: List<ExtensionMetadata>,
+    workingSources: List<LoadedSource>,
     uiState: MutableState<SearchUiState>
 ) = supervisorScope {
-    val jobs = mutableListOf<Job>()
-    sources.forEach { source ->
-        jobs += launch {
-            val result: ExtensionSearchResult = querySource(query = query, source = source)
+    workingSources.forEach { workingSource ->
+        launch {
+            val result: ExtensionSearchResult = querySource(query = query, workingSource = workingSource)
             addSearchResultToUiState(
                 query = query,
                 result = result,
@@ -37,19 +36,19 @@ internal suspend fun querySearchSources(
 
 private suspend fun querySource(
     query: String,
-    source: ExtensionMetadata
+    workingSource: LoadedSource
 ): ExtensionSearchResult = withContext(Dispatchers.IO) {
     try {
         ExtensionSearchResult(
-            metadata = source,
-            results = source.source.search(query),
+            metadata = workingSource.metadata,
+            results = workingSource.source.search(query),
             error = null
         )
     } catch (error: CancellationException) {
         throw error
     } catch (error: Exception) {
         ExtensionSearchResult(
-            metadata = source,
+            metadata = workingSource.metadata,
             results = emptyList(),
             error = formatExtensionError(error)
         )
@@ -69,13 +68,13 @@ private fun addSearchResultToUiState(
 
     // Force re-composition of the entire source section by creating new collections, which is why I didn't make it a mutable map
     uiState.value = currentState.copy(
-        results = currentState.results + (result.metadata to result.results),
-        errors = if (result.error == null) {
-            currentState.errors - result.metadata
+        resultsByWorkingSource = currentState.resultsByWorkingSource + (result.metadata to result.results),
+        errorsByWorkingSource = if (result.error == null) {
+            currentState.errorsByWorkingSource - result.metadata
         } else {
-            currentState.errors + (result.metadata to result.error)
+            currentState.errorsByWorkingSource + (result.metadata to result.error)
         },
-        loadingSources = currentState.loadingSources - result.metadata
+        pendingWorkingSourceMetadata = currentState.pendingWorkingSourceMetadata - result.metadata
     )
 }
 

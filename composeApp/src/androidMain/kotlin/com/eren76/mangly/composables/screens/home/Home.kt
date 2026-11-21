@@ -81,12 +81,17 @@ private fun ColumnScope.HomeFavoritesContent(
             sortFavorites(favorites, sorting, historyViewModel)
         }
 
-    val sources: List<ExtensionMetadata> = extensionMetadataViewModel.getAllSources()
-    val sourceOptions: List<HomeSourceOption> = remember(sortedFavorites, sources) {
-        favoriteSourceOptions(favorites = sortedFavorites, sources = sources)
-    }
+    val allSourceMetadata: List<ExtensionMetadata> =
+        extensionMetadataViewModel.getAllValidAndInvalidSourcesMetadata()
+    val allLibrarySourceOptions: List<HomeSourceOption> =
+        remember(sortedFavorites, allSourceMetadata) {
+            favoriteSourceOptions(
+                favorites = sortedFavorites,
+                allSourceMetadata = allSourceMetadata
+            )
+        }
     val sourceFilterState: HomeSourceFilterState = rememberHomeSourceFilterState(
-        sourceOptions = sourceOptions,
+        allLibrarySourceOptions = allLibrarySourceOptions,
         resetKey = HomeMode.Favorites
     )
     val filteredFavorites: List<FavoritesEntity> =
@@ -127,12 +132,17 @@ private fun ColumnScope.HomeDownloadsContent(
             sortDownloads(downloads, sorting, historyViewModel)
         }
 
-    val sources: List<ExtensionMetadata> = extensionMetadataViewModel.getAllSources()
-    val sourceOptions: List<HomeSourceOption> = remember(sortedDownloads, sources) {
-        downloadSourceOptions(downloads = sortedDownloads, sources = sources)
-    }
+    val allSourceMetadata: List<ExtensionMetadata> =
+        extensionMetadataViewModel.getAllValidAndInvalidSourcesMetadata()
+    val allLibrarySourceOptions: List<HomeSourceOption> =
+        remember(sortedDownloads, allSourceMetadata) {
+            downloadSourceOptions(
+                downloads = sortedDownloads,
+                allSourceMetadata = allSourceMetadata
+            )
+        }
     val sourceFilterState: HomeSourceFilterState = rememberHomeSourceFilterState(
-        sourceOptions = sourceOptions,
+        allLibrarySourceOptions = allLibrarySourceOptions,
         resetKey = HomeMode.Downloads
     )
     val filteredDownloads: List<DownloadWithChapters> =

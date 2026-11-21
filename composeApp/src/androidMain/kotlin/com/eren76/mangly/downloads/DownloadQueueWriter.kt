@@ -13,7 +13,7 @@ import androidx.work.WorkManager
 import com.eren76.mangly.downloads.models.DownloadChapterQueueRequest
 import com.eren76.mangly.downloads.models.DownloadQueueItem
 import com.eren76.mangly.workers.ChapterDownloadWorker
-import com.eren76.manglyextension.plugins.ExtensionMetadata
+import com.eren76.manglyextension.plugins.LoadedSource
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.UUID
@@ -26,7 +26,7 @@ internal object DownloadQueueWriter {
         mangaName: String,
         mangaSummary: String,
         chapters: List<DownloadChapterQueueRequest>,
-        extensionMetadata: ExtensionMetadata,
+        loadedSource: LoadedSource,
         activeQueueItems: List<DownloadQueueItem>
     ): Int {
         val activeQueueKeys = activeQueueItems
@@ -51,7 +51,7 @@ internal object DownloadQueueWriter {
                 mangaName = mangaName,
                 mangaSummary = mangaSummary,
                 chapter = chapter,
-                extensionMetadata = extensionMetadata,
+                loadedSource = loadedSource,
                 queueIndex = index + 1,
                 queueTotal = queueTotal,
                 batchId = batchId,
@@ -97,7 +97,7 @@ internal object DownloadQueueWriter {
         mangaName: String,
         mangaSummary: String,
         chapter: DownloadChapterQueueRequest,
-        extensionMetadata: ExtensionMetadata,
+        loadedSource: LoadedSource,
         queueIndex: Int,
         queueTotal: Int,
         batchId: String,
@@ -112,7 +112,7 @@ internal object DownloadQueueWriter {
             .putString(ChapterDownloadWorker.KEY_CHAPTER_NAME, chapter.chapterName)
             .putString(
                 ChapterDownloadWorker.KEY_EXTENSION_ID,
-                extensionMetadata.source.getExtensionId()
+                loadedSource.metadata.extensionId
             )
             .putString(
                 ChapterDownloadWorker.KEY_DOWNLOADS_DIR,

@@ -32,20 +32,20 @@ import com.eren76.mangly.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeSourceFilter(
-    sourceOptions: List<HomeSourceOption>,
+    allLibrarySourceOptions: List<HomeSourceOption>,
     selectedSourceId: String?,
     onSelectedSourceChange: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showSheet by remember { mutableStateOf(false) }
-    val duplicateLabels: Set<String> = remember(sourceOptions) {
-        sourceOptions
+    val duplicateLabels: Set<String> = remember(allLibrarySourceOptions) {
+        allLibrarySourceOptions
             .groupingBy { option -> option.displayName }
             .eachCount()
             .filterValues { count -> count > 1 }
             .keys
     }
-    val selectedLabel = sourceOptions
+    val selectedLabel = allLibrarySourceOptions
         .firstOrNull { option -> option.id == selectedSourceId }
         ?.displayName
         ?: "All sources"
@@ -88,7 +88,7 @@ fun HomeSourceFilter(
                 item(key = "all_sources") {
                     SourceFilterItem(
                         label = "All sources",
-                        count = sourceOptions.sumOf { option -> option.itemCount },
+                        count = allLibrarySourceOptions.sumOf { option -> option.itemCount },
                         selected = selectedSourceId == null,
                         onClick = {
                             showSheet = false
@@ -98,7 +98,7 @@ fun HomeSourceFilter(
                 }
 
                 items(
-                    items = sourceOptions,
+                    items = allLibrarySourceOptions,
                     key = { option -> option.id }
                 ) { option ->
                     SourceFilterItem(

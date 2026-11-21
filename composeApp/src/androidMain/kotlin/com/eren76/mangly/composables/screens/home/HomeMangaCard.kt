@@ -1,5 +1,6 @@
 package com.eren76.mangly.composables.screens.home
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.eren76.mangly.composables.shared.dropdowns.DeleteDropdownMenu
+import com.eren76.manglyextension.plugins.ExtensionMetadata
 
 @Composable
 fun HomeMangaCard(
@@ -33,20 +35,24 @@ fun HomeMangaCard(
     onClick: () -> Unit,
     onDelete: () -> Unit,
     imageContent: @Composable (Modifier) -> Unit,
+    extensionMetadata: ExtensionMetadata?,
     subtitle: String? = null,
-    badgeText: String? = null
+    allowOpeningWithoutSource: Boolean = false
 ) {
     var isDeleteDropdownMenuExpanded by remember(menuKey) { mutableStateOf(false) }
 
+    val canOpenCard = allowOpeningWithoutSource || extensionMetadata?.canSourceBeLoaded == true
+    val isSourceDisabled = extensionMetadata?.canSourceBeLoaded == false
+
     Card(
-        modifier = Modifier
-            .width(160.dp)
-            .height(220.dp)
+        modifier = Modifier.width(160.dp).height(220.dp)
             .combinedClickable(
-                onClick = onClick,
+                onClickLabel = if (canOpenCard) null else "Show delete options",
+                onClick = { if (canOpenCard) onClick() else isDeleteDropdownMenuExpanded = true },
                 onLongClick = { isDeleteDropdownMenuExpanded = true }
             ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(4.dp),
+        border = if (isSourceDisabled) BorderStroke(1.dp, MaterialTheme.colorScheme.error) else null
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             imageContent(Modifier.fillMaxSize())
@@ -76,21 +82,17 @@ fun HomeMangaCard(
                 }
             }
 
-            badgeText?.let { text ->
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.85f))
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = text,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onError,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+            if (isSourceDisabled) {
+                Text(
+                    text = "Extension needs updating",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onError,
+                    modifier = Modifier.align(Alignment.TopStart)
+                        .background(MaterialTheme.colorScheme.error)
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
             Box(modifier = Modifier.align(Alignment.TopEnd)) {

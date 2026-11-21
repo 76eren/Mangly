@@ -17,7 +17,7 @@ import com.eren76.mangly.downloads.models.DownloadQueueStatus
 import com.eren76.mangly.rooms.dao.DownloadsDao
 import com.eren76.mangly.rooms.entities.DownloadedChapterEntity
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
-import com.eren76.manglyextension.plugins.ExtensionMetadata
+import com.eren76.manglyextension.plugins.LoadedSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -115,7 +115,7 @@ class DownloadsViewModel
         mangaName: String,
         mangaSummary: String,
         chapters: List<DownloadChapterQueueRequest>,
-        extensionMetadata: ExtensionMetadata,
+        loadedSource: LoadedSource,
         context: Context
     ): Int {
         ensureQueueObserver(context)
@@ -125,7 +125,7 @@ class DownloadsViewModel
             mangaName = mangaName,
             mangaSummary = mangaSummary,
             chapters = chapters,
-            extensionMetadata = extensionMetadata,
+            loadedSource = loadedSource,
             activeQueueItems = downloadQueue.value
         )
         if (queuedCount > 0) refresh()

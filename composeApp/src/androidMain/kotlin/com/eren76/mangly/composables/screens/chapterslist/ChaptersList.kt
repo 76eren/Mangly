@@ -34,10 +34,10 @@ import com.eren76.mangly.rooms.entities.FavoritesEntity
 import com.eren76.mangly.rooms.relations.DownloadWithChapters
 import com.eren76.mangly.viewmodels.ChaptersListViewModel
 import com.eren76.mangly.viewmodels.DownloadsViewModel
-import com.eren76.mangly.viewmodels.ExtensionMetadataViewModel
 import com.eren76.mangly.viewmodels.FavoritesViewModel
 import com.eren76.mangly.viewmodels.HistoryViewModel
 import com.eren76.manglyextension.plugins.ExtensionMetadata
+import com.eren76.manglyextension.plugins.LoadedSource
 import com.eren76.manglyextension.plugins.Source
 import com.eren76.manglyextension.plugins.Source.ImageForChaptersList
 import kotlinx.coroutines.Dispatchers
@@ -47,11 +47,10 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 
-// TODO: This is a very large composable function, needs to be refactored in the future.
 @Composable
 fun ChaptersList(
     targetUrl: String,
-    extensionMetadataViewModel: ExtensionMetadataViewModel,
+    source: LoadedSource?,
     chaptersListViewModel: ChaptersListViewModel,
     favoritesViewModel: FavoritesViewModel,
     historyViewModel: HistoryViewModel,
@@ -59,24 +58,17 @@ fun ChaptersList(
     navHostController: NavHostController,
     showDownloads: Boolean = false
 ) {
-    // TODO: Do this some other way, because now this needs to be set before navigating to this screen
-    val metadata: ExtensionMetadata? = extensionMetadataViewModel.selectedSingleSource.value
+    val metadata: ExtensionMetadata? = source?.metadata
 
     val downloads = downloadsViewModel.downloads.value
 
     val relatedDownload: DownloadWithChapters? =
         downloads.find { it.download.mangaUrl == targetUrl }
-
-    // In downloads mode we must be fully offline-capable.
-    // That means we must NOT require extension metadata (which is normally set before navigation).
-    if (!showDownloads && metadata == null) {
-        Text(
-            "Something went wrong while loading the chapters list.",
-            modifier = Modifier.padding(16.dp)
-        )
-        return
+    val extensionId: UUID? = if (showDownloads) {
+        relatedDownload?.download?.extensionId
+    } else {
+        metadata?.extensionId?.let { UUID.fromString(it) }
     }
-
 
     var chapters by remember { mutableStateOf<List<Source.ChapterValue>?>(null) }
     var image by remember { mutableStateOf<ImageForChaptersList?>(null) }
@@ -110,7 +102,7 @@ fun ChaptersList(
         }
     }
 
-    LaunchedEffect(targetUrl, metadata, showDownloads, relatedDownload) {
+    LaunchedEffect(targetUrl, source, showDownloads, relatedDownload) {
         // Download only mode no networking
         if (showDownloads) {
             val localChapters: List<Source.ChapterValue> = relatedDownload
@@ -143,18 +135,18 @@ fun ChaptersList(
         loadError = null
 
         // Regular online mode
-        val safeMetadata = metadata ?: return@LaunchedEffect
+        val onlineSource: LoadedSource = source ?: return@LaunchedEffect
 
         val fetchedChapters = runCatching {
             withContext(Dispatchers.IO) {
                 if (chaptersListViewModel.getChapters().isEmpty()) {
-                    fetchChapterList(safeMetadata.source, targetUrl)
+                    fetchChapterList(onlineSource, targetUrl)
                 } else {
                     chaptersListViewModel.getChapters()
                 }
             }
         }.onFailure { error ->
-            loadError = "Failed to load chapters from ${safeMetadata.source.getExtensionName()}: ${
+            loadError = "Failed to load chapters from ${onlineSource.metadata.name}: ${
                 formatSourceError(error)
             }"
         }.getOrNull()
@@ -165,7 +157,7 @@ fun ChaptersList(
                 if (chaptersListViewModel.getImage() != null) {
                     chaptersListViewModel.getImage()
                 } else {
-                    fetchChapterImage(safeMetadata.source, targetUrl)
+                    fetchChapterImage(onlineSource, targetUrl)
                 }
             }
         }.getOrNull()
@@ -175,7 +167,7 @@ fun ChaptersList(
                 if (chaptersListViewModel.getSummary().isNotBlank()) {
                     chaptersListViewModel.getSummary()
                 } else {
-                    fetchSummary(safeMetadata.source, targetUrl)
+                    fetchSummary(onlineSource, targetUrl)
                 }
             }
         }.getOrDefault("")
@@ -185,7 +177,7 @@ fun ChaptersList(
                 if (chaptersListViewModel.getName().isNotBlank()) {
                     chaptersListViewModel.getName()
                 } else {
-                    fetchMangaTitle(safeMetadata.source, targetUrl)
+                    fetchMangaTitle(onlineSource, targetUrl)
                 }
             }
         }.getOrDefault("")
@@ -264,7 +256,7 @@ fun ChaptersList(
                 mangaName = mangaName,
                 summary = summary,
                 isSummaryExpanded = isSummaryExpanded,
-                extensionName = metadata?.source?.getExtensionName().orEmpty(),
+                extensionName = metadata?.name.orEmpty(),
                 isFavorite = isFavorite,
                 isContinueReadingEnabled = continueReadingChapter != null,
                 onToggleSummary = { isSummaryExpanded = !isSummaryExpanded },
@@ -288,8 +280,7 @@ fun ChaptersList(
                                 mangaUrl = targetUrl,
                                 mangaTitle = mangaName,
                                 created_at = System.currentTimeMillis(),
-                                // If we reached this code path, we are not in downloads mode and metadata is present.
-                                extensionId = UUID.fromString(metadata!!.source.getExtensionId())
+                                extensionId = extensionId ?: return@launch
                             )
                             favoritesViewModel.addFavorite(favoriteEntity)
                             Toast.makeText(
@@ -351,7 +342,7 @@ fun ChaptersList(
                                     historyViewModel.ensureHistoryAndAddChapter(
                                         mangaUrl = targetUrl,
                                         mangaName = mangaName,
-                                        extensionId = UUID.fromString(metadata!!.source.getExtensionId()),
+                                        extensionId = extensionId ?: return@launch,
                                         chapterUrl = chapterUrl
                                     )
                                 }
@@ -377,7 +368,7 @@ fun ChaptersList(
                                     mangaName = mangaName,
                                     mangaSummary = summary,
                                     chapters = chaptersToQueue,
-                                    extensionMetadata = metadata!!,
+                                    loadedSource = source!!,
                                     context = context
                                 )
                                 val toastText = if (enqueuedCount == 0) {
